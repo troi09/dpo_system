@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getMyRequests } from "../../services/requestService";
 
-const prettyType = (t) => (t === "nda" ? "NDA" : "Authorization");
+const prettyType = (t) => (t === "nda" ? "NDA" : "Agreement");
 const prettyStatus = (s) =>
   s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 

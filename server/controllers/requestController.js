@@ -3,14 +3,9 @@ const Request = require("../models/Request");
 
 exports.createRequest = async (req, res) => {
   try {
-    // Only students can submit requests
-    if (req.user.role !== "student") {
-      return res.status(403).json({ message: "Only students can create requests" });
-    }
-
     const { requestType, formData } = req.body;
 
-    if (!requestType || !["nda", "authorization"].includes(requestType)) {
+    if (!requestType || !["nda", "agreement"].includes(requestType)) {
       return res.status(400).json({ message: "Invalid requestType" });
     }
 
@@ -48,10 +43,19 @@ exports.getMyRequests = async (req, res) => {
 
 exports.getAllRequests = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Admins only" });
-    }
+    const list = await Request.find()
+      .populate("userId", "name email role")
+      .sort({ createdAt: -1 })
+      .select("-__v");
 
+    return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getAllPending = async (req, res) => {
+  try {
     const list = await Request.find({ status: "pending" })
       .populate("userId", "name email role")
       .sort({ createdAt: -1 })
@@ -65,11 +69,6 @@ exports.getAllRequests = async (req, res) => {
 
 exports.updateRequestStatus = async (req, res) => {
   try {
-    // Only admins can update status
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ message: "Admins only" });
-    }
-
     const { id } = req.params;
     const { status, adminRemarks } = req.body;
 

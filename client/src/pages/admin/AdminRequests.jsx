@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { getAllRequests, updateRequestStatus } from "../../services/requestService";
+import { getAllPending, updateRequestStatus } from "../../services/requestService";
 
-const prettyType = (t) => (t === "nda" ? "NDA" : "Authorization");
+const prettyType = (t) => (t === "nda" ? "NDA" : "Agreement");
 const prettyStatus = (s) =>
   s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -11,7 +11,7 @@ const AdminRequests = () => {
 
   const load = async () => {
     try {
-      const data = await getAllRequests();
+      const data = await getAllPending();
       setRequests(data);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to load requests");

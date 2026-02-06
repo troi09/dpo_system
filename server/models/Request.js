@@ -10,11 +10,11 @@ const requestSchema = new mongoose.Schema(
 
     requestType: {
       type: String,
-      enum: ["nda", "authorization"],
+      enum: ["nda", "agreement"],
       required: true,
     },
 
-    // store request fields here (flexible)
+    // store request fields here
     formData: {
       type: Object,
       required: true,

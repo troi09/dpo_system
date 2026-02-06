@@ -43,8 +43,8 @@ const StudentNewRequest = () => {
         onChange={(e) => setRequestType(e.target.value)}
         style={{ width: "100%", padding: "10px", margin: "10px 0" }}
       >
-        <option value="nda">Non-Disclosure Agreement (NDA)</option>
-        <option value="authorization">Authorization Agreement</option>
+        <option value="nda">Non-Disclosure Agreement Form</option>
+        <option value="agreement">Agreement Form</option>
       </select>
 
       <input
