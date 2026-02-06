@@ -23,3 +23,8 @@ export const getAllRequests = async () => {
   const res = await axios.get(API_URL, { headers: authHeader() });
   return res.data;
 };
+
+export const updateRequestStatus = async (id, payload) => {
+  const res = await axios.patch(`${API_URL}/${id}`, payload, { headers: authHeader() });
+  return res.data;
+};

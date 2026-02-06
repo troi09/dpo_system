@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Request = require("../models/Request");
 
 exports.createRequest = async (req, res) => {
@@ -47,17 +48,57 @@ exports.getMyRequests = async (req, res) => {
 
 exports.getAllRequests = async (req, res) => {
   try {
-    // Only admins can view all requests
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Admins only" });
     }
 
-    const list = await Request.find()
+    const list = await Request.find({ status: "pending" })
       .populate("userId", "name email role")
       .sort({ createdAt: -1 })
       .select("-__v");
 
     return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateRequestStatus = async (req, res) => {
+  try {
+    // Only admins can update status
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admins only" });
+    }
+
+    const { id } = req.params;
+    const { status, adminRemarks } = req.body;
+
+    const allowedStatuses = ["approved", "revision_required"];
+    if (!status || !allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid request id" });
+    }
+
+    const updated = await Request.findByIdAndUpdate(
+      id,
+      {
+        status,
+        adminRemarks: adminRemarks || "",
+      },
+      { new: true }
+    ).select("-__v");
+
+    if (!updated) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    return res.json({
+      message: "Request updated",
+      request: updated,
+    });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }

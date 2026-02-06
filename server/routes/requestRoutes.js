@@ -6,6 +6,7 @@ const {
   createRequest,
   getMyRequests,
   getAllRequests,
+  updateRequestStatus,
 } = require("../controllers/requestController");
 
 // Student
@@ -14,5 +15,7 @@ router.get("/my", protect, getMyRequests);
 
 // Admin
 router.get("/", protect, getAllRequests);
+
+router.patch("/:id", protect, updateRequestStatus);
 
 module.exports = router;
