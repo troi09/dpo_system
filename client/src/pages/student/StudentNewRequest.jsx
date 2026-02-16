@@ -1,74 +1,35 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createRequest } from "../../services/requestService";
 
-const StudentNewRequest = () => {
+export default function StudentNewRequest() {
   const navigate = useNavigate();
+  const [type, setType] = useState("nda");
 
-  const [requestType, setRequestType] = useState("nda");
-  const [purpose, setPurpose] = useState("");
-  const [details, setDetails] = useState("");
-
-  const handleSubmit = async (e) => {
+  const handleContinue = (e) => {
     e.preventDefault();
-
-    try {
-      await createRequest({
-        requestType,
-        formData: { purpose, details },
-      });
-
-      alert("Request submitted!");
-      navigate("/student");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to submit request");
-    }
+    navigate(`/student/new-request/${type}`);
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        padding: "30px",
-        borderRadius: "8px",
-        width: "420px",
-        textAlign: "center",
-        boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-      }}
-    >
+    <div style={{ padding: 24 }}>
       <h2>New Request</h2>
 
-      <select
-        value={requestType}
-        onChange={(e) => setRequestType(e.target.value)}
-        style={{ width: "100%", padding: "10px", margin: "10px 0" }}
-      >
-        <option value="nda">Non-Disclosure Agreement Form</option>
-        <option value="agreement">Agreement Form</option>
-      </select>
+      <form onSubmit={handleContinue} style={{ maxWidth: 420 }}>
+        <label style={{ display: "block", marginTop: 12 }}>Choose request form</label>
 
-      <input
-        type="text"
-        placeholder="Purpose"
-        value={purpose}
-        onChange={(e) => setPurpose(e.target.value)}
-        required
-        style={{ width: "100%", padding: "10px", margin: "10px 0" }}
-      />
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          style={{ width: "100%", padding: 10, marginTop: 8 }}
+        >
+          <option value="nda">NDA</option>
+          <option value="agreement">Agreement</option>
+        </select>
 
-      <textarea
-        placeholder="Details (optional)"
-        value={details}
-        onChange={(e) => setDetails(e.target.value)}
-        rows={4}
-        style={{ width: "100%", padding: "10px", margin: "10px 0" }}
-      />
-
-      <button type="submit" style={{ width: "100%", padding: "10px" }}>
-        Submit Request
-      </button>
-    </form>
+        <button type="submit" style={{ width: "100%", padding: 10, marginTop: 16 }}>
+          Continue
+        </button>
+      </form>
+    </div>
   );
-};
-
-export default StudentNewRequest;
+}

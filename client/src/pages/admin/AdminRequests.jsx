@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { getAllPending, updateRequestStatus } from "../../services/requestService";
 
 const prettyType = (t) => (t === "nda" ? "NDA" : "Agreement");
-const prettyStatus = (s) =>
-  s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
 const AdminRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -37,7 +36,7 @@ const AdminRequests = () => {
     <div style={{ width: "1200px" }}>
       <h2 style={{ textAlign: "center", marginBottom: "12px" }}>Pending Request Queue</h2>
 
-      <div style={{ background: "#242424  ", padding: "16px", borderRadius: "8px" }}>
+      <div style={{ background: "#242424", padding: "16px", borderRadius: "8px" }}>
         {requests.length === 0 ? (
           <p style={{ textAlign: "center" }}>No requests found.</p>
         ) : (
@@ -47,8 +46,8 @@ const AdminRequests = () => {
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Student</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Email</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Type</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Status</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Submitted</th>
+                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Attached Files</th>
+                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Date Submitted</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Remarks</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Actions</th>
               </tr>
@@ -60,23 +59,36 @@ const AdminRequests = () => {
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     {r.userId?.name || "Unknown"}
                   </td>
+
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     {r.userId?.email || "Unknown"}
                   </td>
+
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     {prettyType(r.requestType)}
                   </td>
+
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {prettyStatus(r.status)}
-                  </td>
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {new Date(r.createdAt).toLocaleString()}
+                    {(!r.requirements || r.requirements.length === 0) ? (
+                      <span style={{ opacity: 0.7 }}>None</span>
+                    ) : (
+                      r.requirements.map((f, idx) => (
+                      <div key={idx}>
+                        <a href={f.url} target="_blank" rel="noreferrer" title={f.originalName}>
+                          {`File ${idx + 1}`}
+                        </a>
+                      </div>
+                      ))
+                    )}
                   </td>
 
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                    {new Date(r.createdAt).toLocaleDateString("en-US")}
+                  </td>
+                  
+                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     <input
                       type="text"
-                      placeholder="Add remarks (optional)"
                       value={remarksById[r._id] ?? r.adminRemarks ?? ""}
                       onChange={(e) =>
                         setRemarksById((prev) => ({ ...prev, [r._id]: e.target.value }))

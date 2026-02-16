@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { getMyRequests } from "../../services/requestService";
 
 const prettyType = (t) => (t === "nda" ? "NDA" : "Agreement");
-const prettyStatus = (s) =>
-  s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
 const StudentDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -34,6 +33,7 @@ const StudentDashboard = () => {
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Type</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Status</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Submitted</th>
+                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Files Attached</th>
               </tr>
             </thead>
             <tbody>
@@ -46,7 +46,20 @@ const StudentDashboard = () => {
                     {prettyStatus(r.status)}
                   </td>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {new Date(r.createdAt).toLocaleString()}
+                    {new Date(r.createdAt).toLocaleDateString("en-US")}
+                  </td>
+                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                    {(!r.requirements || r.requirements.length === 0) ? (
+                      <span style={{ opacity: 0.7 }}>None</span>
+                    ) : (
+                      r.requirements.map((f, idx) => (
+                      <div key={idx}>
+                        <a href={f.url} target="_blank" rel="noreferrer" title={f.originalName}>
+                          {`File ${idx + 1}`}
+                        </a>
+                      </div>
+                      ))
+                    )}
                   </td>
                 </tr>
               ))}

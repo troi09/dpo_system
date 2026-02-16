@@ -20,6 +20,20 @@ const requestSchema = new mongoose.Schema(
       required: true,
     },
 
+    requirements: {
+      type: [
+        {
+          originalName: String,
+          url: String,
+          path: String,
+          contentType: String,
+          size: Number,
+          uploadedAt: String,
+        },
+      ],
+      default: [],
+    },
+
     status: {
       type: String,
       enum: ["pending", "approved", "revision_required"],

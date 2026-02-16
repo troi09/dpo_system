@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { getAllRequests } from "../../services/requestService";
 
 const prettyType = (t) => (t === "nda" ? "NDA" : "Agreement");
-const prettyStatus = (s) =>
-  s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -32,10 +31,9 @@ const AdminDashboard = () => {
             <thead>
               <tr style={{ textAlign: "left" }}>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Student</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Email</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Type</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Status</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Submitted</th>
+                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Date Submitted</th>
               </tr>
             </thead>
 
@@ -46,16 +44,13 @@ const AdminDashboard = () => {
                     {r.userId?.name || "Unknown"}
                   </td>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {r.userId?.email || "Unknown"}
-                  </td>
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     {prettyType(r.requestType)}
                   </td>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     {prettyStatus(r.status)}
                   </td>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {new Date(r.createdAt).toLocaleString()}
+                    {new Date(r.createdAt).toLocaleDateString("en-US")}
                   </td>
                 </tr>
               ))}

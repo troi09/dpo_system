@@ -3,7 +3,7 @@ const Request = require("../models/Request");
 
 exports.createRequest = async (req, res) => {
   try {
-    const { requestType, formData } = req.body;
+    const { requestType, formData, requirements } = req.body;
 
     if (!requestType || !["nda", "agreement"].includes(requestType)) {
       return res.status(400).json({ message: "Invalid requestType" });
@@ -17,6 +17,7 @@ exports.createRequest = async (req, res) => {
       userId: req.user.id,
       requestType,
       formData,
+      requirements: Array.isArray(requirements) ? requirements : [],
       status: "pending",
     });
 
