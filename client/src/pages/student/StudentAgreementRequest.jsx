@@ -23,7 +23,7 @@ export default function StudentAgreementRequest() {
 
       const user = JSON.parse(localStorage.getItem("user") || "null");
       const studentName = user?.name || "Unknown Student";
-      const requestFolder = getDateRequestFolder(studentName, "agreement");
+      const requestFolder = getDateRequestFolder();
       const uploaded = await uploadRequirements(selectedFiles, "agreement", studentName, requestFolder);
 
       await createRequest({

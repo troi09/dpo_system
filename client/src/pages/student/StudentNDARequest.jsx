@@ -23,7 +23,7 @@ export default function StudentNDARequest() {
 
       const user = JSON.parse(localStorage.getItem("user") || "null");
       const studentName = user?.name || "Unknown Student";
-      const requestFolder = getDateRequestFolder(studentName, "nda");
+      const requestFolder = getDateRequestFolder();
       const uploaded = await uploadRequirements(selectedFiles, "nda", studentName, requestFolder);
 
       await createRequest({
