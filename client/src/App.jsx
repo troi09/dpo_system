@@ -14,6 +14,7 @@ import StudentNewRequest from "./pages/student/StudentNewRequest";
 import StudentNDARequest from "./pages/student/StudentNDARequest";
 import StudentAgreementRequest from "./pages/student/StudentAgreementRequest";
 import StudentProfile from "./pages/student/StudentProfile";
+import StudentResubmitRequest from "./pages/student/StudentResubmitRequest";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -82,6 +83,14 @@ function App() {
                   element={
                     <RequireRole allowedRoles={["student"]}>
                       <StudentProfile />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="/student/resubmit/:id"
+                  element={
+                    <RequireRole allowedRoles={["student"]}>
+                      <StudentResubmitRequest />
                     </RequireRole>
                   }
                 />

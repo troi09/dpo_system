@@ -18,6 +18,11 @@ export const getMyRequests = async () => {
   return res.data;
 };
 
+export const resubmitRequest = async (id, payload) => {
+  const res = await axios.patch(`${API_URL}/${id}/resubmit`, payload, { headers: authHeader() });
+  return res.data;
+};
+
 // Admin
 export const getAllRequests= async () => {
   const res = await axios.get(`${API_URL}/all`, { headers: authHeader() });
@@ -31,5 +36,10 @@ export const getAllPending = async () => {
 
 export const updateRequestStatus = async (id, payload) => {
   const res = await axios.patch(`${API_URL}/${id}`, payload, { headers: authHeader() });
+  return res.data;
+};
+
+export const getRequestById = async (id) => {
+  const res = await axios.get(`${API_URL}/${id}`, { headers: authHeader() });
   return res.data;
 };

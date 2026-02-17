@@ -97,16 +97,16 @@ export default function StudentAgreementRequest() {
                 }}
               />
 
-              {file && (
+              {/* {file && (
                 <div style={{ fontSize: "13px", marginTop: "4px", opacity: 0.85 }}>
                   Selected: {file.name}
                 </div>
-              )}
+              )} */}
             </div>
           ))}
         </div>
 
-        {files.filter(Boolean).length > 0 && (
+        {/* {files.filter(Boolean).length > 0 && (
           <div style={{ marginTop: "10px", fontSize: "13px" }}>
             <strong>Selected files:</strong>
             <ul>
@@ -117,7 +117,7 @@ export default function StudentAgreementRequest() {
               ))}
             </ul>
           </div>
-        )}
+        )} */}
       </div>
 
       <button

@@ -42,6 +42,34 @@ exports.getMyRequests = async (req, res) => {
   }
 };
 
+exports.resubmitRequest = async (req, res) => {
+  try {
+    const { formData, requirements } = req.body;
+
+    const r = await Request.findById(req.params.id);
+    if (!r) return res.status(404).json({ message: "Request not found" });
+
+    if (String(r.userId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (r.status !== "revision_required") {
+      return res.status(400).json({ message: "Only revision_required requests can be resubmitted" });
+    }
+
+    r.formData = (formData && typeof formData === "object") ? formData : r.formData;
+    r.requirements = Array.isArray(requirements) ? requirements : [];
+    r.status = "pending";
+    r.adminRemarks = ""; // clear after resubmit so admin queue remarks is clean
+
+    await r.save();
+
+    return res.json({ message: "Resubmitted", request: r });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 exports.getAllRequests = async (req, res) => {
   try {
     const list = await Request.find()
@@ -99,6 +127,21 @@ exports.updateRequestStatus = async (req, res) => {
       message: "Request updated",
       request: updated,
     });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getRequestById = async (req, res) => {
+  try {
+    const r = await Request.findById(req.params.id).select("-__v");
+    if (!r) return res.status(404).json({ message: "Request not found" });
+
+    const isOwner = String(r.userId) === String(req.user.id);
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: "Forbidden" });
+
+    return res.json(r);
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
