@@ -11,7 +11,9 @@ import Register from "./pages/Register";
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentNewRequest from "./pages/student/StudentNewRequest";
-import StudentNDARequest from "./pages/student/StudentNDARequest";
+import StudentNDATypeChooser from "./pages/student/StudentNDATypeChooser";
+import StudentNDAOrgActivities from "./pages/student/StudentNDAOrgActivities";
+import StudentNDAResearch from "./pages/student/StudentNDAResearch";
 import StudentAgreementRequest from "./pages/student/StudentAgreementRequest";
 import StudentProfile from "./pages/student/StudentProfile";
 import StudentResubmitRequest from "./pages/student/StudentResubmitRequest";
@@ -66,7 +68,23 @@ function App() {
                   path="/student/new-request/nda"
                   element={
                     <RequireRole allowedRoles={["student"]}>
-                      <StudentNDARequest />
+                      <StudentNDATypeChooser />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="/student/new-request/nda/orgactivities"
+                  element={
+                    <RequireRole allowedRoles={["student"]}>
+                      <StudentNDAOrgActivities />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="/student/new-request/nda/research"
+                  element={
+                    <RequireRole allowedRoles={["student"]}>
+                      <StudentNDAResearch />
                     </RequireRole>
                   }
                 />
