@@ -18,7 +18,7 @@ export const FIELDS_FILE_SLOTS_CONFIG = {
       label: "Conduct of Research", 
       fields: [
         { name: "1dataField", label: "Data Field 1", required: true },
-        { name: "2dataField", label: "Data Field 2", required: true },
+        { name: "2dataField", label: "Data Field 2", required: false },
         { name: "3dataField", label: "Data Field 3", required: false },
       ],
       fileSlots: [
@@ -37,7 +37,7 @@ export const FIELDS_FILE_SLOTS_CONFIG = {
     ],
     fileSlots: [
       { label: "Notarized Authorization Letter", required: true },
-      { label: "Requestor's Government Issued Valid ID", required: true },
+      { label: "Requestor's Government Issued Valid ID", required: false },
       { label: "Representative's Government Issued Valid ID", required: false },
     ],
   },

@@ -134,12 +134,17 @@ exports.updateRequestStatus = async (req, res) => {
 
 exports.getRequestById = async (req, res) => {
   try {
-    const r = await Request.findById(req.params.id).select("-__v");
+    const r = await Request.findById(req.params.id)
+      .populate("userId", "name email role")
+      .select("-__v");
+
     if (!r) return res.status(404).json({ message: "Request not found" });
 
-    const isOwner = String(r.userId) === String(req.user.id);
     const isAdmin = req.user.role === "admin";
-    if (!isOwner && !isAdmin) return res.status(403).json({ message: "Forbidden" });
+    const ownerId = r.userId?._id || r.userId;
+    const isOwner = String(ownerId) === String(req.user.id);
+
+    if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
     return res.json(r);
   } catch (err) {

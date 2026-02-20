@@ -1,117 +1,69 @@
 import { useEffect, useState } from "react";
-import { getAllPending, updateRequestStatus } from "../../services/requestService";
+import { useNavigate } from "react-router-dom";
+import { getAllPending } from "../../services/requestService";
 
-const prettyType = (t) => (t === "nda" ? "NDA" : "Agreement");
-const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const pageStyle = { width: "900px" };
+const cardStyle = { padding: "16px", borderRadius: "8px" };
+const thStyle = { padding: "8px", borderBottom: "1px solid #ddd", textAlign: "left" };
+const tdStyle = { padding: "8px", borderBottom: "1px solid #eee" };
 
-const AdminRequests = () => {
+export default function AdminRequests() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
-  const [remarksById, setRemarksById] = useState({});
-
-  const load = async () => {
-    try {
-      const data = await getAllPending();
-      setRequests(data);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to load requests");
-    }
-  };
 
   useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await getAllPending();
+        setRequests(data);
+      } catch (err) {
+        alert(err.response?.data?.message || "Failed to load pending requests");
+      }
+    };
     load();
   }, []);
 
-  const handleUpdate = async (id, status) => {
-    try {
-      const adminRemarks = remarksById[id] || "";
-      await updateRequestStatus(id, { status, adminRemarks });
-      alert("Updated!");
-      await load();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to update request");
-    }
-  };
-
   return (
-    <div style={{ width: "1200px" }}>
-      <h2 style={{ textAlign: "center", marginBottom: "12px" }}>Pending Request Queue</h2>
+    <div style={pageStyle}>
+      <h2 style={{ textAlign: "center", marginBottom: "12px" }}>Pending Requests</h2>
 
-      <div style={{ background: "#242424", padding: "16px", borderRadius: "8px" }}>
+      <div style={cardStyle}>
         {requests.length === 0 ? (
-          <p style={{ textAlign: "center" }}>No requests found.</p>
+          <p style={{ textAlign: "center" }}>No pending requests.</p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ textAlign: "left" }}>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Student</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Email</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Type</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Attached Files</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Date Submitted</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Remarks</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Actions</th>
+              <tr>
+                <th style={thStyle}>Student</th>
+                <th style={thStyle}>Type</th>
+                <th style={thStyle}>Submitted</th>
+                <th style={thStyle}></th>
               </tr>
             </thead>
 
             <tbody>
               {requests.map((r) => (
                 <tr key={r._id}>
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                  <td style={tdStyle}>
                     {r.userId?.name || "Unknown"}
+                    <br />
+                    <span style={{ fontSize: "12px", opacity: 0.8 }}>
+                      {r.userId?.email || ""}
+                    </span>
                   </td>
 
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {r.userId?.email || "Unknown"}
+                  <td style={tdStyle}>
+                    {r.requestType === "nda"
+                      ? `NDA${r.formData?.ndaTypeLabel ? ` - ${r.formData.ndaTypeLabel}` : ""}`
+                      : "Agreement"}
                   </td>
 
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {prettyType(r.requestType)}
-                  </td>
-
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {(!r.requirements || r.requirements.length === 0) ? (
-                      <span style={{ opacity: 0.7 }}>None</span>
-                    ) : (
-                      r.requirements.map((f, idx) => (
-                      <div key={idx}>
-                        <a href={f.url} target="_blank" rel="noreferrer" title={f.originalName}>
-                          {`File ${idx + 1}`}
-                        </a>
-                      </div>
-                      ))
-                    )}
-                  </td>
-
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                  <td style={tdStyle}>
                     {new Date(r.createdAt).toLocaleDateString("en-US")}
                   </td>
-                  
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    <input
-                      type="text"
-                      value={remarksById[r._id] ?? r.adminRemarks ?? ""}
-                      onChange={(e) =>
-                        setRemarksById((prev) => ({ ...prev, [r._id]: e.target.value }))
-                      }
-                      style={{ width: "260px", padding: "8px" }}
-                    />
-                  </td>
 
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    <button
-                      onClick={() => handleUpdate(r._id, "approved")}
-                      style={{ marginRight: "8px" }}
-                      disabled={r.status === "approved"}
-                    >
-                      Approve
-                    </button>
-
-                    <button
-                      onClick={() => handleUpdate(r._id, "revision_required")}
-                      disabled={r.status === "revision_required"}
-                    >
-                      Revision Required
-                    </button>
+                  <td style={tdStyle}>
+                    <button onClick={() => navigate(`/admin/requests/${r._id}`)}>Review</button>
                   </td>
                 </tr>
               ))}
@@ -121,6 +73,4 @@ const AdminRequests = () => {
       </div>
     </div>
   );
-};
-
-export default AdminRequests;
+}

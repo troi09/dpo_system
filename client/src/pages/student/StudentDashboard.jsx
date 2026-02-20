@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyRequests } from "../../services/requestService";
 
-const prettyType = (t) => (t === "nda" ? "NDA" : "Agreement");
 const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
 const StudentDashboard = () => {
@@ -35,8 +34,7 @@ const StudentDashboard = () => {
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Type</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Status</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Submitted</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Files Attached</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Action</th>
+                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}></th>
               </tr>
             </thead>
 
@@ -44,7 +42,9 @@ const StudentDashboard = () => {
               {requests.map((r) => (
                 <tr key={r._id}>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {prettyType(r.requestType)}
+                    {r.requestType === "nda"
+                      ? `NDA${r.formData?.ndaTypeLabel ? ` - ${r.formData.ndaTypeLabel}` : ""}`
+                      : "Agreement"}
                   </td>
 
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
@@ -56,27 +56,7 @@ const StudentDashboard = () => {
                   </td>
 
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {(!r.requirements || r.requirements.length === 0) ? (
-                      <span style={{ opacity: 0.7 }}>None</span>
-                    ) : (
-                      r.requirements.map((f, idx) => (
-                        <div key={idx}>
-                          <a href={f.url} target="_blank" rel="noreferrer" title={f.originalName}>
-                            {`File ${idx + 1}`}
-                          </a>
-                        </div>
-                      ))
-                    )}
-                  </td>
-
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {r.status === "revision_required" ? (
-                      <button onClick={() => navigate(`/student/resubmit/${r._id}`)}>
-                        Resubmit
-                      </button>
-                    ) : (
-                      <span style={{ opacity: 0.6 }}>-</span>
-                    )}
+                    <button onClick={() => navigate(`/student/requests/${r._id}`)}>View</button>
                   </td>
                 </tr>
               ))}

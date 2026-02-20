@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getAllRequests } from "../../services/requestService";
 
-const prettyType = (t) => (t === "nda" ? "NDA" : "Agreement");
 const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
@@ -33,7 +34,8 @@ const AdminDashboard = () => {
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Student</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Type</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Status</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Date Submitted</th>
+                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Submitted</th>
+                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}></th>
               </tr>
             </thead>
 
@@ -42,15 +44,24 @@ const AdminDashboard = () => {
                 <tr key={r._id}>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     {r.userId?.name || "Unknown"}
+                    <br />
+                    <span style={{ fontSize: "12px", opacity: 0.8 }}>
+                      {r.userId?.email || ""}
+                    </span>
                   </td>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {prettyType(r.requestType)}
+                    {r.requestType === "nda"
+                      ? `NDA${r.formData?.ndaTypeLabel ? ` - ${r.formData.ndaTypeLabel}` : ""}`
+                      : "Agreement"}
                   </td>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     {prettyStatus(r.status)}
                   </td>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
                     {new Date(r.createdAt).toLocaleDateString("en-US")}
+                  </td>
+                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                    <button onClick={() => navigate(`/admin/requests/${r._id}`)}>View</button>
                   </td>
                 </tr>
               ))}

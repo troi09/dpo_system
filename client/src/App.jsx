@@ -15,12 +15,14 @@ import StudentNDATypeChooser from "./pages/student/StudentNDATypeChooser";
 import StudentNDAOrgActivities from "./pages/student/StudentNDAOrgActivities";
 import StudentNDAResearch from "./pages/student/StudentNDAResearch";
 import StudentAgreementRequest from "./pages/student/StudentAgreementRequest";
+import StudentRequestReview from "./pages/student/StudentRequestReview";
 import StudentProfile from "./pages/student/StudentProfile";
 import StudentResubmitRequest from "./pages/student/StudentResubmitRequest";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminRequests from "./pages/admin/AdminRequests";
+import AdminRequestReview from "./pages/admin/AdminRequestReview";
 import AdminTemplates from "./pages/admin/AdminTemplates";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminProfile from "./pages/admin/AdminProfile";
@@ -97,6 +99,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/student/requests/:id"
+                  element={
+                    <RequireRole allowedRoles={["student"]}>
+                      <StudentRequestReview />
+                    </RequireRole>
+                  }
+                />
+                <Route
                   path="/student/profile"
                   element={
                     <RequireRole allowedRoles={["student"]}>
@@ -127,6 +137,14 @@ function App() {
                   element={
                     <RequireRole allowedRoles={["admin"]}>
                       <AdminRequests />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="/admin/requests/:id"
+                  element={
+                    <RequireRole allowedRoles={["admin"]}>
+                      <AdminRequestReview />
                     </RequireRole>
                   }
                 />
