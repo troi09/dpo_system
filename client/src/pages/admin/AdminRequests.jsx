@@ -25,7 +25,7 @@ export default function AdminRequests() {
 
   return (
     <div style={pageStyle}>
-      <h2 style={{ textAlign: "center", marginBottom: "12px" }}>Pending Requests</h2>
+      <h2 style={{ textAlign: "center", marginBottom: "12px" }}>Pending Request Queue</h2>
 
       <div style={cardStyle}>
         {requests.length === 0 ? (
@@ -36,7 +36,7 @@ export default function AdminRequests() {
               <tr>
                 <th style={thStyle}>Student</th>
                 <th style={thStyle}>Type</th>
-                <th style={thStyle}>Submitted</th>
+                <th style={thStyle}>Request Date</th>
                 <th style={thStyle}></th>
               </tr>
             </thead>

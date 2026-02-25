@@ -84,8 +84,8 @@ export default function AdminRequestReview() {
       <h2 style={{ marginTop: 0 }}>{pageTitle}</h2>
 
       <div style={{ marginBottom: "14px" }}>
-        <div><b>Status:</b> {prettyStatus(reqData.status)}</div>
-        <div><b>Submitted:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
+        <div><b>Request Status:</b> {prettyStatus(reqData.status)}</div>
+        <div><b>Request Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
       </div>
 
       <div style={{ marginBottom: "14px" }}>
@@ -114,7 +114,7 @@ export default function AdminRequestReview() {
       </div>
 
       <div style={{ marginBottom: "14px" }}>
-        <h4 style={sectionTitleStyle}>Files</h4>
+        <h4 style={sectionTitleStyle}>Attachments</h4>
         {reqData.requirements?.length ? (
           reqData.requirements.map((f, idx) => (
             <div key={idx} style={{ marginBottom: "6px" }}>
@@ -131,7 +131,7 @@ export default function AdminRequestReview() {
       {/* Remarks section logic */}
       {isPending && (
         <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Admin Remarks</h4>
+          <h4 style={sectionTitleStyle}>Remarks</h4>
           <textarea
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
@@ -144,7 +144,7 @@ export default function AdminRequestReview() {
 
       {isRevision && (
         <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Admin Remarks</h4>
+          <h4 style={sectionTitleStyle}>Remarks</h4>
           <div style={infoBlockStyle}>
             {reqData.adminRemarks || <span style={{ opacity: 0.6 }}>No remarks provided.</span>}
           </div>
@@ -154,7 +154,7 @@ export default function AdminRequestReview() {
       {/* Approved placeholder */}
       {isApproved && (
         <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Approved Request Form</h4>
+          <h4 style={sectionTitleStyle}>Request Form</h4>
           <div style={infoBlockStyle}>
             <span style={{ opacity: 0.7 }}>
               Placeholder: this is where the approved request form / generation UI will go.
@@ -170,7 +170,7 @@ export default function AdminRequestReview() {
             Approve
           </button>
           <button onClick={() => handleUpdate("revision_required")} style={{ flex: 1, padding: "10px" }}>
-            Revision Required
+            Request Revision
           </button>
         </div>
       )}

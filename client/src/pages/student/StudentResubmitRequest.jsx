@@ -176,12 +176,12 @@ export default function StudentResubmitRequest() {
 
       <div style={{ marginBottom: "14px", textAlign: "left" }}>
         <div><b>Status:</b> {prettyStatus(reqData.status)}</div>
-        <div><b>Submitted:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
+        <div><b>Request Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
       </div>
 
       {/* Admin Remarks */}
       <div style={reqWrapStyle}>
-        <h4 style={{ margin: "0 0 6px 0" }}>Admin Remarks</h4>
+        <h4 style={{ margin: "0 0 6px 0" }}>Remarks</h4>
         <div style={infoBoxStyle}>
           {reqData.adminRemarks || <span style={{ opacity: 0.7 }}>No remarks provided.</span>}
         </div>
@@ -189,7 +189,7 @@ export default function StudentResubmitRequest() {
 
       {/* Request Details (editable on resubmit) */}
       <div style={reqWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Request Details</h4>
+        <h4 style={{ margin: "14px 0 6px 0" }}>Data Form</h4>
 
         {cfg.fields.map((f) => (
           <div key={f.name} style={{ marginTop: "10px" }}>
@@ -216,7 +216,7 @@ export default function StudentResubmitRequest() {
 
       {/* Current submitted files */}
       <div style={reqWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Files Submitted</h4>
+        <h4 style={{ margin: "14px 0 6px 0" }}>Attachments</h4>
         {reqData.requirements?.length ? (
           reqData.requirements.map((f, idx) => (
             <div key={idx} style={{ marginTop: "6px" }}>
@@ -232,13 +232,7 @@ export default function StudentResubmitRequest() {
 
       {/* Revised upload fields */}
       <div style={reqWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Upload Revised Requirements</h4>
-
-        <ul style={{ marginTop: "6px", fontSize: "13px", opacity: 0.85 }}>
-          {cfg.fileSlots.map((s, i) => (
-            <li key={i}>{s.label}</li>
-          ))}
-        </ul>
+        <h4 style={{ margin: "14px 0 6px 0" }}>Revised Attachments</h4>
 
         {files.map((file, index) => (
           <div key={index} style={{ marginTop: "10px" }}>
@@ -259,8 +253,6 @@ export default function StudentResubmitRequest() {
                 });
               }}
             />
-
-            {file && <div style={selectedFileStyle}>Selected: {file.name}</div>}
           </div>
         ))}
 

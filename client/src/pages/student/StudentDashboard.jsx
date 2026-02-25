@@ -33,7 +33,7 @@ const StudentDashboard = () => {
               <tr style={{ textAlign: "left" }}>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Type</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Status</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Submitted</th>
+                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Request Date</th>
                 <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}></th>
               </tr>
             </thead>

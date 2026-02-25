@@ -77,12 +77,12 @@ export default function StudentRequestReview() {
 
       <div style={metaRowStyle}>
         <div><b>Status:</b> {prettyStatus(reqData.status)}</div>
-        <div><b>Submitted:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
+        <div><b>Request Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
       </div>
 
       {/* Admin Remarks (always shown for consistency) */}
       <div style={sectionWrapStyle}>
-        <h4 style={{ margin: "0 0 6px 0" }}>Admin Remarks</h4>
+        <h4 style={{ margin: "0 0 6px 0" }}>Remarks</h4>
         <div style={infoBoxStyle}>
           {reqData.adminRemarks || <span style={{ opacity: 0.7 }}>No remarks provided.</span>}
         </div>
@@ -90,7 +90,7 @@ export default function StudentRequestReview() {
 
       {/* Form Data (view-only) */}
       <div style={sectionWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Request Details</h4>
+        <h4 style={{ margin: "14px 0 6px 0" }}>Data Form</h4>
 
         {cfg?.fields?.length ? (
           cfg.fields.map((f) => (
@@ -110,7 +110,7 @@ export default function StudentRequestReview() {
 
       {/* Files Submitted */}
       <div style={sectionWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Files Submitted</h4>
+        <h4 style={{ margin: "14px 0 6px 0" }}>Attachments</h4>
         {reqData.requirements?.length ? (
           reqData.requirements.map((f, idx) => (
             <div key={idx} style={{ marginTop: "6px" }}>
@@ -130,7 +130,7 @@ export default function StudentRequestReview() {
           <h4 style={{ margin: "14px 0 6px 0" }}>Approved Request Form</h4>
           <div style={infoBoxStyle}>
             <span style={{ opacity: 0.7 }}>
-              Placeholder: this is where the approved request form / generation UI will go.
+              Placeholder: this is where the approved request form link will go.
             </span>
           </div>
         </div>
