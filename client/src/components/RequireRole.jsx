@@ -5,7 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 const RequireRole = ({ allowedRoles, children }) => {
   const { user } = useContext(AuthContext);
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
 
   if (!allowedRoles.includes(user.role)) {
     return <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />;

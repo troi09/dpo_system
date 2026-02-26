@@ -5,8 +5,7 @@ import { AuthContext } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import RequireRole from "./components/RequireRole";
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Landing from "./pages/Landing";
 
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -40,9 +39,10 @@ function App() {
             {/* Public */}
             {!user && (
               <>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="*" element={<Navigate to="/login" replace />} />
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={<Navigate to="/" replace />} />
+                <Route path="/register" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}
 
@@ -171,16 +171,6 @@ function App() {
                       <AdminProfile />
                     </RequireRole>
                   }
-                />
-
-                {/* Default redirects */}
-                <Route
-                  path="/"
-                  element={<Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />}
-                />
-                <Route
-                  path="*"
-                  element={<Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />}
                 />
               </>
             )}

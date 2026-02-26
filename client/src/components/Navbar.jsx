@@ -9,7 +9,6 @@ const Navbar = () => {
     <nav
       style={{
         padding: "12px 16px",
-        borderBottom: "1px solid #ccc",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -17,13 +16,6 @@ const Navbar = () => {
       }}
     >
       <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-        {!user && (
-          <>
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
-          </>
-        )}
-
         {user?.role === "student" && (
           <>
             <Link to="/student">Dashboard</Link>
