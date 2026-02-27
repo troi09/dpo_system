@@ -32,148 +32,137 @@ function App() {
   return (
     <Router>
       <div className="app-container">
-        <Navbar />
+        {user && <Navbar />}
 
         <div className="page-container">
           <Routes>
-            {/* Public */}
-            {!user && (
-              <>
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Navigate to="/" replace />} />
-                <Route path="/register" element={<Navigate to="/" replace />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </>
-            )}
+            <Route path="/" element={!user ? <Landing /> : <Navigate to="/student" replace />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/register" element={<Navigate to="/" replace />} />
 
-            {/* Logged in */}
-            {user && (
-              <>
-                {/* Student routes */}
-                <Route
-                  path="/student"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentDashboard />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/student/new-request"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentNewRequest />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/student/new-request/nda"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentNDATypeChooser />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/student/new-request/nda/orgactivities"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentNDAOrgActivities />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/student/new-request/nda/research"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentNDAResearch />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/student/new-request/agreement"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentAgreementRequest />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/student/requests/:id"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentRequestReview />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/student/profile"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentProfile />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/student/resubmit/:id"
-                  element={
-                    <RequireRole allowedRoles={["student"]}>
-                      <StudentResubmitRequest />
-                    </RequireRole>
-                  }
-                />
+            <Route
+              path="/student"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentDashboard />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/new-request"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentNewRequest />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/new-request/nda"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentNDATypeChooser />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/new-request/nda/orgactivities"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentNDAOrgActivities />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/new-request/nda/research"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentNDAResearch />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/new-request/agreement"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentAgreementRequest />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/requests/:id"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentRequestReview />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/profile"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentProfile />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/resubmit/:id"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentResubmitRequest />
+                </RequireRole>
+              }
+            />
 
-                {/* Admin routes */}
-                <Route
-                  path="/admin"
-                  element={
-                    <RequireRole allowedRoles={["admin"]}>
-                      <AdminDashboard />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/admin/requests"
-                  element={
-                    <RequireRole allowedRoles={["admin"]}>
-                      <AdminRequests />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/admin/requests/:id"
-                  element={
-                    <RequireRole allowedRoles={["admin"]}>
-                      <AdminRequestReview />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/admin/templates"
-                  element={
-                    <RequireRole allowedRoles={["admin"]}>
-                      <AdminTemplates />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/admin/reports"
-                  element={
-                    <RequireRole allowedRoles={["admin"]}>
-                      <AdminReports />
-                    </RequireRole>
-                  }
-                />
-                <Route
-                  path="/admin/profile"
-                  element={
-                    <RequireRole allowedRoles={["admin"]}>
-                      <AdminProfile />
-                    </RequireRole>
-                  }
-                />
-              </>
-            )}
+            <Route
+              path="/admin"
+              element={
+                <RequireRole allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin/requests"
+              element={
+                <RequireRole allowedRoles={["admin"]}>
+                  <AdminRequests />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin/requests/:id"
+              element={
+                <RequireRole allowedRoles={["admin"]}>
+                  <AdminRequestReview />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin/templates"
+              element={
+                <RequireRole allowedRoles={["admin"]}>
+                  <AdminTemplates />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <RequireRole allowedRoles={["admin"]}>
+                  <AdminReports />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin/profile"
+              element={
+                <RequireRole allowedRoles={["admin"]}>
+                  <AdminProfile />
+                </RequireRole>
+              }
+            />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </div>

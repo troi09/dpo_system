@@ -1,0 +1,141 @@
+.landing {
+  display: flex;
+  justify-content: flex-start;
+  flex: 1;
+  width: 100%;
+  min-height: 100vh;
+  background: #f6f7fb;
+}
+
+.landing-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  width: 32%;
+  min-width: 340px;
+  padding: 156px 0 28px;
+  background: #ffffff;
+}
+
+.landing-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 240px;
+  height: 40px;
+  background: #e9edf5;
+  border: 1px solid #d6dbe6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.landing-toggle-btn {
+  z-index: 2;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #0f1c3f;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.landing-toggle-btn.active {
+  color: #ffffff;
+}
+
+.landing-toggle-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 50%;
+  background: #0f2d6b;
+  border-radius: 999px;
+  transition: transform 0.2s ease;
+}
+
+.landing-toggle-indicator.left {
+  transform: translateX(0);
+}
+
+.landing-toggle-indicator.right {
+  transform: translateX(100%);
+}
+
+.landing-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.landing-title {
+  margin: 4px 0 2px;
+  font-size: 22px;
+  color: #0f2d6b;
+}
+
+.landing-name-row.hidden {
+  height: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.landing-field {
+  box-sizing: border-box;
+  width: 280px;
+  height: 44px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #c9d3e3;
+  border-radius: 12px;
+  color: #0f172a;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.landing-field::placeholder {
+  color: #8b95a7;
+}
+
+.landing-field:focus {
+  outline: none;
+  border-color: #0f2d6b;
+  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.12);
+}
+
+.landing-submit {
+  align-self: center;
+  width: 280px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: #0f2d6b;
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.landing-submit:hover {
+  background: #12357a;
+}
+
+@media (max-width: 900px) {
+  .landing-panel {
+    width: 100%;
+    min-width: 0;
+  }
+}

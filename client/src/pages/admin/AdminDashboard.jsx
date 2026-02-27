@@ -24,7 +24,7 @@ const AdminDashboard = () => {
     <div style={{ width: "1200px" }}>
       <h2 style={{ textAlign: "center", marginBottom: "12px" }}>Admin Dashboard</h2>
 
-      <div style={{ background: "#242424", padding: "16px", borderRadius: "8px" }}>
+      <div style={{ padding: "16px", borderRadius: "8px" }}>
         {requests.length === 0 ? (
           <p style={{ textAlign: "center" }}>No requests found.</p>
         ) : (

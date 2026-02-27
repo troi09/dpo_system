@@ -1,50 +1,62 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import "./Navbar.css";
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
 
+  const linkClass = ({ isActive }) =>
+    `navbar-link${isActive ? " active" : ""}`;
+
   return (
-    <nav
-      style={{
-        padding: "12px 16px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        width: "100%",
-      }}
-    >
-      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+    <nav className="navbar">
+      <div className="navbar-links">
         {user?.role === "student" && (
           <>
-            <Link to="/student">Dashboard</Link>
-            <Link to="/student/new-request">New Request</Link>
-            <Link to="/student/profile">Profile</Link>
+            <NavLink to="/student" className={linkClass} end>
+              Dashboard
+            </NavLink>
+            <NavLink to="/student/new-request" className={linkClass}>
+              New Request
+            </NavLink>
+            <NavLink to="/student/profile" className={linkClass}>
+              Profile
+            </NavLink>
           </>
         )}
 
         {user?.role === "admin" && (
           <>
-            <Link to="/admin">Dashboard</Link>
-            <Link to="/admin/requests">Requests</Link>
-            <Link to="/admin/templates">Templates</Link>
-            <Link to="/admin/reports">Reports</Link>
-            <Link to="/admin/profile">Profile</Link>
+            <NavLink to="/admin" className={linkClass} end>
+              Dashboard
+            </NavLink>
+            <NavLink to="/admin/requests" className={linkClass}>
+              Requests
+            </NavLink>
+            <NavLink to="/admin/templates" className={linkClass}>
+              Templates
+            </NavLink>
+            <NavLink to="/admin/reports" className={linkClass}>
+              Reports
+            </NavLink>
+            <NavLink to="/admin/profile" className={linkClass}>
+              Profile
+            </NavLink>
           </>
         )}
       </div>
 
-      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-        {user && (
-          <>
-            <span style={{ fontSize: "14px" }}>
-              {user.name} ({user.role})
-            </span>
-            <button onClick={logout}>Logout</button>
-          </>
-        )}
-      </div>
+      {user && (
+        <div className="navbar-user">
+          <span className="navbar-user-name">
+            {user.name} ({user.role})
+          </span>
+          <button className="navbar-logout" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      )}
     </nav>
   );
 };

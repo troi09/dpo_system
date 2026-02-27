@@ -3,17 +3,9 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { login as loginService } from "../services/authService";
+import "./Landing.css";
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth`;
-
-const formStyle = {
-  padding: "30px",
-  borderRadius: "8px",
-  width: "320px",
-  textAlign: "center",
-};
-
-const inputStyle = { width: "100%", padding: "10px", margin: "10px 0" };
 
 const Landing = () => {
   const [mode, setMode] = useState("login");
@@ -22,6 +14,8 @@ const Landing = () => {
   const navigate = useNavigate();
 
   const onChange = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
+
+  const resetForm = () => setForm({ name: "", email: "", password: "" });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,52 +44,73 @@ const Landing = () => {
     }
   };
 
+  const isLogin = mode === "login";
+
   return (
-    <form onSubmit={handleSubmit} style={formStyle}>
-      <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginBottom: "12px" }}>
-        <button type="button" onClick={() => setMode("login")} disabled={mode === "login"}>
-          Login
-        </button>
-        <button type="button" onClick={() => setMode("register")} disabled={mode === "register"}>
-          Register
-        </button>
+    <div className="landing">
+      <div className="landing-panel">
+        <div className="landing-toggle">
+          <button
+            type="button"
+            className={`landing-toggle-btn ${isLogin ? "active" : ""}`}
+            onClick={() => {
+              setMode("login");
+              resetForm();
+            }}
+          >
+            Login
+          </button>
+          <button
+            type="button"
+            className={`landing-toggle-btn ${!isLogin ? "active" : ""}`}
+            onClick={() => {
+              setMode("register");
+              resetForm();
+            }}
+          >
+            Register
+          </button>
+          <div className={`landing-toggle-indicator ${isLogin ? "left" : "right"}`} />
+        </div>
+
+        <form onSubmit={handleSubmit} className="landing-card">
+          <h2 className="landing-title">{isLogin ? "Login" : "Register"}</h2>
+
+          <div className={`landing-name-row ${isLogin ? "hidden" : ""}`}>
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={form.name}
+              onChange={onChange("name")}
+              required={!isLogin}
+              className="landing-field"
+            />
+          </div>
+
+          <input
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={onChange("email")}
+            required
+            className="landing-field"
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={onChange("password")}
+            required
+            className="landing-field"
+          />
+
+          <button type="submit" className="landing-submit">
+            {isLogin ? "Login" : "Register"}
+          </button>
+        </form>
       </div>
-
-      <h2>{mode === "login" ? "Login" : "Register"}</h2>
-
-      {mode === "register" && (
-        <input
-          type="text"
-          placeholder="Full Name"
-          value={form.name}
-          onChange={onChange("name")}
-          required
-          style={inputStyle}
-        />
-      )}
-
-      <input
-        type="email"
-        placeholder="Email"
-        value={form.email}
-        onChange={onChange("email")}
-        required
-        style={inputStyle}
-      />
-
-      <input
-        type="password"
-        placeholder="Password"
-        value={form.password}
-        onChange={onChange("password")}
-        required
-        style={inputStyle}
-      />
-
-      <button type="submit" style={{ width: "100%", padding: "10px" }}>
-        {mode === "login" ? "Login" : "Register"}
-      </button>
-    </form>
+    </div>
   );
 };
 
