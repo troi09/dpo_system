@@ -22,7 +22,8 @@
   width: calc(100% + 28px);
   margin-left: -14px;
   margin-right: -14px;
-  border-radius: 12px;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
   box-sizing: border-box;
   padding: 12px 14px;
   color: #0f2d6b;

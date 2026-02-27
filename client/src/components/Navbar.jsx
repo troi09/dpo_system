@@ -53,7 +53,7 @@ const Navbar = () => {
             {user.name} ({user.role})
           </span>
           <button className="navbar-logout" onClick={logout}>
-            Logout
+            Log out
           </button>
         </div>
       )}

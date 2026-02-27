@@ -74,7 +74,7 @@ const Landing = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="landing-card">
-          <h2 className="landing-title">{isLogin ? "Login" : "Register"}</h2>
+          <h2 className="landing-title">{isLogin ? "Log in" : "Create an Account"}</h2>
 
           <div className={`landing-name-row ${isLogin ? "hidden" : ""}`}>
             <input
@@ -106,9 +106,17 @@ const Landing = () => {
           />
 
           <button type="submit" className="landing-submit">
-            {isLogin ? "Login" : "Register"}
+            {isLogin ? "Log in" : "Creat an Account"}
           </button>
         </form>
+      </div>
+
+      <div className="landing-brand">
+        <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
+        <div className="landing-brand-text">
+          <div className="landing-brand-title">Data Protection Office</div>
+          <div className="landing-brand-subtitle">Rizal Technological University</div>
+        </div>
       </div>
     </div>
   );
