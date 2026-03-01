@@ -8,6 +8,7 @@ const {
   resubmitRequest,
   getAllRequests,
   getAllPending,
+  saveApprovedDocument,
   updateRequestStatus,
   getRequestById,
 } = require("../controllers/requestController");
@@ -20,6 +21,7 @@ router.patch("/:id/resubmit", protect, resubmitRequest);
 // Admin
 router.get("/all", protect, authorizeAdmin, getAllRequests);
 router.get("/", protect, authorizeAdmin, getAllPending);
+router.patch("/:id/approved-document", protect, authorizeAdmin, saveApprovedDocument);
 router.patch("/:id", protect, authorizeAdmin, updateRequestStatus);
 
 router.get("/:id", protect, getRequestById);

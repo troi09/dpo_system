@@ -49,3 +49,19 @@ export async function uploadRequirements(files, requestType, studentName, reques
 
   return uploaded;
 }
+
+export async function uploadApprovedForm(pdfBlob, requestType, studentName, requestFolder, fileName) {
+  const studentSlug = slugify(studentName);
+  const safeName = safeFileName(fileName);
+
+  const path = `${studentSlug}/requests/${requestType}/${requestFolder}/approved_form/${safeName}`;
+
+  const typedBlob = new Blob([pdfBlob], { type: "application/pdf" });
+  const meta = { contentType: "application/pdf" };
+
+  const fileRef = ref(storage, path);
+  const snap = await uploadBytes(fileRef, typedBlob, meta);
+  const url = await getDownloadURL(snap.ref);
+
+  return { url, path, uploadedAt: new Date().toISOString() };
+}

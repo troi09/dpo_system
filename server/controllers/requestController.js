@@ -61,7 +61,7 @@ exports.resubmitRequest = async (req, res) => {
     r.requirements = Array.isArray(requirements) ? requirements : [];
     r.status = "pending";
     r.adminRemarks = ""; // clear after resubmit so admin queue remarks is clean
-
+    r.approvedDocument = { url: "", path: "", uploadedAt: "" };
     await r.save();
 
     return res.json({ message: "Resubmitted", request: r });
@@ -91,6 +91,34 @@ exports.getAllPending = async (req, res) => {
       .select("-__v");
 
     return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+exports.saveApprovedDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { url, path, uploadedAt } = req.body;
+
+    if (!url || !path) return res.status(400).json({ message: "url and path are required" });
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid request id" });
+
+    const r = await Request.findById(id);
+    if (!r) return res.status(404).json({ message: "Request not found" });
+
+    if (r.status !== "approved") {
+      return res.status(400).json({ message: "Only approved requests can have an approved document" });
+    }
+
+    r.approvedDocument = {
+      url,
+      path,
+      uploadedAt: uploadedAt || new Date().toISOString(),
+    };
+
+    await r.save();
+    return res.json({ message: "Approved document saved", request: r });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }

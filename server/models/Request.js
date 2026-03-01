@@ -44,6 +44,12 @@ const requestSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    approvedDocument: {
+      url: { type: String, default: "" },
+      path: { type: String, default: "" },
+      uploadedAt: { type: String, default: "" },
+    },
   },
   { timestamps: true }
 );

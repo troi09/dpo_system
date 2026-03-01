@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
-import { getRequestById, updateRequestStatus } from "../../services/requestService";
+import { getRequestById, updateRequestStatus, saveApprovedDocument } from "../../services/requestService";
+import { generateApprovedPDF } from "../../config/documentTemplates";
+import { uploadApprovedForm } from "../../services/firebaseStorageService";
 
 const boxStyle = {
   padding: "20px",
@@ -16,12 +18,32 @@ const textareaStyle = { width: "100%", padding: "10px" };
 
 const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
+const getRequestFolder = (requirements = []) => {
+  for (const r of requirements) {
+    if (r.path) {
+      const parts = String(r.path).split("/");
+      return parts[3] || "";
+    }
+  }
+  return "";
+};
+
+const buildDocFileName = (req) => {
+  if (req.requestType === "agreement") return "Agreement_Approved.pdf";
+  if (req.requestType === "nda") {
+    const t = req.formData?.ndaType || "general";
+    return `NDA_${t}_Approved.pdf`;
+  }
+  return "Approved.pdf";
+};
+
 export default function AdminRequestReview() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [reqData, setReqData] = useState(null);
   const [remarks, setRemarks] = useState("");
+  const [approving, setApproving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -50,15 +72,38 @@ export default function AdminRequestReview() {
 
   const handleUpdate = async (status) => {
     try {
+      if (status === "approved") {
+        setApproving(true);
+
+        const updateRes = await updateRequestStatus(reqData._id, { status, adminRemarks: remarks });
+        const updated = updateRes.request;
+
+        const docReq = { ...updated, userId: reqData.userId };
+        const pdfBlob = await generateApprovedPDF(docReq);
+
+        const studentName = reqData.userId?.name || "Unknown Student";
+        const requestFolder = getRequestFolder(reqData.requirements);
+        if (!requestFolder) throw new Error("Could not determine request folder");
+
+        const fileName = buildDocFileName(reqData);
+        const uploaded = await uploadApprovedForm(pdfBlob, reqData.requestType, studentName, requestFolder, fileName);
+
+        await saveApprovedDocument(reqData._id, uploaded);
+
+        alert("Approved and document generated!");
+        setApproving(false);
+      } else {
         await updateRequestStatus(reqData._id, { status, adminRemarks: remarks });
         alert(`Updated to ${status}`);
+      }
 
-        if (window.history.length > 1) navigate(-1);
-        else navigate("/admin");
+      if (window.history.length > 1) navigate(-1);
+      else navigate("/admin");
     } catch (err) {
-        alert(err.response?.data?.message || "Failed to update request");
+      setApproving(false);
+      alert(err.response?.data?.message || err.message || "Failed to update request");
     }
-    };
+  };
 
   if (!reqData) return null;
 
@@ -73,13 +118,12 @@ export default function AdminRequestReview() {
     <div style={boxStyle}>
       <button
         onClick={() => {
-            if (window.history.length > 1) navigate(-1);
-            else navigate("/admin");
+          if (window.history.length > 1) navigate(-1);
+          else navigate("/admin");
         }}
         style={{ marginBottom: "10px" }}
-    > Back
-    </button>
-
+      > Back
+      </button>
 
       <h2 style={{ marginTop: 0 }}>{pageTitle}</h2>
 
@@ -128,7 +172,6 @@ export default function AdminRequestReview() {
         )}
       </div>
 
-      {/* Remarks section logic */}
       {isPending && (
         <div style={{ marginBottom: "14px" }}>
           <h4 style={sectionTitleStyle}>Remarks</h4>
@@ -151,23 +194,29 @@ export default function AdminRequestReview() {
         </div>
       )}
 
-      {/* Approved placeholder */}
       {isApproved && (
         <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Request Form</h4>
+          <h4 style={sectionTitleStyle}>Approved Request Form</h4>
           <div style={infoBlockStyle}>
-            <span style={{ opacity: 0.7 }}>
-              Placeholder: this is where the approved request form / generation UI will go.
-            </span>
+            {reqData.approvedDocument?.url ? (
+              <a href={reqData.approvedDocument.url} target="_blank" rel="noreferrer">
+                Placeholder Document
+              </a>
+            ) : (
+              <span style={{ opacity: 0.7 }}>No approved document uploaded.</span>
+            )}
           </div>
         </div>
       )}
 
-      {/* Action buttons only if pending */}
       {isPending && (
         <div style={{ display: "flex", gap: "10px" }}>
-          <button onClick={() => handleUpdate("approved")} style={{ flex: 1, padding: "10px" }}>
-            Approve
+          <button
+            onClick={() => handleUpdate("approved")}
+            disabled={approving}
+            style={{ flex: 1, padding: "10px" }}
+          >
+            {approving ? "Generating..." : "Approve"}
           </button>
           <button onClick={() => handleUpdate("revision_required")} style={{ flex: 1, padding: "10px" }}>
             Request Revision

@@ -124,14 +124,18 @@ export default function StudentRequestReview() {
         )}
       </div>
 
-      {/* Approved placeholder */}
+      {/* Approved document */}
       {isApproved && (
         <div style={sectionWrapStyle}>
           <h4 style={{ margin: "14px 0 6px 0" }}>Approved Request Form</h4>
           <div style={infoBoxStyle}>
-            <span style={{ opacity: 0.7 }}>
-              Placeholder: this is where the approved request form link will go.
-            </span>
+            {reqData.approvedDocument?.url ? (
+              <a href={reqData.approvedDocument.url} target="_blank" rel="noreferrer">
+                Placeholder Document
+              </a>
+            ) : (
+              <span style={{ opacity: 0.7 }}>No approved document uploaded.</span>
+            )}
           </div>
         </div>
       )}
