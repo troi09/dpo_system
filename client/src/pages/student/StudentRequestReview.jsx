@@ -46,15 +46,15 @@ export default function StudentRequestReview() {
 
   const cfg = useMemo(() => {
     if (!reqData) return null;
-    if (reqData.requestType === "agreement") return FIELDS_FILE_SLOTS_CONFIG.agreement;
-    if (reqData.requestType === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda[reqData.formData?.ndaType];
+    if (reqData.type === "agreement") return FIELDS_FILE_SLOTS_CONFIG.agreement;
+    if (reqData.type === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda[reqData.formData?.ndaType];
     return null;
   }, [reqData]);
 
   if (!reqData) return null;
 
   const title =
-    reqData.requestType === "agreement"
+    reqData.type === "agreement"
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
 
@@ -84,7 +84,7 @@ export default function StudentRequestReview() {
       <div style={sectionWrapStyle}>
         <h4 style={{ margin: "0 0 6px 0" }}>Remarks</h4>
         <div style={infoBoxStyle}>
-          {reqData.adminRemarks || <span style={{ opacity: 0.7 }}>No remarks provided.</span>}
+          {reqData.remarks || <span style={{ opacity: 0.7 }}>No remarks provided.</span>}
         </div>
       </div>
 
@@ -111,11 +111,11 @@ export default function StudentRequestReview() {
       {/* Files Submitted */}
       <div style={sectionWrapStyle}>
         <h4 style={{ margin: "14px 0 6px 0" }}>Attachments</h4>
-        {reqData.requirements?.length ? (
-          reqData.requirements.map((f, idx) => (
+        {reqData.predocs?.length ? (
+          reqData.predocs.map((f, idx) => (
             <div key={idx} style={{ marginTop: "6px" }}>
               <a href={f.url} target="_blank" rel="noreferrer">
-                {f.requirementLabel || f.originalName || `File ${idx + 1}`}
+                {f.requirementLabel || f.origName || `File ${idx + 1}`}
               </a>
             </div>
           ))
@@ -129,8 +129,8 @@ export default function StudentRequestReview() {
         <div style={sectionWrapStyle}>
           <h4 style={{ margin: "14px 0 6px 0" }}>Approved Request Form</h4>
           <div style={infoBoxStyle}>
-            {reqData.approvedDocument?.url ? (
-              <a href={reqData.approvedDocument.url} target="_blank" rel="noreferrer">
+            {reqData.postdocs?.url ? (
+              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer">
                 Placeholder Document
               </a>
             ) : (

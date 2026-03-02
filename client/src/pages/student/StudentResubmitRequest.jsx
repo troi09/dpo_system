@@ -21,7 +21,6 @@ const selectedFileStyle = { fontSize: "13px", marginTop: "4px", opacity: 0.85 };
 const submitBtnStyle = { width: "100%", padding: "10px", marginTop: "16px" };
 const infoBoxStyle = { padding: "10px", border: "1px solid #ddd", borderRadius: "6px" };
 
-
 const getInitialFolderFromPath = (path = "") => {
   // expected: <slug>/requests/<type>/<date_timestamp>/...
   const parts = String(path).split("/");
@@ -52,8 +51,8 @@ export default function StudentResubmitRequest() {
 
   const cfg = useMemo(() => {
     if (!reqData) return null;
-    if (reqData.requestType === "agreement") return FIELDS_FILE_SLOTS_CONFIG.agreement;
-    if (reqData.requestType === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda[reqData.formData?.ndaType];
+    if (reqData.type === "agreement") return FIELDS_FILE_SLOTS_CONFIG.agreement;
+    if (reqData.type === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda[reqData.formData?.ndaType];
     return null;
   }, [reqData]);
 
@@ -96,7 +95,7 @@ export default function StudentResubmitRequest() {
       return;
     }
 
-    const basePath = reqData.requirements?.[0]?.path || "";
+    const basePath = reqData.predocs?.[0]?.path || "";
     const initialFolder = getInitialFolderFromPath(basePath);
     if (!initialFolder) {
       alert("Missing original request folder. (No existing file path found)");
@@ -110,13 +109,13 @@ export default function StudentResubmitRequest() {
 
     const uploaded = await uploadRequirements(
       selectedFiles,
-      reqData.requestType,
+      reqData.type,
       studentName,
       `${initialFolder}/${resubFolder}`
     );
 
     let uploadIndex = 0;
-    const requirements = files
+    const predocs = files
       .map((f, i) => {
         if (!f) return null;
         const meta = uploaded[uploadIndex++];
@@ -124,7 +123,7 @@ export default function StudentResubmitRequest() {
       })
       .filter(Boolean);
 
-    await resubmitRequest(id, { formData, requirements });
+    await resubmitRequest(id, { formData, predocs });
 
     alert("Resubmitted! Status is now pending.");
     navigate("/student");
@@ -133,7 +132,7 @@ export default function StudentResubmitRequest() {
   if (!reqData) return null;
 
   const title =
-    reqData.requestType === "agreement"
+    reqData.type === "agreement"
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
 
@@ -183,7 +182,7 @@ export default function StudentResubmitRequest() {
       <div style={reqWrapStyle}>
         <h4 style={{ margin: "0 0 6px 0" }}>Remarks</h4>
         <div style={infoBoxStyle}>
-          {reqData.adminRemarks || <span style={{ opacity: 0.7 }}>No remarks provided.</span>}
+          {reqData.remarks || <span style={{ opacity: 0.7 }}>No remarks provided.</span>}
         </div>
       </div>
 
@@ -217,11 +216,11 @@ export default function StudentResubmitRequest() {
       {/* Current submitted files */}
       <div style={reqWrapStyle}>
         <h4 style={{ margin: "14px 0 6px 0" }}>Attachments</h4>
-        {reqData.requirements?.length ? (
-          reqData.requirements.map((f, idx) => (
+        {reqData.predocs?.length ? (
+          reqData.predocs.map((f, idx) => (
             <div key={idx} style={{ marginTop: "6px" }}>
               <a href={f.url} target="_blank" rel="noreferrer">
-                {f.requirementLabel || f.originalName || `File ${idx + 1}`}
+                {f.requirementLabel || f.origName || `File ${idx + 1}`}
               </a>
             </div>
           ))
@@ -257,7 +256,7 @@ export default function StudentResubmitRequest() {
         ))}
 
         <button type="submit" style={submitBtnStyle}>
-          Submit Resubmission
+          Resubmit
         </button>
       </div>
     </form>

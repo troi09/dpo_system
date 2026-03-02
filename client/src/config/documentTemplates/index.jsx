@@ -18,9 +18,9 @@ const FallbackDoc = ({ request }) => (
 );
 
 const resolveDoc = (request) => {
-  if (request.requestType === "agreement") return <AgreementDoc request={request} />;
+  if (request.type === "agreement") return <AgreementDoc request={request} />;
 
-  if (request.requestType === "nda") {
+  if (request.type === "nda") {
     const t = request.formData?.ndaType;
     if (t === "orgactivities") return <NDAStudentOrgActivitiesDoc request={request} />;
     if (t === "research") return <NDAResearchDoc request={request} />;

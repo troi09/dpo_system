@@ -42,7 +42,7 @@ const StudentDashboard = () => {
               {requests.map((r) => (
                 <tr key={r._id}>
                   <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {r.requestType === "nda"
+                    {r.type === "nda"
                       ? `NDA${r.formData?.ndaTypeLabel ? ` - ${r.formData.ndaTypeLabel}` : ""}`
                       : "Agreement"}
                   </td>

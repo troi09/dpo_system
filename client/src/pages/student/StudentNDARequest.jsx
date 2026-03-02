@@ -57,7 +57,7 @@ export default function StudentNDARequest({ ndaType }) {
     const uploaded = await uploadRequirements(selectedFiles, "nda", studentName, requestFolder);
 
     let uploadIndex = 0;
-    const requirements = files
+    const predocs = files
       .map((f, i) => {
         if (!f) return null;
         const meta = uploaded[uploadIndex++];
@@ -66,9 +66,9 @@ export default function StudentNDARequest({ ndaType }) {
       .filter(Boolean);
 
     await createRequest({
-      requestType: "nda",
+      type: "nda",
       formData: { ...formData, ndaType, ndaTypeLabel: cfg.label },
-      requirements,
+      predocs,
     });
 
     alert("Request submitted!");
@@ -77,6 +77,17 @@ export default function StudentNDARequest({ ndaType }) {
 
   return (
     <form onSubmit={handleSubmit} style={formStyle}>
+      <button
+        type="button"
+        onClick={() => {
+          if (window.history.length > 1) navigate(-1);
+          else navigate("/student");
+        }}
+        style={{ marginBottom: "10px" }}
+      >
+        Back
+      </button>
+      
       <h2>{`NDA Request - ${cfg.label}`}</h2>
 
       {cfg.fields.map((f) => (

@@ -21,7 +21,7 @@ export const getDateRequestFolder = () => {
   return `${date}_${hhmm}`;
 };
 
-export async function uploadRequirements(files, requestType, studentName, requestFolder) {
+export async function uploadRequirements(files, type, studentName, requestFolder) {
   const uploaded = [];
   const studentSlug = slugify(studentName);
   const folder = requestFolder || getDateRequestFolder();
@@ -30,18 +30,17 @@ export async function uploadRequirements(files, requestType, studentName, reques
     const name = safeFileName(file.name);
 
     // <slugify_name_folder>/<requests_folder>/<request_type_folder>/<date_timestamp_folder>/<actual file>
-    const path = `${studentSlug}/requests/${requestType}/${folder}/${name}`;
+    const path = `${studentSlug}/requests/${type}/${folder}/${name}`;
 
     const fileRef = ref(storage, path);
     const snap = await uploadBytes(fileRef, file);
     const url = await getDownloadURL(snap.ref);
 
     uploaded.push({
-      originalName: file.name,
+      origName: file.name,
       url,
       path,
       contentType: file.type,
-      size: file.size,
       uploadedAt: new Date().toISOString(),
       requestFolder: folder,
     });
@@ -50,11 +49,11 @@ export async function uploadRequirements(files, requestType, studentName, reques
   return uploaded;
 }
 
-export async function uploadApprovedForm(pdfBlob, requestType, studentName, requestFolder, fileName) {
+export async function uploadApprovedForm(pdfBlob, type, studentName, requestFolder, fileName) {
   const studentSlug = slugify(studentName);
   const safeName = safeFileName(fileName);
 
-  const path = `${studentSlug}/requests/${requestType}/${requestFolder}/approved_form/${safeName}`;
+  const path = `${studentSlug}/requests/${type}/${requestFolder}/approved_form/${safeName}`;
 
   const typedBlob = new Blob([pdfBlob], { type: "application/pdf" });
   const meta = { contentType: "application/pdf" };
@@ -63,5 +62,5 @@ export async function uploadApprovedForm(pdfBlob, requestType, studentName, requ
   const snap = await uploadBytes(fileRef, typedBlob, meta);
   const url = await getDownloadURL(snap.ref);
 
-  return { url, path, uploadedAt: new Date().toISOString() };
+  return { url, path, issuedAt: new Date().toISOString() };
 }

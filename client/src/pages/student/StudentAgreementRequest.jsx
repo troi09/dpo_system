@@ -58,7 +58,7 @@ export default function StudentAgreementRequest() {
       const uploaded = await uploadRequirements(selectedFiles, "agreement", studentName, requestFolder);
 
       let uploadIndex = 0;
-      const requirements = files
+      const predocs = files
         .map((f, i) => {
           if (!f) return null;
           const meta = uploaded[uploadIndex++];
@@ -67,9 +67,9 @@ export default function StudentAgreementRequest() {
         .filter(Boolean);
 
       await createRequest({
-        requestType: "agreement",
+        type: "agreement",
         formData,
-        requirements,
+        predocs,
       });
 
       alert("Agreement request submitted!");
@@ -81,6 +81,17 @@ export default function StudentAgreementRequest() {
 
   return (
     <form onSubmit={handleSubmit} style={formStyle}>
+      <button
+        type="button"
+        onClick={() => {
+          if (window.history.length > 1) navigate(-1);
+          else navigate("/student");
+        }}
+        style={{ marginBottom: "10px" }}
+      >
+        Back
+      </button>
+
       <h2>Agreement Request</h2>
 
       {cfg.fields.map((f) => (

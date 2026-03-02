@@ -3,10 +3,10 @@ const Request = require("../models/Request");
 
 exports.createRequest = async (req, res) => {
   try {
-    const { requestType, formData, requirements } = req.body;
+    const { type, formData, predocs } = req.body;
 
-    if (!requestType || !["nda", "agreement"].includes(requestType)) {
-      return res.status(400).json({ message: "Invalid requestType" });
+    if (!type || !["nda", "agreement"].includes(type)) {
+      return res.status(400).json({ message: "Invalid type" });
     }
 
     if (!formData || typeof formData !== "object") {
@@ -15,10 +15,10 @@ exports.createRequest = async (req, res) => {
 
     const created = await Request.create({
       userId: req.user.id,
-      requestType,
-      formData,
-      requirements: Array.isArray(requirements) ? requirements : [],
+      type,
       status: "pending",
+      formData,
+      predocs: Array.isArray(predocs) ? predocs : [],
     });
 
     return res.status(201).json({
@@ -44,7 +44,7 @@ exports.getMyRequests = async (req, res) => {
 
 exports.resubmitRequest = async (req, res) => {
   try {
-    const { formData, requirements } = req.body;
+    const { formData, predocs } = req.body;
 
     const r = await Request.findById(req.params.id);
     if (!r) return res.status(404).json({ message: "Request not found" });
@@ -58,10 +58,10 @@ exports.resubmitRequest = async (req, res) => {
     }
 
     r.formData = (formData && typeof formData === "object") ? formData : r.formData;
-    r.requirements = Array.isArray(requirements) ? requirements : [];
+    r.predocs = Array.isArray(predocs) ? predocs : [];
     r.status = "pending";
-    r.adminRemarks = ""; // clear after resubmit so admin queue remarks is clean
-    r.approvedDocument = { url: "", path: "", uploadedAt: "" };
+    r.remarks = "";
+    r.postdocs = { url: "", path: "", issuedAt: "" };
     await r.save();
 
     return res.json({ message: "Resubmitted", request: r });
@@ -99,7 +99,7 @@ exports.getAllPending = async (req, res) => {
 exports.saveApprovedDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const { url, path, uploadedAt } = req.body;
+    const { url, path, issuedAt } = req.body;
 
     if (!url || !path) return res.status(400).json({ message: "url and path are required" });
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid request id" });
@@ -111,10 +111,10 @@ exports.saveApprovedDocument = async (req, res) => {
       return res.status(400).json({ message: "Only approved requests can have an approved document" });
     }
 
-    r.approvedDocument = {
+    r.postdocs = {
       url,
       path,
-      uploadedAt: uploadedAt || new Date().toISOString(),
+      issuedAt: issuedAt || new Date().toISOString(),
     };
 
     await r.save();
@@ -127,7 +127,7 @@ exports.saveApprovedDocument = async (req, res) => {
 exports.updateRequestStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, adminRemarks } = req.body;
+    const { status, remarks } = req.body;
 
     const allowedStatuses = ["approved", "revision_required"];
     if (!status || !allowedStatuses.includes(status)) {
@@ -142,7 +142,7 @@ exports.updateRequestStatus = async (req, res) => {
       id,
       {
         status,
-        adminRemarks: adminRemarks || "",
+        remarks: remarks || "",
       },
       { new: true }
     ).select("-__v");

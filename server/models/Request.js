@@ -8,30 +8,10 @@ const requestSchema = new mongoose.Schema(
       required: true,
     },
 
-    requestType: {
+    type: {
       type: String,
       enum: ["nda", "agreement"],
       required: true,
-    },
-
-    // store request fields here
-    formData: {
-      type: Object,
-      required: true,
-    },
-
-    requirements: {
-      type: [
-        {
-          originalName: String,
-          url: String,
-          path: String,
-          contentType: String,
-          size: Number,
-          uploadedAt: String,
-        },
-      ],
-      default: [],
     },
 
     status: {
@@ -40,15 +20,34 @@ const requestSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    adminRemarks: {
-      type: String,
-      default: "",
+    // store request fields here
+    formData: {
+      type: Object,
+      required: true,
     },
 
-    approvedDocument: {
+    predocs: {
+      type: [
+        {
+          origName: String,
+          url: String,
+          path: String,
+          contentType: String,
+          uploadedAt: String,
+        },
+      ],
+      default: [],
+    },
+
+    postdocs: {
       url: { type: String, default: "" },
       path: { type: String, default: "" },
-      uploadedAt: { type: String, default: "" },
+      issuedAt: { type: String, default: "" },
+    },
+
+    remarks: {
+      type: String,
+      default: "",
     },
   },
   { timestamps: true }

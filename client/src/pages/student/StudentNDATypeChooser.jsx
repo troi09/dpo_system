@@ -12,6 +12,17 @@ export default function StudentNDATypeChooser() {
 
   return (
     <div style={{ padding: 24 }}>
+      <button
+        type="button"
+        onClick={() => {
+          if (window.history.length > 1) navigate(-1);
+          else navigate("/student");
+        }}
+        style={{ marginBottom: "10px" }}
+      >
+        Back
+      </button>
+      
       <h2>NDA Type</h2>
 
       <form onSubmit={handleContinue} style={{ maxWidth: 420 }}>

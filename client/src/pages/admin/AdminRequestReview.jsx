@@ -18,8 +18,8 @@ const textareaStyle = { width: "100%", padding: "10px" };
 
 const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
-const getRequestFolder = (requirements = []) => {
-  for (const r of requirements) {
+const getRequestFolder = (predocs = []) => {
+  for (const r of predocs) {
     if (r.path) {
       const parts = String(r.path).split("/");
       return parts[3] || "";
@@ -29,8 +29,8 @@ const getRequestFolder = (requirements = []) => {
 };
 
 const buildDocFileName = (req) => {
-  if (req.requestType === "agreement") return "Agreement_Approved.pdf";
-  if (req.requestType === "nda") {
+  if (req.type === "agreement") return "Agreement_Approved.pdf";
+  if (req.type === "nda") {
     const t = req.formData?.ndaType || "general";
     return `NDA_${t}_Approved.pdf`;
   }
@@ -50,7 +50,7 @@ export default function AdminRequestReview() {
       try {
         const r = await getRequestById(id);
         setReqData(r);
-        setRemarks(r.adminRemarks || "");
+        setRemarks(r.remarks || "");
       } catch (err) {
         alert(err.response?.data?.message || "Failed to load request");
         navigate("/admin/requests");
@@ -61,8 +61,8 @@ export default function AdminRequestReview() {
 
   const cfg = useMemo(() => {
     if (!reqData) return null;
-    if (reqData.requestType === "agreement") return FIELDS_FILE_SLOTS_CONFIG.agreement;
-    if (reqData.requestType === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda[reqData.formData?.ndaType];
+    if (reqData.type === "agreement") return FIELDS_FILE_SLOTS_CONFIG.agreement;
+    if (reqData.type === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda[reqData.formData?.ndaType];
     return null;
   }, [reqData]);
 
@@ -75,25 +75,25 @@ export default function AdminRequestReview() {
       if (status === "approved") {
         setApproving(true);
 
-        const updateRes = await updateRequestStatus(reqData._id, { status, adminRemarks: remarks });
+        const updateRes = await updateRequestStatus(reqData._id, { status, remarks });
         const updated = updateRes.request;
 
         const docReq = { ...updated, userId: reqData.userId };
         const pdfBlob = await generateApprovedPDF(docReq);
 
         const studentName = reqData.userId?.name || "Unknown Student";
-        const requestFolder = getRequestFolder(reqData.requirements);
+        const requestFolder = getRequestFolder(reqData.predocs);
         if (!requestFolder) throw new Error("Could not determine request folder");
 
         const fileName = buildDocFileName(reqData);
-        const uploaded = await uploadApprovedForm(pdfBlob, reqData.requestType, studentName, requestFolder, fileName);
+        const uploaded = await uploadApprovedForm(pdfBlob, reqData.type, studentName, requestFolder, fileName);
 
         await saveApprovedDocument(reqData._id, uploaded);
 
         alert("Approved and document generated!");
         setApproving(false);
       } else {
-        await updateRequestStatus(reqData._id, { status, adminRemarks: remarks });
+        await updateRequestStatus(reqData._id, { status, remarks });
         alert(`Updated to ${status}`);
       }
 
@@ -108,7 +108,7 @@ export default function AdminRequestReview() {
   if (!reqData) return null;
 
   const requestTitle =
-    reqData.requestType === "agreement"
+    reqData.type === "agreement"
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
 
@@ -159,11 +159,11 @@ export default function AdminRequestReview() {
 
       <div style={{ marginBottom: "14px" }}>
         <h4 style={sectionTitleStyle}>Attachments</h4>
-        {reqData.requirements?.length ? (
-          reqData.requirements.map((f, idx) => (
+        {reqData.predocs?.length ? (
+          reqData.predocs.map((f, idx) => (
             <div key={idx} style={{ marginBottom: "6px" }}>
               <a href={f.url} target="_blank" rel="noreferrer">
-                {f.requirementLabel || f.originalName || `File ${idx + 1}`}
+                {f.requirementLabel || f.origName || `File ${idx + 1}`}
               </a>
             </div>
           ))
@@ -189,7 +189,7 @@ export default function AdminRequestReview() {
         <div style={{ marginBottom: "14px" }}>
           <h4 style={sectionTitleStyle}>Remarks</h4>
           <div style={infoBlockStyle}>
-            {reqData.adminRemarks || <span style={{ opacity: 0.6 }}>No remarks provided.</span>}
+            {reqData.remarks || <span style={{ opacity: 0.6 }}>No remarks provided.</span>}
           </div>
         </div>
       )}
@@ -198,8 +198,8 @@ export default function AdminRequestReview() {
         <div style={{ marginBottom: "14px" }}>
           <h4 style={sectionTitleStyle}>Approved Request Form</h4>
           <div style={infoBlockStyle}>
-            {reqData.approvedDocument?.url ? (
-              <a href={reqData.approvedDocument.url} target="_blank" rel="noreferrer">
+            {reqData.postdocs?.url ? (
+              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer">
                 Placeholder Document
               </a>
             ) : (

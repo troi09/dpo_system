@@ -53,7 +53,7 @@ export default function AdminRequests() {
                   </td>
 
                   <td style={tdStyle}>
-                    {r.requestType === "nda"
+                    {r.type === "nda"
                       ? `NDA${r.formData?.ndaTypeLabel ? ` - ${r.formData.ndaTypeLabel}` : ""}`
                       : "Agreement"}
                   </td>
