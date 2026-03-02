@@ -42,13 +42,22 @@ function AppLayout() {
 }
 
 function App() {
+  const { user } = useContext(AuthContext);
+
   return (
     <Router>
       <Routes>
         <Route path="/verify/:code" element={<VerifyDocument />} />
 
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Landing />} />
+          <Route
+            path="/"
+            element={
+              user
+                ? <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />
+                : <Landing />
+            }
+          />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/register" element={<Navigate to="/" replace />} />
 
