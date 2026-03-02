@@ -11,7 +11,10 @@ const {
   saveApprovedDocument,
   updateRequestStatus,
   getRequestById,
+  verifyRequestCode,
 } = require("../controllers/requestController");
+
+router.get("/verify/:code", verifyRequestCode);
 
 // Student
 router.post("/", protect, createRequest);

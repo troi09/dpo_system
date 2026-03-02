@@ -43,11 +43,18 @@ const requestSchema = new mongoose.Schema(
       url: { type: String, default: "" },
       path: { type: String, default: "" },
       issuedAt: { type: String, default: "" },
+      verificationUrl: { type: String, default: "" },
     },
 
     remarks: {
       type: String,
       default: "",
+    },
+
+    serialNo: {
+      type: String,
+      default: "",
+      index: true,
     },
   },
   { timestamps: true }

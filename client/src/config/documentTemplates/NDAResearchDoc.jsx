@@ -26,7 +26,7 @@ export default function NDAResearchDoc({ request }) {
         <SectionTitle>Notes</SectionTitle>
         <BodyText>(Placeholder — research NDA clauses, signatory blocks, QR code, and e-signature.)</BodyText>
 
-        <Footer />
+        <Footer qrDataUrl={request.qrDataUrl} verificationUrl={request.verificationUrl} />
       </Page>
     </Document>
   );

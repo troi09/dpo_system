@@ -64,3 +64,17 @@ export async function uploadApprovedForm(pdfBlob, type, studentName, requestFold
 
   return { url, path, issuedAt: new Date().toISOString() };
 }
+
+export async function uploadApprovedQrImage(qrDataUrl, type, studentName, requestFolder) {
+  const studentSlug = slugify(studentName);
+  const path = `${studentSlug}/requests/${type}/${requestFolder}/approved_form/qr_code.png`;
+
+  const qrBlob = await fetch(qrDataUrl).then((res) => res.blob());
+  const meta = { contentType: "image/png" };
+
+  const fileRef = ref(storage, path);
+  const snap = await uploadBytes(fileRef, qrBlob, meta);
+  const url = await getDownloadURL(snap.ref);
+
+  return { url, path };
+}

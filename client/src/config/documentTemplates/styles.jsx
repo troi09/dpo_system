@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 
 export const s = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#222" },
@@ -24,8 +24,13 @@ export const s = StyleSheet.create({
 
   footerWrap: { position: "absolute", bottom: 40, left: 40, right: 40 },
   footerHr: { borderBottomWidth: 1, borderBottomColor: "#bbb", marginBottom: 8 },
-  footerTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", textAlign: "center", marginBottom: 4 },
-  footerNote: { fontSize: 8, textAlign: "center", color: "#888" },
+  footerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  footerLeft: { flex: 1, paddingRight: 10 },
+  footerTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", textAlign: "left", marginBottom: 4 },
+  footerNote: { fontSize: 8, textAlign: "left", color: "#888" },
+  footerQrWrap: { alignItems: "center", width: 90 },
+  footerQr: { width: 70, height: 70 },
+  footerQrLabel: { fontSize: 7, color: "#888", marginTop: 4, textAlign: "center" },
 });
 
 export const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-US") : "N/A");
@@ -57,10 +62,21 @@ export const FieldRow = ({ label, value }) => (
 
 export const BodyText = ({ children }) => <Text style={s.bodyText}>{children}</Text>;
 
-export const Footer = () => (
+export const Footer = ({ qrDataUrl, verificationUrl }) => (
   <View style={s.footerWrap} fixed>
     <View style={s.footerHr} />
-    <Text style={s.footerTitle}>APPROVED — Data Protection Office</Text>
-    <Text style={s.footerNote}>(Placeholder — e-signature + QR code will go here)</Text>
+    <View style={s.footerRow}>
+      <View style={s.footerLeft}>
+        <Text style={s.footerTitle}>APPROVED — Data Protection Office</Text>
+        <Text style={s.footerNote}>(Placeholder — e-signature + QR code will go here)</Text>
+        {verificationUrl ? <Text style={s.footerNote}>{verificationUrl}</Text> : null}
+      </View>
+      {qrDataUrl ? (
+        <View style={s.footerQrWrap}>
+          <Image style={s.footerQr} src={qrDataUrl} />
+          <Text style={s.footerQrLabel}>Scan to verify</Text>
+        </View>
+      ) : null}
+    </View>
   </View>
 );

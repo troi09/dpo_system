@@ -25,7 +25,7 @@ export default function AgreementDoc({ request }) {
         <SectionTitle>Notes</SectionTitle>
         <BodyText>(Placeholder — exact agreement clauses and formatting will go here.)</BodyText>
 
-        <Footer />
+        <Footer qrDataUrl={request.qrDataUrl} verificationUrl={request.verificationUrl} />
       </Page>
     </Document>
   );

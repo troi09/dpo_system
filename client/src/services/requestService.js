@@ -48,3 +48,9 @@ export const getRequestById = async (id) => {
   const res = await axios.get(`${API_URL}/${id}`, { headers: authHeader() });
   return res.data;
 };
+
+// Public verify
+export const verifyRequestCode = async (code) => {
+  const res = await axios.get(`${API_URL}/verify/${code}`);
+  return res.data;
+};

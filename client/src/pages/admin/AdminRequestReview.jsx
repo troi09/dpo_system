@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById, updateRequestStatus, saveApprovedDocument } from "../../services/requestService";
 import { generateApprovedPDF } from "../../config/documentTemplates";
-import { uploadApprovedForm } from "../../services/firebaseStorageService";
+import { uploadApprovedForm, uploadApprovedQrImage } from "../../services/firebaseStorageService";
+import { buildVerificationUrl, generateQrDataUrl } from "../../services/qrService";
 
 const boxStyle = {
   padding: "20px",
@@ -78,17 +79,35 @@ export default function AdminRequestReview() {
         const updateRes = await updateRequestStatus(reqData._id, { status, remarks });
         const updated = updateRes.request;
 
-        const docReq = { ...updated, userId: reqData.userId };
-        const pdfBlob = await generateApprovedPDF(docReq);
+        if (!updated?.serialNo) {
+          throw new Error("Serial number missing");
+        }
+
+        const verificationUrl = buildVerificationUrl(updated.serialNo);
+        const qrDataUrl = await generateQrDataUrl(verificationUrl);
 
         const studentName = reqData.userId?.name || "Unknown Student";
         const requestFolder = getRequestFolder(reqData.predocs);
         if (!requestFolder) throw new Error("Could not determine request folder");
 
+        await uploadApprovedQrImage(qrDataUrl, reqData.type, studentName, requestFolder);
+
+        const docReq = {
+          ...updated,
+          userId: reqData.userId,
+          verificationUrl,
+          qrDataUrl,
+        };
+
+        const pdfBlob = await generateApprovedPDF(docReq);
+
         const fileName = buildDocFileName(reqData);
         const uploaded = await uploadApprovedForm(pdfBlob, reqData.type, studentName, requestFolder, fileName);
 
-        await saveApprovedDocument(reqData._id, uploaded);
+        await saveApprovedDocument(reqData._id, {
+          ...uploaded,
+          verificationUrl,
+        });
 
         alert("Approved and document generated!");
         setApproving(false);

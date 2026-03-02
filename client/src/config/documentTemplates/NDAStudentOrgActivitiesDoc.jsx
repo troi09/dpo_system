@@ -25,7 +25,7 @@ export default function NDAStudentOrgActivitiesDoc({ request }) {
         <SectionTitle>Notes</SectionTitle>
         <BodyText>(Placeholder — NDA clauses, signatory blocks, QR code, and e-signature.)</BodyText>
 
-        <Footer />
+        <Footer qrDataUrl={request.qrDataUrl} verificationUrl={request.verificationUrl} />
       </Page>
     </Document>
   );

@@ -1,6 +1,12 @@
 const mongoose = require("mongoose");
 const Request = require("../models/Request");
 
+const generateVerification = () => {
+  const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
+  const time = Date.now().toString(36).toUpperCase();
+  return `${rand}-${time}`;
+};
+
 exports.createRequest = async (req, res) => {
   try {
     const { type, formData, predocs } = req.body;
@@ -61,7 +67,7 @@ exports.resubmitRequest = async (req, res) => {
     r.predocs = Array.isArray(predocs) ? predocs : [];
     r.status = "pending";
     r.remarks = "";
-    r.postdocs = { url: "", path: "", issuedAt: "" };
+    r.postdocs = { url: "", path: "", issuedAt: "", verificationUrl: "" };
     await r.save();
 
     return res.json({ message: "Resubmitted", request: r });
@@ -99,7 +105,7 @@ exports.getAllPending = async (req, res) => {
 exports.saveApprovedDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const { url, path, issuedAt } = req.body;
+    const { url, path, issuedAt, verificationUrl } = req.body;
 
     if (!url || !path) return res.status(400).json({ message: "url and path are required" });
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid request id" });
@@ -115,6 +121,7 @@ exports.saveApprovedDocument = async (req, res) => {
       url,
       path,
       issuedAt: issuedAt || new Date().toISOString(),
+      verificationUrl: verificationUrl || "",
     };
 
     await r.save();
@@ -138,12 +145,23 @@ exports.updateRequestStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid request id" });
     }
 
+    const updatePayload = {
+      status,
+      remarks: remarks || "",
+    };
+
+    if (status === "approved") {
+      const existing = await Request.findById(id).select("serialNo");
+      if (!existing) return res.status(404).json({ message: "Request not found" });
+
+      if (!existing.serialNo) {
+        updatePayload.serialNo = generateVerification();
+      }
+    }
+
     const updated = await Request.findByIdAndUpdate(
       id,
-      {
-        status,
-        remarks: remarks || "",
-      },
+      updatePayload,
       { new: true }
     ).select("-__v");
 
@@ -157,6 +175,31 @@ exports.updateRequestStatus = async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });
+  }
+};
+
+exports.verifyRequestCode = async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    if (!code) return res.status(400).json({ valid: false, message: "Missing code" });
+
+    const r = await Request.findOne({ serialNo: code })
+      .populate("userId", "name email")
+      .select("-__v");
+
+    if (!r) return res.status(404).json({ valid: false, message: "Not found" });
+
+    return res.json({
+      valid: r.status === "approved",
+      status: r.status,
+      type: r.type,
+      requestId: r._id,
+      issuedAt: r.postdocs?.issuedAt || "",
+      studentName: r.userId?.name || "",
+    });
+  } catch (err) {
+    return res.status(500).json({ valid: false, message: err.message });
   }
 };
 
