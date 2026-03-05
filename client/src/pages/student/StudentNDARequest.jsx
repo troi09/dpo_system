@@ -3,19 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { createRequest } from "../../services/requestService";
 import { uploadRequirements, getDateRequestFolder } from "../../services/firebaseStorageService";
-
-const formStyle = {
-  padding: "30px",
-  borderRadius: "8px",
-  width: "520px",
-  textAlign: "center",
-  boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-};
-const inputStyle = { width: "100%", padding: "10px", margin: "10px 0" };
-const reqWrapStyle = { textAlign: "left", marginTop: "10px" };
-const fileLabelStyle = { display: "block", fontSize: "13px", marginBottom: "4px" };
-const selectedFileStyle = { fontSize: "13px", marginTop: "4px", opacity: 0.85 };
-const submitBtnStyle = { width: "100%", padding: "10px", marginTop: "16px" };
+import "../../components/RequestForm.css";
 
 export default function StudentNDARequest({ ndaType }) {
   const navigate = useNavigate();
@@ -76,78 +64,88 @@ export default function StudentNDARequest({ ndaType }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={formStyle}>
-      <button
-        type="button"
-        onClick={() => {
-          if (window.history.length > 1) navigate(-1);
-          else navigate("/student");
-        }}
-        style={{ marginBottom: "10px" }}
-      >
-        Back
-      </button>
-      
-      <h2>{`NDA Request - ${cfg.label}`}</h2>
-
-      {cfg.fields.map((f) => (
-        <div key={f.name} style={{ textAlign: "left" }}>
-          <label style={fileLabelStyle}>{f.label}</label>
-
-          {f.kind === "textarea" ? (
-            <textarea
-              value={formData[f.name] || ""}
-              onChange={(e) => onChangeField(f.name, e.target.value)}
-              rows={f.rows || 4}
-              style={inputStyle}
-            />
-          ) : (
-            <input
-              value={formData[f.name] || ""}
-              onChange={(e) => onChangeField(f.name, e.target.value)}
-              required={f.required}
-              style={inputStyle}
-            />
-          )}
+    <div className="request-form-page">
+      <form onSubmit={handleSubmit} className="request-form-card">
+        <div className="request-form-header">
+          <button
+            type="button"
+            className="request-form-back"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/student");
+            }}
+          >
+            ‹ Back
+          </button>
+          <h2 className="request-form-title">{`NDA Request - ${cfg.label}`}</h2>
+          <div />
         </div>
-      ))}
 
-      <div style={reqWrapStyle}>
-        <h4 style={{ margin: 0 }}>Requirements (NDA)</h4>
-        <ul style={{ marginTop: "6px", fontSize: "13px", opacity: 0.85 }}>
-          {cfg.fileSlots.map((s, i) => (
-            <li key={i}>{s.label}</li>
-          ))}
-        </ul>
-
-        {files.map((file, index) => (
-          <div key={index} style={{ marginTop: "10px" }}>
-            <label style={fileLabelStyle}>
-              {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
-              {cfg.fileSlots[index]?.required ? " *" : ""}
-            </label>
-
-            <input
-              type="file"
-              accept="application/pdf,image/*"
-              onChange={(e) => {
-                const selected = e.target.files?.[0] || null;
-                setFiles((prev) => {
-                  const copy = [...prev];
-                  copy[index] = selected;
-                  return copy;
-                });
-              }}
-            />
-
-            {file && <div style={selectedFileStyle}>Selected: {file.name}</div>}
+        <div className="request-form-body">
+          <div className="request-section">
+            <div className="request-section-title">Data</div>
+            {cfg.fields.map((f) => (
+              <div key={f.name} className="request-field">
+                <label className="request-label">{f.label}</label>
+                {f.kind === "textarea" ? (
+                  <textarea
+                    value={formData[f.name] || ""}
+                    onChange={(e) => onChangeField(f.name, e.target.value)}
+                    rows={f.rows || 4}
+                    className="request-textarea"
+                  />
+                ) : (
+                  <input
+                    value={formData[f.name] || ""}
+                    onChange={(e) => onChangeField(f.name, e.target.value)}
+                    required={f.required}
+                    className="request-input"
+                  />
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <button type="submit" style={submitBtnStyle}>
-        Submit NDA Request
-      </button>
-    </form>
+          <div className="request-section">
+            <div className="request-section-title">Requirements (NDA)</div>
+            {files.map((file, index) => (
+              <div key={index} className="request-file-row">
+                <div className="request-file-info">
+                  <div className="request-file-title">
+                    {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
+                    {cfg.fileSlots[index]?.required ? " *" : ""}
+                  </div>
+                  <div className="request-file-subtitle">
+                    {file ? file.name : "No file selected"}
+                  </div>
+                </div>
+
+                <label className="request-file-action">
+                  Upload File
+                  <input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(e) => {
+                      const selected = e.target.files?.[0] || null;
+                      setFiles((prev) => {
+                        const copy = [...prev];
+                        copy[index] = selected;
+                        return copy;
+                      });
+                    }}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="request-form-actions">
+          <button type="submit" className="request-form-submit">
+            Submit Request
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

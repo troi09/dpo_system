@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllRequests } from "../../services/requestService";
 
-const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const prettyStatus = (s) =>
+  s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+
+const statusClass = (s) => {
+  if (s === "pending") return "status-pill status-pill--pending";
+  if (s === "approved") return "status-pill status-pill--approved";
+  if (s === "revision_required") return "status-pill status-pill--revision";
+  return "status-pill";
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -21,47 +29,57 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <div style={{ width: "1200px" }}>
-      <h2 style={{ textAlign: "center", marginBottom: "12px" }}>Admin Dashboard</h2>
-
-      <div style={{ padding: "16px", borderRadius: "8px" }}>
+    <div className="dashboard-page">
+      <div className="dashboard-card">
         {requests.length === 0 ? (
-          <p style={{ textAlign: "center" }}>No requests found.</p>
+          <p className="dashboard-empty">No requests found.</p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="dashboard-table">
             <thead>
-              <tr style={{ textAlign: "left" }}>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Student</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Type</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Status</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>Request Date</th>
-                <th style={{ padding: "8px", borderBottom: "1px solid #ddd" }}></th>
+              <tr className="dashboard-table-title-row">
+                <th colSpan={5}>
+                  <div className="dashboard-table-title-wrap">
+                    <span className="dashboard-table-title">Admin Dashboard</span>
+                  </div>
+                </th>
+              </tr>
+              <tr>
+                <th>Student</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Request Date</th>
+                <th></th>
               </tr>
             </thead>
 
             <tbody>
               {requests.map((r) => (
                 <tr key={r._id}>
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                  <td>
                     {r.userId?.name || "Unknown"}
                     <br />
-                    <span style={{ fontSize: "12px", opacity: 0.8 }}>
+                    <span className="dashboard-subtext">
                       {r.userId?.email || ""}
                     </span>
                   </td>
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
+                  <td>
                     {r.type === "nda"
                       ? `NDA${r.formData?.ndaTypeLabel ? ` - ${r.formData.ndaTypeLabel}` : ""}`
                       : "Agreement"}
                   </td>
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {prettyStatus(r.status)}
+                  <td>
+                    <span className={statusClass(r.status)}>
+                      {prettyStatus(r.status)}
+                    </span>
                   </td>
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    {new Date(r.createdAt).toLocaleDateString("en-US")}
-                  </td>
-                  <td style={{ padding: "8px", borderBottom: "1px solid #eee" }}>
-                    <button onClick={() => navigate(`/admin/requests/${r._id}`)}>View</button>
+                  <td>{new Date(r.createdAt).toLocaleDateString("en-US")}</td>
+                  <td>
+                    <button
+                      className="dashboard-action"
+                      onClick={() => navigate(`/admin/requests/${r._id}`)}
+                    >
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}

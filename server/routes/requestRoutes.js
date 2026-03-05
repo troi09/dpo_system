@@ -7,7 +7,6 @@ const {
   getMyRequests,
   resubmitRequest,
   getAllRequests,
-  getAllPending,
   saveApprovedDocument,
   updateRequestStatus,
   getRequestById,
@@ -23,7 +22,6 @@ router.patch("/:id/resubmit", protect, resubmitRequest);
 
 // Admin
 router.get("/all", protect, authorizeAdmin, getAllRequests);
-router.get("/", protect, authorizeAdmin, getAllPending);
 router.patch("/:id/approved-document", protect, authorizeAdmin, saveApprovedDocument);
 router.patch("/:id", protect, authorizeAdmin, updateRequestStatus);
 

@@ -24,13 +24,8 @@ export const resubmitRequest = async (id, payload) => {
 };
 
 // Admin
-export const getAllRequests= async () => {
+export const getAllRequests = async () => {
   const res = await axios.get(`${API_URL}/all`, { headers: authHeader() });
-  return res.data;
-};
-
-export const getAllPending = async () => {
-  const res = await axios.get(API_URL, { headers: authHeader() });
   return res.data;
 };
 

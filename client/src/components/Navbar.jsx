@@ -18,7 +18,7 @@ const Navbar = () => {
               Dashboard
             </NavLink>
             <NavLink to="/student/new-request" className={linkClass}>
-              New Request
+              Create Request
             </NavLink>
             <NavLink to="/student/profile" className={linkClass}>
               Profile

@@ -3,7 +3,8 @@ import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
 
 import Navbar from "./components/Navbar";
-import RequireRole from "./components/RequireRole";
+import Headbar from "./components/Headbar";
+import RequireRole from "./guards/RequireRole";
 
 import Landing from "./pages/Landing";
 import VerifyDocument from "./pages/VerifyDocument";
@@ -35,7 +36,10 @@ function AppLayout() {
       {user && <Navbar />}
 
       <div className="page-container">
-        <Outlet />
+        {user && <Headbar />}
+        <div className="page-content">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

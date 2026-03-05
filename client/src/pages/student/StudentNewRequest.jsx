@@ -1,35 +1,32 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "../../components/TypeChooser.css";
 
 export default function StudentNewRequest() {
   const navigate = useNavigate();
-  const [type, setType] = useState("nda");
-
-  const handleContinue = (e) => {
-    e.preventDefault();
-    navigate(`/student/new-request/${type}`);
-  };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2>New Request</h2>
+    <div className="type-chooser-page">
+      <div className="type-chooser-card">
+        <h2 className="type-chooser-title">Request Type</h2>
 
-      <form onSubmit={handleContinue} style={{ maxWidth: 420 }}>
-        <label style={{ display: "block", marginTop: 12 }}>Choose request form</label>
-
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          style={{ width: "100%", padding: 10, marginTop: 8 }}
+        <button
+          type="button"
+          className="type-chooser-option"
+          onClick={() => navigate("/student/new-request/nda")}
         >
-          <option value="nda">NDA</option>
-          <option value="agreement">Agreement</option>
-        </select>
-
-        <button type="submit" style={{ width: "100%", padding: 10, marginTop: 16 }}>
-          Continue
+          Non-Disclosure Agreement
+          <span className="type-chooser-arrow">›</span>
         </button>
-      </form>
+
+        <button
+          type="button"
+          className="type-chooser-option"
+          onClick={() => navigate("/student/new-request/agreement")}
+        >
+          Agreement
+          <span className="type-chooser-arrow">›</span>
+        </button>
+      </div>
     </div>
   );
 }

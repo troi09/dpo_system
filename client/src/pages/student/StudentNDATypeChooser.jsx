@@ -1,46 +1,43 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "../../components/TypeChooser.css";
 
 export default function StudentNDATypeChooser() {
   const navigate = useNavigate();
-  const [ndaType, setNdaType] = useState("orgactivities");
-
-  const handleContinue = (e) => {
-    e.preventDefault();
-    navigate(`/student/new-request/nda/${ndaType}`);
-  };
 
   return (
-    <div style={{ padding: 24 }}>
-      <button
-        type="button"
-        onClick={() => {
-          if (window.history.length > 1) navigate(-1);
-          else navigate("/student");
-        }}
-        style={{ marginBottom: "10px" }}
-      >
-        Back
-      </button>
-      
-      <h2>NDA Type</h2>
-
-      <form onSubmit={handleContinue} style={{ maxWidth: 420 }}>
-        <label style={{ display: "block", marginTop: 12 }}>Choose NDA type</label>
-
-        <select
-          value={ndaType}
-          onChange={(e) => setNdaType(e.target.value)}
-          style={{ width: "100%", padding: 10, marginTop: 8 }}
+    <div className="type-chooser-page">
+      <div className="type-chooser-card">
+        <button
+          type="button"
+          className="type-chooser-back"
+          onClick={() => {
+            if (window.history.length > 1) navigate(-1);
+            else navigate("/student");
+          }}
         >
-          <option value="orgactivities">Student Organization Activities</option>
-          <option value="research">Conduct of Research</option>
-        </select>
-
-        <button type="submit" style={{ width: "100%", padding: 10, marginTop: 16 }}>
-          Continue
+          ‹ Back
         </button>
-      </form>
+
+        <h2 className="type-chooser-title">Non-Disclosure Agreement Types</h2>
+
+        <button
+          type="button"
+          className="type-chooser-option"
+          onClick={() => navigate("/student/new-request/nda/orgactivities")}
+        >
+          Student Organization Activities
+          <span className="type-chooser-arrow">›</span>
+        </button>
+
+        <button
+          type="button"
+          className="type-chooser-option"
+          onClick={() => navigate("/student/new-request/nda/research")}
+        >
+          Conduct of Research
+          <span className="type-chooser-arrow">›</span>
+        </button>
+      </div>
     </div>
   );
 }

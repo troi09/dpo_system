@@ -89,19 +89,6 @@ exports.getAllRequests = async (req, res) => {
   }
 };
 
-exports.getAllPending = async (req, res) => {
-  try {
-    const list = await Request.find({ status: "pending" })
-      .populate("userId", "name email role")
-      .sort({ createdAt: -1 })
-      .select("-__v");
-
-    return res.json(list);
-  } catch (err) {
-    return res.status(500).json({ message: err.message });
-  }
-};
-
 exports.saveApprovedDocument = async (req, res) => {
   try {
     const { id } = req.params;

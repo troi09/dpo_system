@@ -1,69 +1,121 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAllPending } from "../../services/requestService";
+import { getAllRequests } from "../../services/requestService";
 
-const pageStyle = { width: "900px" };
-const cardStyle = { padding: "16px", borderRadius: "8px" };
-const thStyle = { padding: "8px", borderBottom: "1px solid #ddd", textAlign: "left" };
-const tdStyle = { padding: "8px", borderBottom: "1px solid #eee" };
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "pending", label: "Pending" },
+  { key: "approved", label: "Approved" },
+  { key: "revision_required", label: "Revision Required" },
+];
+
+const statusClass = (s) => {
+  if (s === "pending") return "status-pill status-pill--pending";
+  if (s === "approved") return "status-pill status-pill--approved";
+  if (s === "revision_required") return "status-pill status-pill--revision";
+  return "status-pill";
+};
+
+const filterClass = (s) => {
+  if (s === "pending") return "status-filter status-filter--pending";
+  if (s === "approved") return "status-filter status-filter--approved";
+  if (s === "revision_required") return "status-filter status-filter--revision";
+  return "status-filter status-filter--all";
+};
+
+const prettyStatus = (s) =>
+  s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function AdminRequests() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
+  const [filterIndex, setFilterIndex] = useState(0);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await getAllPending();
+        const data = await getAllRequests();
         setRequests(data);
       } catch (err) {
-        alert(err.response?.data?.message || "Failed to load pending requests");
+        alert(err.response?.data?.message || "Failed to load requests");
       }
     };
     load();
   }, []);
 
-  return (
-    <div style={pageStyle}>
-      <h2 style={{ textAlign: "center", marginBottom: "12px" }}>Pending Request Queue</h2>
+  const activeFilter = FILTERS[filterIndex];
 
-      <div style={cardStyle}>
-        {requests.length === 0 ? (
-          <p style={{ textAlign: "center" }}>No pending requests.</p>
+  const filtered = useMemo(() => {
+    if (activeFilter.key === "all") return requests;
+    return requests.filter((r) => r.status === activeFilter.key);
+  }, [requests, activeFilter]);
+
+  const cycleFilter = () => {
+    setFilterIndex((i) => (i + 1) % FILTERS.length);
+  };
+
+  return (
+    <div className="dashboard-page">
+      <div className="dashboard-card">
+        {filtered.length === 0 ? (
+          <p className="dashboard-empty">No requests found.</p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="dashboard-table">
             <thead>
+              <tr className="dashboard-table-title-row">
+                <th colSpan={5}>
+                  <div className="dashboard-table-title-wrap">
+                    <span className="dashboard-table-title">Requests</span>
+                    <button
+                      className={filterClass(activeFilter.key)}
+                      onClick={cycleFilter}
+                    >
+                      {activeFilter.label}
+                    </button>
+                  </div>
+                </th>
+              </tr>
               <tr>
-                <th style={thStyle}>Student</th>
-                <th style={thStyle}>Type</th>
-                <th style={thStyle}>Request Date</th>
-                <th style={thStyle}></th>
+                <th>Student</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Request Date</th>
+                <th></th>
               </tr>
             </thead>
 
             <tbody>
-              {requests.map((r) => (
+              {filtered.map((r) => (
                 <tr key={r._id}>
-                  <td style={tdStyle}>
+                  <td>
                     {r.userId?.name || "Unknown"}
                     <br />
-                    <span style={{ fontSize: "12px", opacity: 0.8 }}>
+                    <span className="dashboard-subtext">
                       {r.userId?.email || ""}
                     </span>
                   </td>
 
-                  <td style={tdStyle}>
+                  <td>
                     {r.type === "nda"
                       ? `NDA${r.formData?.ndaTypeLabel ? ` - ${r.formData.ndaTypeLabel}` : ""}`
                       : "Agreement"}
                   </td>
 
-                  <td style={tdStyle}>
-                    {new Date(r.createdAt).toLocaleDateString("en-US")}
+                  <td>
+                    <span className={statusClass(r.status)}>
+                      {prettyStatus(r.status)}
+                    </span>
                   </td>
 
-                  <td style={tdStyle}>
-                    <button onClick={() => navigate(`/admin/requests/${r._id}`)}>Review</button>
+                  <td>{new Date(r.createdAt).toLocaleDateString("en-US")}</td>
+
+                  <td>
+                    <button
+                      className="dashboard-action"
+                      onClick={() => navigate(`/admin/requests/${r._id}`)}
+                    >
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}
