@@ -1,6 +1,12 @@
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const AuditLog = require("../models/AuditLog");
+
+// Helper to safely log audit events without blocking the response
+const logAudit = (data) => {
+  AuditLog.create(data).catch(() => {});
+};
 
 // REGISTER
 exports.register = async (req, res) => {
@@ -51,14 +57,18 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
+    if (!isMatch) {
+      logAudit({ action: "login_failed", details: { email: email.toLowerCase() } });
       return res.status(401).json({ message: "Invalid email or password" });
+    }
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "5m" }
     );
+
+    logAudit({ userId: user._id, action: "login", details: { role: user.role } });
 
     res.json({
       token,

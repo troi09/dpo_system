@@ -1,6 +1,11 @@
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const Request = require("../models/Request");
+const AuditLog = require("../models/AuditLog");
+
+const logAudit = (data) => {
+  AuditLog.create(data).catch(() => {});
+};
 
 const generateVerification = () => {
   return crypto.randomBytes(8).toString("hex").toUpperCase();
@@ -154,6 +159,14 @@ exports.updateRequestStatus = async (req, res) => {
     if (!updated) {
       return res.status(404).json({ message: "Request not found" });
     }
+
+    // Audit log: record status changes for the Auditor Agent (Agent 3)
+    logAudit({
+      userId: req.user.id,
+      action: status === "approved" ? "request_approved" : "request_revision_required",
+      resourceType: "request",
+      resourceId: String(id),
+    });
 
     return res.json({
       message: "Request updated",

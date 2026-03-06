@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById, updateRequestStatus, saveApprovedDocument } from "../../services/requestService";
+import { getComplianceReview } from "../../services/aiService";
 import { generateApprovedPDF } from "../../config/documentTemplates";
 import { uploadApprovedForm, uploadApprovedQrImage } from "../../services/firebaseStorageService";
 import { buildVerificationUrl, generateQrDataUrl } from "../../services/qrService";
@@ -45,6 +46,8 @@ export default function AdminRequestReview() {
   const [reqData, setReqData] = useState(null);
   const [remarks, setRemarks] = useState("");
   const [approving, setApproving] = useState(false);
+  const [complianceData, setComplianceData] = useState(null);
+  const [complianceLoading, setComplianceLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -52,6 +55,22 @@ export default function AdminRequestReview() {
         const r = await getRequestById(id);
         setReqData(r);
         setRemarks(r.remarks || "");
+
+        // Automatically run the Compliance & Drafting Co-Pilot for pending requests
+        if (r.status === "pending") {
+          setComplianceLoading(true);
+          try {
+            const review = await getComplianceReview({
+              type: r.type,
+              formData: r.formData || {},
+            });
+            setComplianceData(review);
+          } catch {
+            // Compliance review is non-blocking; failure doesn't prevent manual review
+          } finally {
+            setComplianceLoading(false);
+          }
+        }
       } catch (err) {
         alert(err.response?.data?.message || "Failed to load request");
         navigate("/admin/requests");
@@ -190,6 +209,86 @@ export default function AdminRequestReview() {
           <div style={{ opacity: 0.7 }}>No files.</div>
         )}
       </div>
+
+      {isPending && (
+        <div style={{ marginBottom: "14px" }}>
+          <h4 style={sectionTitleStyle}>
+            🤖 AI Compliance &amp; Drafting Co-Pilot
+            <span style={{ fontSize: "11px", fontWeight: 400, marginLeft: "8px", opacity: 0.7 }}>
+              (Agent 2 — Draft for Human Review)
+            </span>
+          </h4>
+          {complianceLoading && (
+            <div style={{ padding: "10px", color: "#64748b", fontStyle: "italic" }}>
+              Analyzing document for compliance…
+            </div>
+          )}
+          {!complianceLoading && complianceData && (
+            <div style={{ border: "1px solid #e2e8f0", borderRadius: "6px", overflow: "hidden" }}>
+              {/* Risk Score */}
+              <div style={{
+                padding: "10px 14px",
+                background: complianceData.compliance.riskLevel === "HIGH"
+                  ? "#fef2f2"
+                  : complianceData.compliance.riskLevel === "MODERATE"
+                  ? "#fffbeb"
+                  : "#f0fdf4",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+              }}>
+                <span style={{ fontWeight: 600 }}>Compliance Risk Score:</span>
+                <span style={{
+                  fontWeight: 700,
+                  color: complianceData.compliance.riskLevel === "HIGH"
+                    ? "#dc2626"
+                    : complianceData.compliance.riskLevel === "MODERATE"
+                    ? "#d97706"
+                    : "#16a34a",
+                }}>
+                  {complianceData.compliance.riskScore}/100 — {complianceData.compliance.riskLevel}
+                </span>
+              </div>
+              {/* Flags */}
+              <div style={{ padding: "10px 14px" }}>
+                {complianceData.compliance.flags.map((flag, i) => (
+                  <div key={i} style={{ marginBottom: "6px", fontSize: "13px" }}>
+                    <span style={{
+                      fontWeight: 600,
+                      color: flag.level === "HIGH"
+                        ? "#dc2626"
+                        : flag.level === "MODERATE"
+                        ? "#d97706"
+                        : "#16a34a",
+                    }}>
+                      [{flag.level}]
+                    </span>{" "}
+                    {flag.message}
+                  </div>
+                ))}
+              </div>
+              {/* Draft Summary */}
+              <div style={{ padding: "10px 14px", borderTop: "1px solid #e2e8f0" }}>
+                <div style={{ fontWeight: 600, marginBottom: "6px" }}>Draft Summary</div>
+                <pre style={{
+                  background: "#f8fafc",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  whiteSpace: "pre-wrap",
+                  margin: 0,
+                }}>
+                  {complianceData.draft.summary}
+                </pre>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "6px", fontStyle: "italic" }}>
+                  {complianceData.draft.disclaimer}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {isPending && (
         <div style={{ marginBottom: "14px" }}>
