@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById, resubmitRequest } from "../../services/requestService";
-import { uploadRequirements, getDateRequestFolder } from "../../services/firebaseStorageService";
+import {
+  uploadRequirements,
+  uploadSignatureImage,
+  getDateRequestFolder,
+} from "../../services/firebaseStorageService";
+import SignaturePad from "../../components/SignaturePad";
 
 const formStyle = {
   padding: "30px",
@@ -12,17 +17,20 @@ const formStyle = {
   boxShadow: "0 0 10px rgba(0,0,0,0.1)",
 };
 
-const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const prettyStatus = (s) => {
+  const map = {
+    revision_required: "Revision Required",
+  };
+  return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+};
 
 const inputStyle = { width: "100%", padding: "10px", margin: "10px 0" };
 const reqWrapStyle = { textAlign: "left", marginTop: "10px" };
 const fileLabelStyle = { display: "block", fontSize: "13px", marginBottom: "4px" };
-const selectedFileStyle = { fontSize: "13px", marginTop: "4px", opacity: 0.85 };
 const submitBtnStyle = { width: "100%", padding: "10px", marginTop: "16px" };
 const infoBoxStyle = { padding: "10px", border: "1px solid #ddd", borderRadius: "6px" };
 
 const getInitialFolderFromPath = (path = "") => {
-  // expected: <slug>/requests/<type>/<date_timestamp>/...
   const parts = String(path).split("/");
   return parts[3] || "";
 };
@@ -34,6 +42,7 @@ export default function StudentResubmitRequest() {
   const [reqData, setReqData] = useState(null);
   const [formData, setFormData] = useState({});
   const [files, setFiles] = useState([]);
+  const sigPadRef = useRef(null);
 
   useEffect(() => {
     const load = async () => {
@@ -58,7 +67,7 @@ export default function StudentResubmitRequest() {
 
   useEffect(() => {
     if (!cfg) return;
-    setFiles(Array(cfg.fileSlots.length).fill(null)); // ✅ matches your config
+    setFiles(Array(cfg.fileSlots.length).fill(null));
   }, [cfg]);
 
   const onChangeField = (name, value) =>
@@ -73,7 +82,6 @@ export default function StudentResubmitRequest() {
       return;
     }
 
-    // required fields
     for (const f of cfg.fields) {
       if (f.required && !String(formData[f.name] || "").trim()) {
         alert(`${f.label} is required`);
@@ -81,7 +89,6 @@ export default function StudentResubmitRequest() {
       }
     }
 
-    // required file slots
     for (let i = 0; i < cfg.fileSlots.length; i++) {
       if (cfg.fileSlots[i].required && !files[i]) {
         alert(`${cfg.fileSlots[i].label} is required`);
@@ -95,6 +102,14 @@ export default function StudentResubmitRequest() {
       return;
     }
 
+    // Agreements also require a new e-signature on resubmit
+    if (reqData.type === "agreement") {
+      if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
+        alert("Please draw your e-signature before resubmitting.");
+        return;
+      }
+    }
+
     const basePath = reqData.predocs?.[0]?.path || "";
     const initialFolder = getInitialFolderFromPath(basePath);
     if (!initialFolder) {
@@ -104,15 +119,10 @@ export default function StudentResubmitRequest() {
 
     const user = JSON.parse(localStorage.getItem("user") || "null");
     const studentName = user?.name || "Unknown Student";
-
     const resubFolder = `resub${getDateRequestFolder()}`;
+    const resubPath = `${initialFolder}/${resubFolder}`;
 
-    const uploaded = await uploadRequirements(
-      selectedFiles,
-      reqData.type,
-      studentName,
-      `${initialFolder}/${resubFolder}`
-    );
+    const uploaded = await uploadRequirements(selectedFiles, reqData.type, studentName, resubPath);
 
     let uploadIndex = 0;
     const predocs = files
@@ -123,9 +133,25 @@ export default function StudentResubmitRequest() {
       })
       .filter(Boolean);
 
-    await resubmitRequest(id, { formData, predocs });
+    const payload = { formData, predocs };
 
-    alert("Resubmitted! Status is now pending.");
+    // For agreements, upload new authorizer signature
+    if (reqData.type === "agreement") {
+      const sigDataUrl = sigPadRef.current.getDataUrl();
+      const { url: authorizerSigUrl, path: authorizerSigPath } = await uploadSignatureImage(
+        sigDataUrl,
+        "agreement",
+        studentName,
+        resubPath,
+        "authorizer_sig.png"
+      );
+      payload.authorizerSigUrl = authorizerSigUrl;
+      payload.authorizerSigPath = authorizerSigPath;
+    }
+
+    await resubmitRequest(id, payload);
+
+    alert("Resubmitted successfully!");
     navigate("/student");
   };
 
@@ -149,11 +175,8 @@ export default function StudentResubmitRequest() {
         >
           Back
         </button>
-
         <h2>{`View ${title}`}</h2>
-        <div style={infoBoxStyle}>
-          This request is not marked as revision required.
-        </div>
+        <div style={infoBoxStyle}>This request is not marked as revision required.</div>
       </div>
     );
   }
@@ -186,14 +209,12 @@ export default function StudentResubmitRequest() {
         </div>
       </div>
 
-      {/* Request Details (editable on resubmit) */}
+      {/* Data Form (editable) */}
       <div style={reqWrapStyle}>
         <h4 style={{ margin: "14px 0 6px 0" }}>Data Form</h4>
-
         {cfg.fields.map((f) => (
           <div key={f.name} style={{ marginTop: "10px" }}>
             <label style={fileLabelStyle}>{f.label}</label>
-
             {f.kind === "textarea" ? (
               <textarea
                 value={formData[f.name] || ""}
@@ -213,9 +234,9 @@ export default function StudentResubmitRequest() {
         ))}
       </div>
 
-      {/* Current submitted files */}
+      {/* Current files */}
       <div style={reqWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Attachments</h4>
+        <h4 style={{ margin: "14px 0 6px 0" }}>Previously Submitted Files</h4>
         {reqData.predocs?.length ? (
           reqData.predocs.map((f, idx) => (
             <div key={idx} style={{ marginTop: "6px" }}>
@@ -229,17 +250,15 @@ export default function StudentResubmitRequest() {
         )}
       </div>
 
-      {/* Revised upload fields */}
+      {/* Revised file uploads */}
       <div style={reqWrapStyle}>
         <h4 style={{ margin: "14px 0 6px 0" }}>Revised Attachments</h4>
-
         {files.map((file, index) => (
           <div key={index} style={{ marginTop: "10px" }}>
             <label style={fileLabelStyle}>
               {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
               {cfg.fileSlots[index]?.required ? " *" : ""}
             </label>
-
             <input
               type="file"
               accept="application/pdf,image/*"
@@ -252,13 +271,32 @@ export default function StudentResubmitRequest() {
                 });
               }}
             />
+            {file && <div style={{ fontSize: "12px", opacity: 0.7, marginTop: 2 }}>{file.name}</div>}
           </div>
         ))}
-
-        <button type="submit" style={submitBtnStyle}>
-          Resubmit
-        </button>
       </div>
+
+      {/* E-signature for agreement resubmit */}
+      {reqData.type === "agreement" && (
+        <div style={reqWrapStyle}>
+          <h4 style={{ margin: "14px 0 6px 0" }}>Your E-Signature *</h4>
+          <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 6px 0" }}>
+            Please draw your signature again for this resubmission.
+          </p>
+          <SignaturePad ref={sigPadRef} height={150} />
+          <button
+            type="button"
+            style={{ marginTop: 6, fontSize: 12 }}
+            onClick={() => sigPadRef.current?.clear()}
+          >
+            Clear Signature
+          </button>
+        </div>
+      )}
+
+      <button type="submit" style={submitBtnStyle}>
+        Resubmit
+      </button>
     </form>
   );
 }

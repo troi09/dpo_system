@@ -49,3 +49,30 @@ export const verifyRequestCode = async (code) => {
   const res = await axios.get(`${API_URL}/verify/${code}`);
   return res.data;
 };
+
+// ── Agreement signing (public – no auth) ──────────────────────────────────────
+export const getBySigningToken = async (token) => {
+  const res = await axios.get(`${API_URL}/sign/${token}`);
+  return res.data;
+};
+
+export const repSubmit = async (token, payload) => {
+  const res = await axios.post(`${API_URL}/sign/${token}/submit`, payload);
+  return res.data;
+};
+
+export const repReject = async (token) => {
+  const res = await axios.post(`${API_URL}/sign/${token}/reject`);
+  return res.data;
+};
+
+// ── Agreement admin endpoints ─────────────────────────────────────────────────
+export const generateSigningLink = async (id) => {
+  const res = await axios.patch(`${API_URL}/${id}/generate-signing-link`, {}, { headers: authHeader() });
+  return res.data;
+};
+
+export const adminPhase3Action = async (id, payload) => {
+  const res = await axios.patch(`${API_URL}/${id}/admin-phase3`, payload, { headers: authHeader() });
+  return res.data;
+};
