@@ -401,10 +401,10 @@ exports.getSignatureImages = async (req, res) => {
 
     const toDataUrl = async (url) => {
       if (!url) return null;
-      const axios = require("axios");
-      const response = await axios.get(url, { responseType: "arraybuffer" });
-      const mimeType = response.headers["content-type"] || "image/png";
-      const base64 = Buffer.from(response.data).toString("base64");
+      const response = await fetch(url);
+      const buffer = await response.arrayBuffer();
+      const mimeType = response.headers.get("content-type") || "image/png";
+      const base64 = Buffer.from(buffer).toString("base64");
       return `data:${mimeType};base64,${base64}`;
     };
 
