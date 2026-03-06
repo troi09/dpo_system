@@ -16,6 +16,7 @@ const {
   repSubmit,
   repReject,
   adminPhase3Action,
+  getSignatureImages,
 } = require("../controllers/requestController");
 
 // ── Public ─────────────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ router.patch("/:id/approved-document", protect, authorizeAdmin, saveApprovedDocu
 // Agreement-specific admin actions
 router.patch("/:id/generate-signing-link", protect, authorizeAdmin, generateSigningLink);
 router.patch("/:id/admin-phase3", protect, authorizeAdmin, adminPhase3Action);
+router.get("/:id/sig-images", protect, authorizeAdmin, getSignatureImages);
 
 // NDA status update (pending → approved | revision_required)
 router.patch("/:id", protect, authorizeAdmin, updateRequestStatus);

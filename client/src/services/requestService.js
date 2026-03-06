@@ -76,3 +76,8 @@ export const adminPhase3Action = async (id, payload) => {
   const res = await axios.patch(`${API_URL}/${id}/admin-phase3`, payload, { headers: authHeader() });
   return res.data;
 };
+
+export const getSignatureImages = async (id) => {
+  const res = await axios.get(`${API_URL}/${id}/sig-images`, { headers: authHeader() });
+  return res.data;
+};

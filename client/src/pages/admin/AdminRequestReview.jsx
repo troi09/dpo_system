@@ -7,6 +7,7 @@ import {
   saveApprovedDocument,
   generateSigningLink,
   adminPhase3Action,
+  getSignatureImages,
 } from "../../services/requestService";
 import { generateApprovedPDF } from "../../config/documentTemplates";
 import {
@@ -181,18 +182,6 @@ function NdaReviewPanel({ reqData }) {
   );
 }
 
-// Converts a remote URL to a base64 data URL (needed for @react-pdf/renderer Image)
-const urlToDataUrl = async (url) => {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Agreement review panel (multi-phase)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -253,20 +242,15 @@ function AgreementReviewPanel({ reqData }) {
 
       await uploadApprovedQrImage(qrDataUrl, "agreement", studentName, requestFolder);
 
-      // Convert Firebase URLs to data URLs so @react-pdf/renderer can embed them
-      const authorizerSigDataUrl = reqData.authorizerSigUrl
-        ? await urlToDataUrl(reqData.authorizerSigUrl)
-        : null;
-      const repSigDataUrl = reqData.repSigUrl
-        ? await urlToDataUrl(reqData.repSigUrl)
-        : null;
+      // Fetch Firebase signature images via backend proxy to avoid browser CORS
+      const { authorizerSig, repSig } = await getSignatureImages(reqData._id);
 
       const docReq = {
         ...updated,
         userId: reqData.userId,
         repInfo: reqData.repInfo,
-        authorizerSigUrl: authorizerSigDataUrl,
-        repSigUrl: repSigDataUrl,
+        authorizerSigUrl: authorizerSig,
+        repSigUrl: repSig,
         adminSigDataUrl,
         verificationUrl,
         qrDataUrl,

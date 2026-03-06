@@ -391,6 +391,34 @@ exports.adminPhase3Action = async (req, res) => {
   }
 };
 
+// ─── Admin: proxy Firebase signature images to avoid browser CORS ─────────────
+
+exports.getSignatureImages = async (req, res) => {
+  try {
+    const request = await Request.findById(req.params.id)
+      .select("authorizerSigUrl repSigUrl");
+    if (!request) return res.status(404).json({ message: "Request not found" });
+
+    const toDataUrl = async (url) => {
+      if (!url) return null;
+      const axios = require("axios");
+      const response = await axios.get(url, { responseType: "arraybuffer" });
+      const mimeType = response.headers["content-type"] || "image/png";
+      const base64 = Buffer.from(response.data).toString("base64");
+      return `data:${mimeType};base64,${base64}`;
+    };
+
+    const [authorizerSig, repSig] = await Promise.all([
+      toDataUrl(request.authorizerSigUrl),
+      toDataUrl(request.repSigUrl),
+    ]);
+
+    return res.json({ authorizerSig, repSig });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 // ─── Public Verify ────────────────────────────────────────────────────────────
 
 exports.verifyRequestCode = async (req, res) => {
