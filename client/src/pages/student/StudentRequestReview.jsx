@@ -20,13 +20,13 @@ const prettyStatus = (s) => {
   const map = {
     pending: "Pending",
     approved: "Approved",
-    revision_required: "Revision Required",
-    phase1_pending: "Phase 1 – Pending Admin Review",
-    phase2_pending: "Phase 2 – Awaiting Representative Signature",
-    phase3_pending: "Phase 3 – Pending Final Admin Review",
-    phase3_approved: "Approved",
-    rep_rejected: "Declined by Representative",
-    rep_revision_required: "Representative Revision Required",
+    revision_requested: "Revision Requested",
+    submitted: "Submitted – Pending Admin Review",
+    awaiting_signature: "Awaiting Representative Signature",
+    pending_approval: "Pending Final Admin Review",
+    completed: "Approved",
+    declined: "Declined by Representative",
+    rep_revision_requested: "Representative Revision Requested",
   };
   return map[s] || s;
 };
@@ -42,8 +42,8 @@ export default function StudentRequestReview() {
       try {
         const r = await getRequestById(id);
 
-        // Redirect to resubmit page if revision is required from student
-        if (r.status === "revision_required") {
+        // Redirect to resubmit page if revision is requested from student
+        if (r.status === "revision_requested") {
           navigate(`/student/resubmit/${id}`, { replace: true });
           return;
         }
@@ -71,7 +71,7 @@ export default function StudentRequestReview() {
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
 
-  const isApproved = reqData.status === "approved" || reqData.status === "phase3_approved";
+  const isApproved = reqData.status === "approved" || reqData.status === "completed";
   const isAgreement = reqData.type === "agreement";
 
   return (
@@ -138,7 +138,7 @@ export default function StudentRequestReview() {
       </div>
 
       {/* Agreement-specific status info */}
-      {isAgreement && reqData.status === "phase2_pending" && (
+      {isAgreement && reqData.status === "awaiting_signature" && (
         <div style={{ ...sectionWrapStyle, background: "#eff6ff", padding: 12, borderRadius: 6, border: "1px solid #93c5fd", marginTop: 14 }}>
           <strong>Awaiting Representative</strong>
           <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
@@ -147,7 +147,7 @@ export default function StudentRequestReview() {
         </div>
       )}
 
-      {isAgreement && reqData.status === "phase3_pending" && (
+      {isAgreement && reqData.status === "pending_approval" && (
         <div style={{ ...sectionWrapStyle, background: "#f0fdf4", padding: 12, borderRadius: 6, border: "1px solid #86efac", marginTop: 14 }}>
           <strong>Representative Signed</strong>
           <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
@@ -156,7 +156,7 @@ export default function StudentRequestReview() {
         </div>
       )}
 
-      {isAgreement && reqData.status === "rep_rejected" && (
+      {isAgreement && reqData.status === "declined" && (
         <div style={{ ...sectionWrapStyle, background: "#fef2f2", padding: 12, borderRadius: 6, border: "1px solid #fca5a5", marginTop: 14 }}>
           <strong>Representative Declined</strong>
           <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
@@ -165,7 +165,7 @@ export default function StudentRequestReview() {
         </div>
       )}
 
-      {isAgreement && reqData.status === "rep_revision_required" && (
+      {isAgreement && reqData.status === "rep_revision_requested" && (
         <div style={{ ...sectionWrapStyle, background: "#fff7ed", padding: 12, borderRadius: 6, border: "1px solid #fb923c", marginTop: 14 }}>
           <strong>Representative Revision Requested</strong>
           <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>

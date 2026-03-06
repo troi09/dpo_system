@@ -19,7 +19,7 @@ const formStyle = {
 
 const prettyStatus = (s) => {
   const map = {
-    revision_required: "Revision Required",
+    revision_requested: "Revision Requested",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 };
@@ -77,8 +77,8 @@ export default function StudentResubmitRequest() {
     e.preventDefault();
     if (!reqData || !cfg) return;
 
-    if (reqData.status !== "revision_required") {
-      alert("Only revision required requests can be resubmitted.");
+    if (reqData.status !== "revision_requested") {
+      alert("Only revision requested requests can be resubmitted.");
       return;
     }
 
@@ -162,7 +162,7 @@ export default function StudentResubmitRequest() {
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
 
-  if (reqData.status !== "revision_required") {
+  if (reqData.status !== "revision_requested") {
     return (
       <div style={formStyle}>
         <button
@@ -176,7 +176,7 @@ export default function StudentResubmitRequest() {
           Back
         </button>
         <h2>{`View ${title}`}</h2>
-        <div style={infoBoxStyle}>This request is not marked as revision required.</div>
+        <div style={infoBoxStyle}>This request is not marked as revision requested.</div>
       </div>
     );
   }

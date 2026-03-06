@@ -31,10 +31,10 @@ const requestSchema = new mongoose.Schema(
       type: String,
       enum: [
         // NDA statuses
-        "pending", "approved", "revision_required",
+        "pending", "approved", "revision_requested",
         // Agreement multi-phase statuses
-        "phase1_pending", "phase2_pending", "phase3_pending", "phase3_approved",
-        "rep_rejected", "rep_revision_required",
+        "submitted", "awaiting_signature", "pending_approval", "completed",
+        "declined", "rep_revision_requested",
       ],
       default: "pending",
     },

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getBySigningToken, repSubmit, repReject } from "../../services/requestService";
-import { uploadSignatureImage, uploadRepGovId } from "../../services/firebaseStorageService";
+import { uploadSignatureImage, uploadRepGovId, deleteStorageFile } from "../../services/firebaseStorageService";
 import SignaturePad from "../../components/SignaturePad";
 
 const box = {
@@ -76,7 +76,7 @@ export default function RepSigningPage() {
   }
 
   // Guard: wrong status
-  const signingStatuses = ["phase2_pending", "rep_revision_required"];
+  const signingStatuses = ["awaiting_signature", "rep_revision_requested"];
   if (!signingStatuses.includes(reqData.status)) {
     return (
       <div style={box}>
@@ -86,7 +86,7 @@ export default function RepSigningPage() {
     );
   }
 
-  const isRevision = reqData.status === "rep_revision_required";
+  const isRevision = reqData.status === "rep_revision_requested";
   const student = reqData.userId || {};
   const fd = reqData.formData || {};
 
@@ -113,15 +113,18 @@ export default function RepSigningPage() {
 
     setSubmitting(true);
     try {
-      // Derive storage path from authorizer sig path to use the same request folder
-      const authSigPath = reqData.authorizerSigUrl || "";
-      // Extract folder from authorizer sig path: <slug>/requests/agreement/<folder>/sigs/authorizer_sig.png
-      // We'll use a simple approach: get the folder from the path
+      // Derive storage folder from authorizer sig storage path (not URL)
+      // Path format: <slug>/requests/agreement/<folder>/sigs/authorizer_sig.png
+      const authSigPath = reqData.authorizerSigPath || "";
       const pathParts = authSigPath.split ? authSigPath.split("/") : [];
       // pathParts: [slug, requests, agreement, folder, sigs, authorizer_sig.png]
-      // We need folder at index 3
       const requestFolder = pathParts[3] || `rep_${Date.now()}`;
       const studentName = student.name || "unknown";
+
+      // If this is a revision resubmission, delete the old gov ID file from storage
+      if (isRevision && reqData.repInfo?.govIdDoc?.path) {
+        await deleteStorageFile(reqData.repInfo.govIdDoc.path);
+      }
 
       // Upload representative's government ID
       const govIdDoc = await uploadRepGovId(govIdFile, "agreement", studentName, requestFolder);
@@ -152,6 +155,7 @@ export default function RepSigningPage() {
   };
 
   return (
+    <div style={{ minHeight: "100vh", overflowY: "auto" }}>
     <div style={box}>
       <h2 style={{ marginTop: 0 }}>Agreement Signing Request</h2>
       {isRevision && (
@@ -254,6 +258,7 @@ export default function RepSigningPage() {
           </button>
         </div>
       </form>
+    </div>
     </div>
   );
 }

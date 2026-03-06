@@ -32,13 +32,13 @@ const prettyStatus = (s) => {
   const map = {
     pending: "Pending",
     approved: "Approved",
-    revision_required: "Revision Required",
-    phase1_pending: "Phase 1 – Pending Admin Review",
-    phase2_pending: "Phase 2 – Awaiting Representative Signature",
-    phase3_pending: "Phase 3 – Pending Final Admin Review",
-    phase3_approved: "Approved",
-    rep_rejected: "Declined by Representative",
-    rep_revision_required: "Representative Revision Required",
+    revision_requested: "Revision Requested",
+    submitted: "Submitted – Pending Admin Review",
+    awaiting_signature: "Awaiting Representative Signature",
+    pending_approval: "Pending Final Admin Review",
+    completed: "Approved",
+    declined: "Declined by Representative",
+    rep_revision_requested: "Representative Revision Requested",
   };
   return map[s] || s;
 };
@@ -62,7 +62,7 @@ function NdaReviewPanel({ reqData }) {
   const [approving, setApproving] = useState(false);
 
   const isPending = reqData.status === "pending";
-  const isRevision = reqData.status === "revision_required";
+  const isRevision = reqData.status === "revision_requested";
   const isApproved = reqData.status === "approved";
 
   const handleUpdate = async (status) => {
@@ -172,7 +172,7 @@ function NdaReviewPanel({ reqData }) {
           <button onClick={() => handleUpdate("approved")} disabled={approving} style={{ flex: 1, padding: "10px" }}>
             {approving ? "Generating..." : "Approve"}
           </button>
-          <button onClick={() => handleUpdate("revision_required")} style={{ flex: 1, padding: "10px" }}>
+          <button onClick={() => handleUpdate("revision_requested")} style={{ flex: 1, padding: "10px" }}>
             Request Revision
           </button>
         </div>
@@ -180,6 +180,18 @@ function NdaReviewPanel({ reqData }) {
     </>
   );
 }
+
+// Converts a remote URL to a base64 data URL (needed for @react-pdf/renderer Image)
+const urlToDataUrl = async (url) => {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agreement review panel (multi-phase)
@@ -211,7 +223,7 @@ function AgreementReviewPanel({ reqData }) {
 
   const handlePhase1Revision = async () => {
     try {
-      await updateRequestStatus(reqData._id, { status: "revision_required", remarks });
+      await updateRequestStatus(reqData._id, { status: "revision_requested", remarks });
       alert("Revision requested from student.");
       if (window.history.length > 1) navigate(-1);
       else navigate("/admin");
@@ -241,12 +253,20 @@ function AgreementReviewPanel({ reqData }) {
 
       await uploadApprovedQrImage(qrDataUrl, "agreement", studentName, requestFolder);
 
+      // Convert Firebase URLs to data URLs so @react-pdf/renderer can embed them
+      const authorizerSigDataUrl = reqData.authorizerSigUrl
+        ? await urlToDataUrl(reqData.authorizerSigUrl)
+        : null;
+      const repSigDataUrl = reqData.repSigUrl
+        ? await urlToDataUrl(reqData.repSigUrl)
+        : null;
+
       const docReq = {
         ...updated,
         userId: reqData.userId,
         repInfo: reqData.repInfo,
-        authorizerSigUrl: reqData.authorizerSigUrl,
-        repSigUrl: reqData.repSigUrl,
+        authorizerSigUrl: authorizerSigDataUrl,
+        repSigUrl: repSigDataUrl,
         adminSigDataUrl,
         verificationUrl,
         qrDataUrl,
@@ -277,7 +297,7 @@ function AgreementReviewPanel({ reqData }) {
       return;
     }
     try {
-      const res = await adminPhase3Action(reqData._id, { action: "rep_revision_required", remarks });
+      const res = await adminPhase3Action(reqData._id, { action: "rep_revision_requested", remarks });
       const newLink = `${window.location.origin}/sign/${res.request.signingToken}`;
       setSigningLink(newLink);
       alert("Representative revision requested. A new signing link has been generated — copy it and send to the representative.");
@@ -361,7 +381,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* Remarks display */}
-      {(status === "revision_required" || status === "rep_revision_required") && reqData.remarks && (
+      {(status === "revision_requested" || status === "rep_revision_requested") && reqData.remarks && (
         <div style={{ marginBottom: "14px" }}>
           <h4 style={sectionTitleStyle}>Remarks</h4>
           <div style={infoBlockStyle}>{reqData.remarks}</div>
@@ -369,7 +389,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* Final approved document */}
-      {status === "phase3_approved" && (
+      {status === "completed" && (
         <div style={{ marginBottom: "14px" }}>
           <h4 style={sectionTitleStyle}>Approved Agreement</h4>
           <div style={infoBlockStyle}>
@@ -381,7 +401,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* Rep rejected */}
-      {status === "rep_rejected" && (
+      {status === "declined" && (
         <div style={{ background: "#fef2f2", padding: 12, borderRadius: 6, border: "1px solid #fca5a5", marginBottom: 14 }}>
           <strong>Representative Declined</strong>
           <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
@@ -409,7 +429,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Phase 1 actions ── */}
-      {status === "phase1_pending" && !signingLink && (
+      {status === "submitted" && !signingLink && (
         <>
           <div style={{ marginBottom: "14px" }}>
             <h4 style={sectionTitleStyle}>Remarks (for student revision)</h4>
@@ -427,7 +447,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Phase 2: waiting on rep ── */}
-      {status === "phase2_pending" && !signingLink && (
+      {status === "awaiting_signature" && !signingLink && (
         <div style={{ background: "#eff6ff", padding: 12, borderRadius: 6, border: "1px solid #93c5fd" }}>
           <strong>Waiting for Representative</strong>
           <p style={{ fontSize: 13, margin: "4px 0 0 0" }}>
@@ -438,7 +458,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Phase 3 actions ── */}
-      {status === "phase3_pending" && (
+      {status === "pending_approval" && (
         <>
           <div style={{ marginBottom: "14px" }}>
             <h4 style={sectionTitleStyle}>Your E-Signature (Admin) *</h4>
@@ -467,8 +487,8 @@ function AgreementReviewPanel({ reqData }) {
         </>
       )}
 
-      {/* ── Rep revision required ── */}
-      {status === "rep_revision_required" && !signingLink && (
+      {/* ── Rep revision requested ── */}
+      {status === "rep_revision_requested" && !signingLink && (
         <div style={{ background: "#fff7ed", padding: 12, borderRadius: 6, border: "1px solid #fb923c" }}>
           <strong>Representative Revision Pending</strong>
           <p style={{ fontSize: 13, margin: "4px 0 0 0" }}>
