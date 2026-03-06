@@ -35,10 +35,11 @@ export const FIELDS_FILE_SLOTS_CONFIG = {
       { name: "repName", label: "Name of Representative", required: true },
       { name: "details", label: "Details (optional)", required: false},
     ],
+    // Note: Representative's Government Issued Valid ID is now collected directly
+    // from the representative on the signing page, not from the student.
     fileSlots: [
       { label: "Notarized Authorization Letter", required: true },
       { label: "Requestor's Government Issued Valid ID", required: false },
-      { label: "Representative's Government Issued Valid ID", required: false },
     ],
   },
 };

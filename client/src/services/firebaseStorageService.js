@@ -1,4 +1,4 @@
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "../firebase";
 
 const slugify = (str = "") =>
@@ -77,4 +77,58 @@ export async function uploadApprovedQrImage(qrDataUrl, type, studentName, reques
   const url = await getDownloadURL(snap.ref);
 
   return { url, path };
+}
+
+/**
+ * Upload a base64 signature data URL as a PNG to Firebase Storage.
+ * Returns { url, path }.
+ */
+export async function uploadSignatureImage(dataUrl, type, studentName, requestFolder, sigName) {
+  const studentSlug = slugify(studentName);
+  const path = `${studentSlug}/requests/${type}/${requestFolder}/sigs/${sigName}`;
+
+  const blob = await fetch(dataUrl).then((r) => r.blob());
+  const meta = { contentType: "image/png" };
+
+  const fileRef = ref(storage, path);
+  const snap = await uploadBytes(fileRef, blob, meta);
+  const url = await getDownloadURL(snap.ref);
+
+  return { url, path };
+}
+
+/**
+ * Upload a File object for the representative's government ID.
+ * Returns { origName, url, path, contentType, uploadedAt }.
+ */
+export async function uploadRepGovId(file, type, studentName, requestFolder) {
+  const studentSlug = slugify(studentName);
+  const name = safeFileName(file.name);
+  const path = `${studentSlug}/requests/${type}/${requestFolder}/rep_docs/${name}`;
+
+  const fileRef = ref(storage, path);
+  const snap = await uploadBytes(fileRef, file);
+  const url = await getDownloadURL(snap.ref);
+
+  return {
+    origName: file.name,
+    url,
+    path,
+    contentType: file.type,
+    uploadedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Delete a file from Firebase Storage by its storage path.
+ * Silently ignores not-found errors.
+ */
+export async function deleteStorageFile(filePath) {
+  if (!filePath) return;
+  try {
+    const fileRef = ref(storage, filePath);
+    await deleteObject(fileRef);
+  } catch (err) {
+    console.warn("deleteStorageFile:", err.message);
+  }
 }

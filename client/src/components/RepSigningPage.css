@@ -1,0 +1,329 @@
+/* RepSigningPage.css */
+
+.rep-signing-outer {
+  height: 100vh;
+  overflow-y: auto;
+  background: #f6f7fb;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 16px;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+.rep-signing-card {
+  width: 100%;
+  max-width: 620px;
+  background: #ffffff;
+  border: 1px solid #e3e8f2;
+  border-radius: 14px;
+  padding: 28px 32px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* State screens (loading, error, done, guards) */
+.rep-signing-state {
+  width: 100%;
+  max-width: 620px;
+}
+
+.rep-signing-state h2 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f1c3f;
+  margin: 0 0 10px 0;
+}
+
+.rep-signing-state p {
+  font-size: 13px;
+  color: #475569;
+  margin: 0;
+}
+
+/* Title */
+.rep-signing-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f1c3f;
+  margin: 0 0 16px 0;
+}
+
+/* Revision banner */
+.rep-signing-revision-banner {
+  background: #fff8e1;
+  border: 1px solid #ffc107;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.rep-signing-revision-banner strong {
+  font-size: 13px;
+  color: #7a5200;
+}
+
+.rep-signing-revision-banner p {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #7a5200;
+}
+
+/* Intro text */
+.rep-signing-intro {
+  font-size: 13px;
+  color: #475569;
+  margin: 0 0 18px 0;
+  line-height: 1.5;
+}
+
+/* Summary box */
+.rep-signing-summary {
+  background: #f6f7fb;
+  border: 1px solid #e3e8f2;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rep-signing-summary-row {
+  font-size: 13px;
+  color: #0f1c3f;
+}
+
+.rep-signing-summary-row strong {
+  font-weight: 600;
+}
+
+/* Authorizer signature */
+.rep-signing-auth-sig {
+  margin-bottom: 18px;
+}
+
+.rep-signing-auth-sig-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.rep-signing-auth-sig-box {
+  border: 1px solid #e3e8f2;
+  border-radius: 10px;
+  padding: 10px;
+  background: #ffffff;
+  display: inline-block;
+}
+
+.rep-signing-auth-sig-box img {
+  max-height: 80px;
+  display: block;
+}
+
+.rep-signing-auth-sig-name {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Divider */
+.rep-signing-divider {
+  border: none;
+  border-top: 1px solid #e3e8f2;
+  margin: 18px 0;
+}
+
+/* Form section title */
+.rep-signing-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f1c3f;
+  margin: 0 0 16px 0;
+}
+
+/* Fields */
+.rep-signing-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.rep-signing-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rep-signing-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #c9d3e3;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #ffffff;
+  color: #0f2d6b;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.rep-signing-input:focus {
+  outline: none;
+  border-color: #0f2d6b;
+  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.12);
+}
+
+/* File upload row */
+.rep-signing-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #dfe6f3;
+  border-radius: 10px;
+  background: #f9fbff;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+.rep-signing-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rep-signing-file-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f2d6b;
+}
+
+.rep-signing-file-subtitle {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.rep-signing-file-action {
+  border: 1px solid #dfe6f3;
+  background: #ffffff;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0f2d6b;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.rep-signing-file-action:hover {
+  background: #f3f6fb;
+  border-color: #0f2d6b;
+}
+
+.rep-signing-file-action input[type="file"] {
+  display: none;
+}
+
+/* Signature hint */
+.rep-signing-sig-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+/* Clear signature button */
+.rep-signing-clear-btn {
+  margin-top: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f2d6b;
+  background: #ffffff;
+  border: 1px solid #c9d3e3;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.rep-signing-clear-btn:hover {
+  background: #f3f6fb;
+  border-color: #0f2d6b;
+}
+
+/* Accept checkbox */
+.rep-signing-accept {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  margin-top: 6px;
+}
+
+.rep-signing-accept input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: #0f2d6b;
+}
+
+/* Action buttons */
+.rep-signing-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.rep-signing-btn-submit {
+  flex: 1;
+  padding: 11px 12px;
+  background: #0f2d6b;
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.rep-signing-btn-submit:hover:not(:disabled) {
+  background: #12357a;
+}
+
+.rep-signing-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rep-signing-btn-decline {
+  flex: 1;
+  padding: 11px 12px;
+  background: #ffffff;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.rep-signing-btn-decline:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
+.rep-signing-btn-decline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
