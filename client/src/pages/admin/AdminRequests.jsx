@@ -57,35 +57,39 @@ export default function AdminRequests() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-card">
-        {filtered.length === 0 ? (
-          <p className="dashboard-empty">No requests found.</p>
-        ) : (
-          <table className="dashboard-table">
-            <thead>
-              <tr className="dashboard-table-title-row">
-                <th colSpan={5}>
-                  <div className="dashboard-table-title-wrap">
-                    <span className="dashboard-table-title">Requests</span>
-                    <button
-                      className={filterClass(activeFilter.key)}
-                      onClick={cycleFilter}
-                    >
-                      {activeFilter.label}
-                    </button>
-                  </div>
-                </th>
-              </tr>
-              <tr>
-                <th>Student</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Request Date</th>
-                <th></th>
-              </tr>
-            </thead>
+        <table className="dashboard-table">
+          <thead>
+            <tr className="dashboard-table-title-row">
+              <th colSpan={5}>
+                <div className="dashboard-table-title-wrap">
+                  <span className="dashboard-table-title">Requests</span>
+                  <button
+                    className={filterClass(activeFilter.key)}
+                    onClick={cycleFilter}
+                  >
+                    {activeFilter.label}
+                  </button>
+                </div>
+              </th>
+            </tr>
+            <tr>
+              <th>Student</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Request Date</th>
+              <th></th>
+            </tr>
+          </thead>
 
-            <tbody>
-              {filtered.map((r) => (
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="dashboard-empty">
+                  No requests found.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((r) => (
                 <tr key={r._id}>
                   <td>
                     {r.userId?.name || "Unknown"}
@@ -118,10 +122,10 @@ export default function AdminRequests() {
                     </button>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

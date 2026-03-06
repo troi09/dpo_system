@@ -1,10 +1,9 @@
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const Request = require("../models/Request");
 
 const generateVerification = () => {
-  const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
-  const time = Date.now().toString(36).toUpperCase();
-  return `${rand}-${time}`;
+  return crypto.randomBytes(8).toString("hex").toUpperCase();
 };
 
 exports.createRequest = async (req, res) => {

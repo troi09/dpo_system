@@ -1,18 +1,25 @@
 const jwt = require("jsonwebtoken");
 
 exports.protect = (req, res, next) => {
-  let token = req.headers.authorization;
+  const header = req.headers.authorization;
 
-  if (!token || !token.startsWith("Bearer")) {
+  if (!header) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
     return res.status(401).json({ message: "Not authorized" });
   }
 
   try {
-    token = token.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(match[1], process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(403).json({ message: "Token expired" });
+    }
     res.status(401).json({ message: "Token invalid" });
   }
 };
@@ -23,4 +30,3 @@ exports.authorizeAdmin = (req, res, next) => {
   }
   next();
 };
-
