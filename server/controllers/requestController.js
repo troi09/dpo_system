@@ -1,6 +1,11 @@
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const Request = require("../models/Request");
+const AuditLog = require("../models/AuditLog");
+
+const logAudit = (data) => {
+  AuditLog.create(data).catch(() => {});
+};
 
 const generateVerification = () =>
   crypto.randomBytes(8).toString("hex").toUpperCase();
@@ -351,36 +356,13 @@ exports.adminPhase3Action = async (req, res) => {
       return res.status(400).json({ message: "action must be 'approve' or 'rep_revision_requested'" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid request id" });
-    }
-
-    const r = await Request.findById(id);
-    if (!r) return res.status(404).json({ message: "Request not found" });
-
-    if (r.type !== "agreement") {
-      return res.status(400).json({ message: "Only agreement requests use this endpoint" });
-    }
-
-    if (r.status !== "pending_approval") {
-      return res.status(400).json({ message: "Request is not in pending_approval" });
-    }
-
-    if (action === "approve") {
-      if (!r.serialNo) {
-        r.serialNo = generateVerification();
-      }
-      r.status = "completed";
-      r.remarks = "";
-    } else {
-      // rep_revision_requested: generate new signing token so admin can resend
-      r.signingToken = generateSigningTokenValue();
-      r.signingTokenUsed = false;
-      r.status = "rep_revision_requested";
-      r.remarks = remarks || "";
-    }
-
-    await r.save();
+    // Audit log: record status changes for the Auditor Agent (Agent 3)
+    logAudit({
+      userId: req.user.id,
+      action: status === "approved" ? "request_approved" : "request_revision_required",
+      resourceType: "request",
+      resourceId: String(id),
+    });
 
     return res.json({
       message: action === "approve" ? "Agreement approved" : "Rep revision requested",
