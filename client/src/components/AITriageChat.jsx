@@ -21,12 +21,6 @@ const INITIAL_MESSAGE = {
     "I will guide you to the correct form.",
 };
 
-const RISK_LEVEL_COLORS = {
-  LOW: "#22c55e",
-  MODERATE: "#f59e0b",
-  HIGH: "#ef4444",
-};
-
 export default function AITriageChat() {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);

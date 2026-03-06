@@ -371,7 +371,7 @@ const detectAnomalies = async (windowHours = 24) => {
 
     // Check for outside-hours activity (PST = UTC+8)
     const pstHour = (log.createdAt.getUTCHours() + 8) % 24;
-    if (pstHour < 7 || pstHour >= 19) {
+    if (pstHour < 8 || pstHour >= 19) {
       anomalies.push({
         type: "AFTER_HOURS_ACTIVITY",
         severity: "MEDIUM",
