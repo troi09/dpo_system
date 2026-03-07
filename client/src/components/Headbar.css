@@ -35,13 +35,6 @@
   letter-spacing: 0.01em;
 }
 
-.headbar-action::before {
-  content: '+';
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1;
-}
-
 .headbar-action:hover {
   background: var(--primary-hover);
 }

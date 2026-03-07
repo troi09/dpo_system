@@ -1,9 +1,9 @@
 .landing {
   display: flex;
   flex-direction: row;
-  margin: -28px -32px;
-  width: calc(100% + 64px);
-  min-height: calc(100% + 56px);
+  margin: -24px -28px;
+  width: calc(100% + 56px);
+  min-height: calc(100% + 48px);
   background: var(--bg);
 }
 
