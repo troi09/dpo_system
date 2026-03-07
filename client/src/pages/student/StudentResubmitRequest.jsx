@@ -8,27 +8,7 @@ import {
   getDateRequestFolder,
 } from "../../services/firebaseStorageService";
 import SignaturePad from "../../components/SignaturePad";
-
-const formStyle = {
-  padding: "30px",
-  borderRadius: "8px",
-  width: "520px",
-  textAlign: "center",
-  boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-};
-
-const prettyStatus = (s) => {
-  const map = {
-    revision_requested: "Revision Requested",
-  };
-  return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-};
-
-const inputStyle = { width: "100%", padding: "10px", margin: "10px 0" };
-const reqWrapStyle = { textAlign: "left", marginTop: "10px" };
-const fileLabelStyle = { display: "block", fontSize: "13px", marginBottom: "4px" };
-const submitBtnStyle = { width: "100%", padding: "10px", marginTop: "16px" };
-const infoBoxStyle = { padding: "10px", border: "1px solid #ddd", borderRadius: "6px" };
+import "../../components/RequestForm.css";
 
 const getInitialFolderFromPath = (path = "") => {
   const parts = String(path).split("/");
@@ -102,7 +82,6 @@ export default function StudentResubmitRequest() {
       return;
     }
 
-    // Agreements also require a new e-signature on resubmit
     if (reqData.type === "agreement") {
       if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
         alert("Please draw your e-signature before resubmitting.");
@@ -135,7 +114,6 @@ export default function StudentResubmitRequest() {
 
     const payload = { formData, predocs };
 
-    // For agreements, upload new authorizer signature
     if (reqData.type === "agreement") {
       const sigDataUrl = sigPadRef.current.getDataUrl();
       const { url: authorizerSigUrl, path: authorizerSigPath } = await uploadSignatureImage(
@@ -160,143 +138,186 @@ export default function StudentResubmitRequest() {
   const title =
     reqData.type === "agreement"
       ? "Agreement Request"
-      : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
+      : `NDA Request${reqData.formData?.ndaTypeLabel ? ` — ${reqData.formData.ndaTypeLabel}` : ""}`;
 
   if (reqData.status !== "revision_requested") {
     return (
-      <div style={formStyle}>
-        <button
-          type="button"
-          onClick={() => {
-            if (window.history.length > 1) navigate(-1);
-            else navigate("/student");
-          }}
-          style={{ marginBottom: "10px" }}
-        >
-          Back
-        </button>
-        <h2>{`View ${title}`}</h2>
-        <div style={infoBoxStyle}>This request is not marked as revision requested.</div>
+      <div className="review-page">
+        <div className="review-card">
+          <button
+            type="button"
+            className="review-back-btn"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/student");
+            }}
+          >
+            ← Back
+          </button>
+          <h2 className="review-title">{title}</h2>
+          <div className="review-info-box">
+            <span className="review-info-box--muted">
+              This request is not marked as revision requested.
+            </span>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} style={formStyle}>
-      <button
-        type="button"
-        onClick={() => {
-          if (window.history.length > 1) navigate(-1);
-          else navigate("/student");
-        }}
-        style={{ marginBottom: "10px" }}
-      >
-        Back
-      </button>
-
-      <h2>{`Resubmit ${title}`}</h2>
-
-      <div style={{ marginBottom: "14px", textAlign: "left" }}>
-        <div><b>Status:</b> {prettyStatus(reqData.status)}</div>
-        <div><b>Request Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
-      </div>
-
-      {/* Admin Remarks */}
-      <div style={reqWrapStyle}>
-        <h4 style={{ margin: "0 0 6px 0" }}>Remarks</h4>
-        <div style={infoBoxStyle}>
-          {reqData.remarks || <span style={{ opacity: 0.7 }}>No remarks provided.</span>}
-        </div>
-      </div>
-
-      {/* Data Form (editable) */}
-      <div style={reqWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Data Form</h4>
-        {cfg.fields.map((f) => (
-          <div key={f.name} style={{ marginTop: "10px" }}>
-            <label style={fileLabelStyle}>{f.label}</label>
-            {f.kind === "textarea" ? (
-              <textarea
-                value={formData[f.name] || ""}
-                onChange={(e) => onChangeField(f.name, e.target.value)}
-                rows={f.rows || 4}
-                style={inputStyle}
-              />
-            ) : (
-              <input
-                value={formData[f.name] || ""}
-                onChange={(e) => onChangeField(f.name, e.target.value)}
-                required={f.required}
-                style={inputStyle}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Current files */}
-      <div style={reqWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Previously Submitted Files</h4>
-        {reqData.predocs?.length ? (
-          reqData.predocs.map((f, idx) => (
-            <div key={idx} style={{ marginTop: "6px" }}>
-              <a href={f.url} target="_blank" rel="noreferrer">
-                {f.requirementLabel || f.origName || `File ${idx + 1}`}
-              </a>
-            </div>
-          ))
-        ) : (
-          <div style={{ opacity: 0.7 }}>No files.</div>
-        )}
-      </div>
-
-      {/* Revised file uploads */}
-      <div style={reqWrapStyle}>
-        <h4 style={{ margin: "14px 0 6px 0" }}>Revised Attachments</h4>
-        {files.map((file, index) => (
-          <div key={index} style={{ marginTop: "10px" }}>
-            <label style={fileLabelStyle}>
-              {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
-              {cfg.fileSlots[index]?.required ? " *" : ""}
-            </label>
-            <input
-              type="file"
-              accept="application/pdf,image/*"
-              onChange={(e) => {
-                const selected = e.target.files?.[0] || null;
-                setFiles((prev) => {
-                  const copy = [...prev];
-                  copy[index] = selected;
-                  return copy;
-                });
-              }}
-            />
-            {file && <div style={{ fontSize: "12px", opacity: 0.7, marginTop: 2 }}>{file.name}</div>}
-          </div>
-        ))}
-      </div>
-
-      {/* E-signature for agreement resubmit */}
-      {reqData.type === "agreement" && (
-        <div style={reqWrapStyle}>
-          <h4 style={{ margin: "14px 0 6px 0" }}>Your E-Signature *</h4>
-          <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 6px 0" }}>
-            Please draw your signature again for this resubmission.
-          </p>
-          <SignaturePad ref={sigPadRef} height={150} />
+    <div className="request-form-page">
+      <form onSubmit={handleSubmit} className="request-form-card">
+        {/* Header */}
+        <div className="request-form-header">
           <button
             type="button"
-            style={{ marginTop: 6, fontSize: 12 }}
-            onClick={() => sigPadRef.current?.clear()}
+            className="request-form-back"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/student");
+            }}
           >
-            Clear Signature
+            ‹ Back
+          </button>
+          <h2 className="request-form-title">Resubmit {title}</h2>
+          <div />
+        </div>
+
+        {/* Admin Remarks */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <span className="request-section-title">Remarks from Admin</span>
+          <div style={{
+            padding: "12px 14px",
+            background: "var(--s-warning-bg)",
+            border: "1px solid var(--s-warning-dot)",
+            borderRadius: "var(--radius-md)",
+            fontSize: "13px",
+            color: "var(--s-warning-text)",
+          }}>
+            {reqData.remarks || (
+              <span style={{ opacity: 0.7 }}>No remarks provided.</span>
+            )}
+          </div>
+        </div>
+
+        <div className="request-form-body">
+          {/* Data Form (editable) */}
+          <div className="request-section">
+            <div className="request-section-title">Data Form</div>
+            {cfg.fields.map((f) => (
+              <div key={f.name} className="request-field">
+                <label className="request-label">{f.label}</label>
+                {f.kind === "textarea" ? (
+                  <textarea
+                    value={formData[f.name] || ""}
+                    onChange={(e) => onChangeField(f.name, e.target.value)}
+                    rows={f.rows || 4}
+                    className="request-textarea"
+                  />
+                ) : (
+                  <input
+                    value={formData[f.name] || ""}
+                    onChange={(e) => onChangeField(f.name, e.target.value)}
+                    required={f.required}
+                    className="request-input"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="request-section">
+            {/* Previously Submitted Files */}
+            <div className="request-section-title">Previously Submitted Files</div>
+            {reqData.predocs?.length ? (
+              reqData.predocs.map((f, idx) => (
+                <div key={idx} className="request-file-row">
+                  <div className="request-file-info">
+                    <div className="request-file-title">
+                      {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                    </div>
+                  </div>
+                  <a
+                    href={f.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="request-file-action"
+                    style={{ textDecoration: "none" }}
+                  >
+                    View
+                  </a>
+                </div>
+              ))
+            ) : (
+              <div className="request-file-row">
+                <div className="request-file-info">
+                  <div className="request-file-subtitle">No files submitted.</div>
+                </div>
+              </div>
+            )}
+
+            {/* Revised file uploads */}
+            <div className="request-section-title" style={{ marginTop: "16px" }}>
+              Revised Attachments
+            </div>
+            {files.map((file, index) => (
+              <div key={index} className="request-file-row">
+                <div className="request-file-info">
+                  <div className="request-file-title">
+                    {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
+                    {cfg.fileSlots[index]?.required ? " *" : ""}
+                  </div>
+                  <div className="request-file-subtitle">
+                    {file ? file.name : "No file selected"}
+                  </div>
+                </div>
+                <label className="request-file-action">
+                  Upload
+                  <input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(e) => {
+                      const selected = e.target.files?.[0] || null;
+                      setFiles((prev) => {
+                        const copy = [...prev];
+                        copy[index] = selected;
+                        return copy;
+                      });
+                    }}
+                  />
+                </label>
+              </div>
+            ))}
+
+            {/* E-signature for agreement resubmit */}
+            {reqData.type === "agreement" && (
+              <>
+                <div className="request-section-title" style={{ marginTop: "16px" }}>
+                  Your E-Signature *
+                </div>
+                <p className="request-sig-hint">
+                  Please draw your signature again for this resubmission.
+                </p>
+                <SignaturePad ref={sigPadRef} height={150} />
+                <button
+                  type="button"
+                  className="request-sig-clear"
+                  onClick={() => sigPadRef.current?.clear()}
+                >
+                  Clear Signature
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="request-form-actions">
+          <button type="submit" className="request-form-submit">
+            Resubmit
           </button>
         </div>
-      )}
-
-      <button type="submit" style={submitBtnStyle}>
-        Resubmit
-      </button>
-    </form>
+      </form>
+    </div>
   );
 }

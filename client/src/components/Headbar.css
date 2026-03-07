@@ -1,31 +1,40 @@
 .headbar {
+  height: 64px;
   min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 26px;
-  background: #ffffff;
-  border-bottom: 1px solid #e3e8f2;
+  padding: 0 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 16px;
 }
 
 .headbar-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
-  color: #0f1c3f;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .headbar-action {
-  padding: 10px 16px;
-  background: #0f2d6b;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--primary);
   color: #ffffff;
   font-weight: 600;
   font-size: 13px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   text-decoration: none;
   transition: background 0.15s ease;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .headbar-action:hover {
-  background: #12357a;
+  background: var(--primary-hover);
 }

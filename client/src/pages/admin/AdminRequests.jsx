@@ -12,7 +12,10 @@ const FILTERS = [
 const statusClass = (s) => {
   if (s === "pending" || s === "submitted") return "status-pill status-pill--pending";
   if (s === "approved" || s === "completed") return "status-pill status-pill--approved";
-  if (s === "revision_requested" || s === "rep_revision_requested") return "status-pill status-pill--revision";
+  if (s === "revision_required" || s === "revision_requested" || s === "rep_revision_requested")
+    return "status-pill status-pill--revision";
+  if (s === "awaiting_signature" || s === "pending_approval") return "status-pill status-pill--info";
+  if (s === "declined") return "status-pill status-pill--revision";
   return "status-pill";
 };
 
@@ -27,6 +30,7 @@ const prettyStatus = (s) => {
   const map = {
     pending: "Pending",
     approved: "Approved",
+    revision_required: "Revision Required",
     revision_requested: "Revision Requested",
     submitted: "Submitted",
     awaiting_signature: "Awaiting Signature",
@@ -35,7 +39,7 @@ const prettyStatus = (s) => {
     declined: "Declined",
     rep_revision_requested: "Rep Revision Requested",
   };
-  return map[s] || s;
+  return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
 
 export default function AdminRequests() {
@@ -96,19 +100,20 @@ export default function AdminRequests() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="dashboard-empty">
-                  No requests found.
+                <td colSpan={5}>
+                  <div className="dashboard-empty">
+                    <span className="dashboard-empty-icon">🔍</span>
+                    <p className="dashboard-empty-title">No requests found</p>
+                    <p className="dashboard-empty-text">No requests match the current filter.</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               filtered.map((r) => (
                 <tr key={r._id}>
                   <td>
-                    {r.userId?.name || "Unknown"}
-                    <br />
-                    <span className="dashboard-subtext">
-                      {r.userId?.email || ""}
-                    </span>
+                    <span style={{ fontWeight: 600 }}>{r.userId?.name || "Unknown"}</span>
+                    <span className="dashboard-subtext">{r.userId?.email || ""}</span>
                   </td>
 
                   <td>

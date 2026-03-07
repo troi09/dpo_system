@@ -172,13 +172,13 @@ export default function StudentAgreementRequest() {
 
           <div className="request-section">
             <div className="request-section-title">Your E-Signature *</div>
-            <p style={{ fontSize: "13px", opacity: 0.7, margin: "0 0 8px 0" }}>
+            <p className="request-sig-hint">
               Draw your signature below. It will be embedded in the agreement document.
             </p>
             <SignaturePad ref={sigPadRef} height={150} />
             <button
               type="button"
-              style={{ marginTop: "6px", fontSize: "13px" }}
+              className="request-sig-clear"
               onClick={() => sigPadRef.current?.clear()}
             >
               Clear Signature

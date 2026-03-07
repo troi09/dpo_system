@@ -1,14 +1,15 @@
 /* AI Triage Chat component styles */
 
 .ai-triage-chat {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--surface);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   font-size: 14px;
+  font-family: inherit;
 }
 
 .ai-triage-chat__header {
@@ -16,22 +17,23 @@
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: #1e40af;
+  background: var(--primary);
   color: #fff;
 }
 
 .ai-triage-chat__badge {
-  background: #fff;
-  color: #1e40af;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
   font-weight: 700;
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
 }
 
 .ai-triage-chat__title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .ai-triage-chat__messages {
@@ -43,41 +45,42 @@
   gap: 10px;
   min-height: 200px;
   max-height: 340px;
-  background: #f8fafc;
+  background: var(--surface-2);
 }
 
 .ai-triage-chat__bubble {
   max-width: 85%;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   line-height: 1.5;
 }
 
 .ai-triage-chat__bubble--agent {
   align-self: flex-start;
-  background: #e0e7ff;
-  color: #1e1b4b;
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 .ai-triage-chat__bubble--user {
   align-self: flex-end;
-  background: #1e40af;
+  background: var(--primary);
   color: #fff;
 }
 
 .ai-triage-chat__bubble-label {
   display: block;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   opacity: 0.7;
   margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .ai-triage-chat__bubble-text {
   margin: 0;
   white-space: pre-wrap;
+  font-size: 13px;
 }
 
 .ai-triage-chat__typing {
@@ -87,41 +90,45 @@
 
 .ai-triage-chat__recommendation {
   padding: 12px 16px;
-  background: #f0fdf4;
-  border-top: 1px solid #bbf7d0;
+  background: var(--s-approved-bg);
+  border-top: 1px solid var(--s-approved-dot);
 }
 
 .ai-triage-chat__rec-title {
   margin-bottom: 8px;
-  color: #166534;
+  color: var(--s-approved-text);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .ai-triage-chat__rec-btn {
-  background: #16a34a;
+  background: var(--s-approved-dot);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 8px 16px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 8px;
+  font-family: inherit;
+  transition: background 0.15s ease;
 }
 
 .ai-triage-chat__rec-btn:hover {
-  background: #15803d;
+  background: #059669;
 }
 
 .ai-triage-chat__rec-note {
   margin: 0 0 8px;
-  color: #92400e;
+  color: var(--s-warning-text);
   font-size: 12px;
 }
 
 .ai-triage-chat__disclaimer {
   margin: 0;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -129,35 +136,39 @@
   display: flex;
   gap: 8px;
   padding: 10px 14px;
-  border-top: 1px solid #e2e8f0;
-  background: #fff;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .ai-triage-chat__input {
   flex: 1;
   resize: none;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   font-size: 13px;
   font-family: inherit;
   outline: none;
+  transition: border-color 0.15s ease;
 }
 
 .ai-triage-chat__input:focus {
-  border-color: #1e40af;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
 }
 
 .ai-triage-chat__send {
-  background: #1e40af;
+  background: var(--primary);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0 18px;
   cursor: pointer;
   font-weight: 600;
   font-size: 13px;
+  font-family: inherit;
   align-self: flex-end;
+  transition: background 0.15s ease;
 }
 
 .ai-triage-chat__send:disabled {
@@ -166,5 +177,5 @@
 }
 
 .ai-triage-chat__send:not(:disabled):hover {
-  background: #1d3a9e;
+  background: var(--primary-hover);
 }

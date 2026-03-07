@@ -2,7 +2,14 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 
-import { getRequestById, updateRequestStatus, saveApprovedDocument } from "../../services/requestService";
+import {
+  getRequestById,
+  updateRequestStatus,
+  saveApprovedDocument,
+  generateSigningLink,
+  adminPhase3Action,
+  getSignatureImages,
+} from "../../services/requestService";
 import { getComplianceReview } from "../../services/aiService";
 
 import { generateApprovedPDF } from "../../config/documentTemplates";
@@ -14,30 +21,20 @@ import {
 import { buildVerificationUrl, generateQrDataUrl } from "../../services/qrService";
 import SignaturePad from "../../components/SignaturePad";
 
-const boxStyle = {
-  padding: "20px",
-  borderRadius: "8px",
-  width: "720px",
-  boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-};
-const labelStyle = { fontSize: "13px", opacity: 0.8, marginBottom: "4px" };
-const infoBlockStyle = { padding: "10px", border: "1px solid #ddd", borderRadius: "6px" };
-const sectionTitleStyle = { margin: "0 0 6px 0" };
-const textareaStyle = { width: "100%", padding: "10px" };
-
 const prettyStatus = (s) => {
   const map = {
     pending: "Pending",
     approved: "Approved",
+    revision_required: "Revision Required",
     revision_requested: "Revision Requested",
-    submitted: "Submitted – Pending Admin Review",
+    submitted: "Submitted",
     awaiting_signature: "Awaiting Representative Signature",
     pending_approval: "Pending Final Admin Review",
-    completed: "Approved",
+    completed: "Completed",
     declined: "Declined by Representative",
     rep_revision_requested: "Representative Revision Requested",
   };
-  return map[s] || s;
+  return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
 
 const getRequestFolder = (predocs = []) => {
@@ -51,62 +48,27 @@ const getRequestFolder = (predocs = []) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NDA review panel (original flow: pending → approved | revision_required)
+// NDA review panel (flow: pending → approved | revision_requested)
 // ─────────────────────────────────────────────────────────────────────────────
-function NdaReviewPanel({ reqData }) {
+function NdaReviewPanel({ reqData, complianceData, complianceLoading }) {
   const navigate = useNavigate();
   const [remarks, setRemarks] = useState(reqData.remarks || "");
   const [approving, setApproving] = useState(false);
-  const [complianceData, setComplianceData] = useState(null);
-  const [complianceLoading, setComplianceLoading] = useState(false);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const r = await getRequestById(id);
-        setReqData(r);
-        setRemarks(r.remarks || "");
-
-        // Automatically run the Compliance & Drafting Co-Pilot for pending requests
-        if (r.status === "pending") {
-          setComplianceLoading(true);
-          try {
-            const review = await getComplianceReview({
-              type: r.type,
-              formData: r.formData || {},
-            });
-            setComplianceData(review);
-          } catch {
-            // Compliance review is non-blocking; failure doesn't prevent manual review
-          } finally {
-            setComplianceLoading(false);
-          }
-        }
-      } catch (err) {
-        alert(err.response?.data?.message || "Failed to load request");
-        navigate("/admin/requests");
-      }
-    };
-    load();
-  }, [id, navigate]);
 
   const cfg = useMemo(() => {
-    if (!reqData) return null;
-    if (reqData.type === "agreement") return FIELDS_FILE_SLOTS_CONFIG.agreement;
-    if (reqData.type === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda[reqData.formData?.ndaType];
+    if (reqData.type === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda?.[reqData.formData?.ndaType];
     return null;
   }, [reqData]);
 
   const isPending = reqData?.status === "pending";
-  const isRevision = reqData?.status === "revision_required";
+  const isRevision = reqData?.status === "revision_required" || reqData?.status === "revision_requested";
   const isApproved = reqData?.status === "approved";
 
 
   const handleUpdate = async (status) => {
+    setApproving(true);
     try {
       if (status === "approved") {
-        setApproving(true);
-
         const updateRes = await updateRequestStatus(reqData._id, { status, remarks });
         const updated = updateRes.request;
 
@@ -124,12 +86,17 @@ function NdaReviewPanel({ reqData }) {
         const docReq = { ...updated, userId: reqData.userId, verificationUrl, qrDataUrl };
         const pdfBlob = await generateApprovedPDF(docReq);
         const t = reqData.formData?.ndaType || "general";
-        const uploaded = await uploadApprovedForm(pdfBlob, reqData.type, studentName, requestFolder, `NDA_${t}_Approved.pdf`);
+        const uploaded = await uploadApprovedForm(
+          pdfBlob,
+          reqData.type,
+          studentName,
+          requestFolder,
+          `NDA_${t}_Approved.pdf`
+        );
 
         await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
 
         alert("Approved and document generated!");
-        setApproving(false);
       } else {
         await updateRequestStatus(reqData._id, { status, remarks });
         alert(`Updated to ${status}`);
@@ -137,99 +104,109 @@ function NdaReviewPanel({ reqData }) {
       if (window.history.length > 1) navigate(-1);
       else navigate("/admin");
     } catch (err) {
-      setApproving(false);
       alert(err.response?.data?.message || err.message || "Failed to update request");
+    } finally {
+      setApproving(false);
     }
   };
 
-
-
   return (
     <>
-      <div style={{ marginBottom: "14px" }}>
-        <h4 style={sectionTitleStyle}>Form Data</h4>
+      <div className="review-section">
+        <h4 className="review-section-title">Form Data</h4>
         {cfg?.fields?.length ? (
           cfg.fields.map((f) => (
-            <div key={f.name} style={{ marginBottom: "10px" }}>
-              <div style={labelStyle}>{f.label}</div>
-              <div style={infoBlockStyle}>
-                {String(reqData.formData?.[f.name] ?? "") || <span style={{ opacity: 0.6 }}>—</span>}
+            <div key={f.name} className="review-field">
+              <span className="review-field-label">{f.label}</span>
+              <div className="review-info-box">
+                {String(reqData.formData?.[f.name] ?? "") || (
+                  <span className="review-info-box--muted">—</span>
+                )}
               </div>
             </div>
           ))
         ) : (
-          <pre style={{ background: "#f6f6f6", padding: "10px", borderRadius: "6px" }}>
+          <pre style={{
+            background: "var(--surface-2)",
+            padding: "10px",
+            borderRadius: "var(--radius-md)",
+            fontSize: "12px",
+            margin: 0,
+          }}>
             {JSON.stringify(reqData.formData || {}, null, 2)}
           </pre>
         )}
       </div>
 
-      <div style={{ marginBottom: "14px" }}>
-        <h4 style={sectionTitleStyle}>Attachments</h4>
+      <div className="review-section">
+        <h4 className="review-section-title">Attachments</h4>
         {reqData.predocs?.length ? (
-          reqData.predocs.map((f, idx) => (
-            <div key={idx} style={{ marginBottom: "6px" }}>
-              <a href={f.url} target="_blank" rel="noreferrer">
-                {f.requirementLabel || f.origName || `File ${idx + 1}`}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {reqData.predocs.map((f, idx) => (
+              <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
+                📎 {f.requirementLabel || f.origName || `File ${idx + 1}`}
               </a>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <div style={{ opacity: 0.7 }}>No files.</div>
+          <div className="review-info-box">
+            <span className="review-info-box--muted">No files.</span>
+          </div>
         )}
       </div>
 
+      {/* AI Compliance Review */}
       {isPending && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>
+        <div className="review-section">
+          <h4 className="review-section-title">
             🤖 AI Compliance &amp; Drafting Co-Pilot
             <span style={{ fontSize: "11px", fontWeight: 400, marginLeft: "8px", opacity: 0.7 }}>
               (Agent 2 — Draft for Human Review)
             </span>
           </h4>
           {complianceLoading && (
-            <div style={{ padding: "10px", color: "#64748b", fontStyle: "italic" }}>
+            <div style={{ padding: "10px", color: "var(--text-muted)", fontStyle: "italic", fontSize: "13px" }}>
               Analyzing document for compliance…
             </div>
           )}
           {!complianceLoading && complianceData && (
-            <div style={{ border: "1px solid #e2e8f0", borderRadius: "6px", overflow: "hidden" }}>
-              {/* Risk Score */}
+            <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
               <div style={{
                 padding: "10px 14px",
                 background: complianceData.compliance.riskLevel === "HIGH"
-                  ? "#fef2f2"
+                  ? "var(--s-revision-bg)"
                   : complianceData.compliance.riskLevel === "MODERATE"
-                  ? "#fffbeb"
-                  : "#f0fdf4",
-                borderBottom: "1px solid #e2e8f0",
+                  ? "var(--s-warning-bg)"
+                  : "var(--s-approved-bg)",
+                borderBottom: "1px solid var(--border)",
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
               }}>
-                <span style={{ fontWeight: 600 }}>Compliance Risk Score:</span>
+                <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)" }}>
+                  Compliance Risk Score:
+                </span>
                 <span style={{
                   fontWeight: 700,
                   color: complianceData.compliance.riskLevel === "HIGH"
-                    ? "#dc2626"
+                    ? "var(--s-revision-text)"
                     : complianceData.compliance.riskLevel === "MODERATE"
-                    ? "#d97706"
-                    : "#16a34a",
+                    ? "var(--s-warning-text)"
+                    : "var(--s-approved-text)",
                 }}>
                   {complianceData.compliance.riskScore}/100 — {complianceData.compliance.riskLevel}
                 </span>
               </div>
-              {/* Flags */}
               <div style={{ padding: "10px 14px" }}>
                 {complianceData.compliance.flags.map((flag, i) => (
                   <div key={i} style={{ marginBottom: "6px", fontSize: "13px" }}>
                     <span style={{
                       fontWeight: 600,
                       color: flag.level === "HIGH"
-                        ? "#dc2626"
+                        ? "var(--s-revision-text)"
                         : flag.level === "MODERATE"
-                        ? "#d97706"
-                        : "#16a34a",
+                        ? "var(--s-warning-text)"
+                        : "var(--s-approved-text)",
                     }}>
                       [{flag.level}]
                     </span>{" "}
@@ -237,20 +214,22 @@ function NdaReviewPanel({ reqData }) {
                   </div>
                 ))}
               </div>
-              {/* Draft Summary */}
-              <div style={{ padding: "10px 14px", borderTop: "1px solid #e2e8f0" }}>
-                <div style={{ fontWeight: 600, marginBottom: "6px" }}>Draft Summary</div>
+              <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)" }}>
+                <div style={{ fontWeight: 600, marginBottom: "6px", fontSize: "13px", color: "var(--text-primary)" }}>
+                  Draft Summary
+                </div>
                 <pre style={{
-                  background: "#f8fafc",
+                  background: "var(--surface-2)",
                   padding: "10px",
-                  borderRadius: "6px",
+                  borderRadius: "var(--radius-sm)",
                   fontSize: "12px",
                   whiteSpace: "pre-wrap",
                   margin: 0,
+                  color: "var(--text-secondary)",
                 }}>
                   {complianceData.draft.summary}
                 </pre>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "6px", fontStyle: "italic" }}>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "6px", fontStyle: "italic" }}>
                   {complianceData.draft.disclaimer}
                 </div>
               </div>
@@ -260,36 +239,56 @@ function NdaReviewPanel({ reqData }) {
       )}
 
       {isPending && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Remarks</h4>
-          <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={4} style={textareaStyle} placeholder="Optional remarks..." />
+        <div className="review-section">
+          <h4 className="review-section-title">Remarks</h4>
+          <textarea
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            rows={4}
+            className="review-textarea"
+            placeholder="Optional remarks..."
+          />
         </div>
       )}
 
       {isRevision && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Remarks</h4>
-          <div style={infoBlockStyle}>{reqData.remarks || <span style={{ opacity: 0.6 }}>No remarks provided.</span>}</div>
+        <div className="review-section">
+          <h4 className="review-section-title">Remarks</h4>
+          <div className="review-info-box">
+            {reqData.remarks || <span className="review-info-box--muted">No remarks provided.</span>}
+          </div>
         </div>
       )}
 
       {isApproved && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Approved Request Form</h4>
-          <div style={infoBlockStyle}>
-            {reqData.postdocs?.url
-              ? <a href={reqData.postdocs.url} target="_blank" rel="noreferrer">View Document</a>
-              : <span style={{ opacity: 0.7 }}>No approved document uploaded.</span>}
+        <div className="review-section">
+          <h4 className="review-section-title">Approved Request Form</h4>
+          <div className="review-info-box">
+            {reqData.postdocs?.url ? (
+              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-link">
+                View Document →
+              </a>
+            ) : (
+              <span className="review-info-box--muted">No approved document uploaded.</span>
+            )}
           </div>
         </div>
       )}
 
       {isPending && (
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button onClick={() => handleUpdate("approved")} disabled={approving} style={{ flex: 1, padding: "10px" }}>
+        <div className="review-actions">
+          <button
+            onClick={() => handleUpdate("approved")}
+            disabled={approving}
+            className="review-btn-primary"
+          >
             {approving ? "Generating..." : "Approve"}
           </button>
-          <button onClick={() => handleUpdate("revision_requested")} style={{ flex: 1, padding: "10px" }}>
+          <button
+            onClick={() => handleUpdate("revision_requested")}
+            disabled={approving}
+            className="review-btn-secondary"
+          >
             Request Revision
           </button>
         </div>
@@ -358,7 +357,6 @@ function AgreementReviewPanel({ reqData }) {
 
       await uploadApprovedQrImage(qrDataUrl, "agreement", studentName, requestFolder);
 
-      // Fetch Firebase signature images via backend proxy to avoid browser CORS
       const { authorizerSig, repSig } = await getSignatureImages(reqData._id);
 
       const docReq = {
@@ -373,11 +371,16 @@ function AgreementReviewPanel({ reqData }) {
       };
 
       const pdfBlob = await generateApprovedPDF(docReq);
-      const uploaded = await uploadApprovedForm(pdfBlob, "agreement", studentName, requestFolder, "Agreement_Approved.pdf");
+      const uploaded = await uploadApprovedForm(
+        pdfBlob,
+        "agreement",
+        studentName,
+        requestFolder,
+        "Agreement_Approved.pdf"
+      );
 
       await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
 
-      // Delete ephemeral signature images after final PDF is stored
       await deleteStorageFile(reqData.authorizerSigPath);
       await deleteStorageFile(reqData.repSigPath);
 
@@ -409,59 +412,68 @@ function AgreementReviewPanel({ reqData }) {
   return (
     <>
       {/* Form data */}
-      <div style={{ marginBottom: "14px" }}>
-        <h4 style={sectionTitleStyle}>Form Data</h4>
+      <div className="review-section">
+        <h4 className="review-section-title">Form Data</h4>
         {cfg.fields.map((f) => (
-          <div key={f.name} style={{ marginBottom: "10px" }}>
-            <div style={labelStyle}>{f.label}</div>
-            <div style={infoBlockStyle}>
-              {String(reqData.formData?.[f.name] ?? "") || <span style={{ opacity: 0.6 }}>—</span>}
+          <div key={f.name} className="review-field">
+            <span className="review-field-label">{f.label}</span>
+            <div className="review-info-box">
+              {String(reqData.formData?.[f.name] ?? "") || (
+                <span className="review-info-box--muted">—</span>
+              )}
             </div>
           </div>
         ))}
       </div>
 
       {/* Student attachments */}
-      <div style={{ marginBottom: "14px" }}>
-        <h4 style={sectionTitleStyle}>Student Attachments</h4>
+      <div className="review-section">
+        <h4 className="review-section-title">Student Attachments</h4>
         {reqData.predocs?.length ? (
-          reqData.predocs.map((f, idx) => (
-            <div key={idx} style={{ marginBottom: "6px" }}>
-              <a href={f.url} target="_blank" rel="noreferrer">
-                {f.requirementLabel || f.origName || `File ${idx + 1}`}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {reqData.predocs.map((f, idx) => (
+              <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
+                📎 {f.requirementLabel || f.origName || `File ${idx + 1}`}
               </a>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <div style={{ opacity: 0.7 }}>No files.</div>
+          <div className="review-info-box">
+            <span className="review-info-box--muted">No files.</span>
+          </div>
         )}
       </div>
 
       {/* Authorizer signature */}
       {reqData.authorizerSigUrl && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Authorizer E-Signature</h4>
-          <div style={{ ...infoBlockStyle, padding: "6px" }}>
-            <img src={reqData.authorizerSigUrl} alt="Authorizer signature" style={{ maxHeight: 80, display: "block" }} />
+        <div className="review-section">
+          <h4 className="review-section-title">Authorizer E-Signature</h4>
+          <div className="review-sig-wrap">
+            <img src={reqData.authorizerSigUrl} alt="Authorizer signature" className="review-sig-img" />
+            <span className="review-sig-name">{reqData.userId?.name}</span>
           </div>
-          <div style={{ ...labelStyle, marginTop: 4 }}>{reqData.userId?.name}</div>
         </div>
       )}
 
       {/* Representative info (phase3+) */}
       {reqData.repInfo?.name && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Representative Information</h4>
-          <div style={{ marginBottom: "6px" }}>
-            <div style={labelStyle}>Name</div>
-            <div style={infoBlockStyle}>{reqData.repInfo.name}</div>
+        <div className="review-section">
+          <h4 className="review-section-title">Representative Information</h4>
+          <div className="review-field">
+            <span className="review-field-label">Name</span>
+            <div className="review-info-box">{reqData.repInfo.name}</div>
           </div>
           {reqData.repInfo.govIdDoc?.url && (
-            <div>
-              <div style={labelStyle}>Government ID</div>
-              <div style={infoBlockStyle}>
-                <a href={reqData.repInfo.govIdDoc.url} target="_blank" rel="noreferrer">
-                  {reqData.repInfo.govIdDoc.origName || "View ID"}
+            <div className="review-field">
+              <span className="review-field-label">Government ID</span>
+              <div className="review-info-box">
+                <a
+                  href={reqData.repInfo.govIdDoc.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="review-link"
+                >
+                  {reqData.repInfo.govIdDoc.origName || "View ID"} →
                 </a>
               </div>
             </div>
@@ -471,57 +483,66 @@ function AgreementReviewPanel({ reqData }) {
 
       {/* Representative signature (phase3+) */}
       {reqData.repSigUrl && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Representative E-Signature</h4>
-          <div style={{ ...infoBlockStyle, padding: "6px" }}>
-            <img src={reqData.repSigUrl} alt="Representative signature" style={{ maxHeight: 80, display: "block" }} />
+        <div className="review-section">
+          <h4 className="review-section-title">Representative E-Signature</h4>
+          <div className="review-sig-wrap">
+            <img src={reqData.repSigUrl} alt="Representative signature" className="review-sig-img" />
+            <span className="review-sig-name">
+              {reqData.repInfo?.name || reqData.formData?.repName}
+            </span>
           </div>
-          <div style={{ ...labelStyle, marginTop: 4 }}>{reqData.repInfo?.name || reqData.formData?.repName}</div>
         </div>
       )}
 
       {/* Remarks display */}
-      {(status === "revision_requested" || status === "rep_revision_requested") && reqData.remarks && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Remarks</h4>
-          <div style={infoBlockStyle}>{reqData.remarks}</div>
-        </div>
-      )}
+      {(status === "revision_requested" || status === "rep_revision_requested") &&
+        reqData.remarks && (
+          <div className="review-section">
+            <h4 className="review-section-title">Remarks</h4>
+            <div className="review-info-box">{reqData.remarks}</div>
+          </div>
+        )}
 
       {/* Final approved document */}
       {status === "completed" && (
-        <div style={{ marginBottom: "14px" }}>
-          <h4 style={sectionTitleStyle}>Approved Agreement</h4>
-          <div style={infoBlockStyle}>
-            {reqData.postdocs?.url
-              ? <a href={reqData.postdocs.url} target="_blank" rel="noreferrer">View Final Document</a>
-              : <span style={{ opacity: 0.7 }}>No document uploaded yet.</span>}
+        <div className="review-section">
+          <h4 className="review-section-title">Approved Agreement</h4>
+          <div className="review-info-box">
+            {reqData.postdocs?.url ? (
+              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-link">
+                View Final Document →
+              </a>
+            ) : (
+              <span className="review-info-box--muted">No document uploaded yet.</span>
+            )}
           </div>
         </div>
       )}
 
       {/* Rep rejected */}
       {status === "declined" && (
-        <div style={{ background: "#fef2f2", padding: 12, borderRadius: 6, border: "1px solid #fca5a5", marginBottom: 14 }}>
+        <div className="info-banner info-banner--danger">
           <strong>Representative Declined</strong>
-          <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
-            The representative declined to sign. This request lifecycle has ended.
-          </p>
+          <p>The representative declined to sign. This request lifecycle has ended.</p>
         </div>
       )}
 
       {/* Generated signing link */}
       {signingLink && (
-        <div style={{ marginBottom: "14px", background: "#f0fdf4", padding: 12, borderRadius: 6, border: "1px solid #86efac" }}>
-          <strong>Signing Link</strong>
-          <p style={{ fontSize: 13, margin: "4px 0 6px 0" }}>
+        <div className="signing-link-box">
+          <p className="signing-link-title">Signing Link Generated</p>
+          <p className="signing-link-desc">
             Copy and send this link to the representative manually:
           </p>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <code style={{ flex: 1, wordBreak: "break-all", fontSize: 12, background: "#fff", padding: "6px 8px", borderRadius: 4, border: "1px solid #ccc" }}>
-              {signingLink}
-            </code>
-            <button onClick={() => { navigator.clipboard.writeText(signingLink); alert("Copied!"); }} style={{ padding: "6px 10px", fontSize: 12 }}>
+          <div className="signing-link-row">
+            <code className="signing-link-code">{signingLink}</code>
+            <button
+              className="signing-link-copy-btn"
+              onClick={() => {
+                navigator.clipboard.writeText(signingLink);
+                alert("Copied!");
+              }}
+            >
               Copy
             </button>
           </div>
@@ -531,15 +552,25 @@ function AgreementReviewPanel({ reqData }) {
       {/* ── Phase 1 actions ── */}
       {status === "submitted" && !signingLink && (
         <>
-          <div style={{ marginBottom: "14px" }}>
-            <h4 style={sectionTitleStyle}>Remarks (for student revision)</h4>
-            <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={3} style={textareaStyle} placeholder="Required only if requesting student revision..." />
+          <div className="review-section">
+            <h4 className="review-section-title">Remarks (for student revision)</h4>
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              rows={3}
+              className="review-textarea"
+              placeholder="Required only if requesting student revision..."
+            />
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button onClick={handlePhase1Approve} disabled={generating} style={{ flex: 1, padding: "10px" }}>
+          <div className="review-actions">
+            <button
+              onClick={handlePhase1Approve}
+              disabled={generating}
+              className="review-btn-primary"
+            >
               {generating ? "Generating link..." : "Approve & Generate Signing Link"}
             </button>
-            <button onClick={handlePhase1Revision} style={{ flex: 1, padding: "10px" }}>
+            <button onClick={handlePhase1Revision} className="review-btn-secondary">
               Request Revision from Student
             </button>
           </div>
@@ -548,9 +579,9 @@ function AgreementReviewPanel({ reqData }) {
 
       {/* ── Phase 2: waiting on rep ── */}
       {status === "awaiting_signature" && !signingLink && (
-        <div style={{ background: "#eff6ff", padding: 12, borderRadius: 6, border: "1px solid #93c5fd" }}>
+        <div className="info-banner info-banner--info">
           <strong>Waiting for Representative</strong>
-          <p style={{ fontSize: 13, margin: "4px 0 0 0" }}>
+          <p>
             The signing link has been generated. Share it with the representative.
             This page will update once they submit or decline.
           </p>
@@ -560,27 +591,41 @@ function AgreementReviewPanel({ reqData }) {
       {/* ── Phase 3 actions ── */}
       {status === "pending_approval" && (
         <>
-          <div style={{ marginBottom: "14px" }}>
-            <h4 style={sectionTitleStyle}>Your E-Signature (Admin) *</h4>
-            <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 6px 0" }}>
+          <div className="review-section">
+            <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
+            <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
               Draw your signature below to sign off on the final approval.
             </p>
             <SignaturePad ref={adminSigRef} height={150} />
-            <button type="button" style={{ marginTop: 6, fontSize: 12 }} onClick={() => adminSigRef.current?.clear()}>
-              Clear
+            <button
+              type="button"
+              className="review-btn-clear"
+              onClick={() => adminSigRef.current?.clear()}
+            >
+              Clear Signature
             </button>
           </div>
 
-          <div style={{ marginBottom: "14px" }}>
-            <h4 style={sectionTitleStyle}>Remarks (for rep revision)</h4>
-            <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={3} style={textareaStyle} placeholder="Required only if requesting representative revision..." />
+          <div className="review-section">
+            <h4 className="review-section-title">Remarks (for rep revision)</h4>
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              rows={3}
+              className="review-textarea"
+              placeholder="Required only if requesting representative revision..."
+            />
           </div>
 
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button onClick={handlePhase3Approve} disabled={approving} style={{ flex: 1, padding: "10px" }}>
+          <div className="review-actions">
+            <button
+              onClick={handlePhase3Approve}
+              disabled={approving}
+              className="review-btn-primary"
+            >
               {approving ? "Generating final document..." : "Final Approve & Sign"}
             </button>
-            <button onClick={handlePhase3RepRevision} style={{ flex: 1, padding: "10px" }}>
+            <button onClick={handlePhase3RepRevision} className="review-btn-secondary">
               Request Rep Revision
             </button>
           </div>
@@ -589,10 +634,11 @@ function AgreementReviewPanel({ reqData }) {
 
       {/* ── Rep revision requested ── */}
       {status === "rep_revision_requested" && !signingLink && (
-        <div style={{ background: "#fff7ed", padding: 12, borderRadius: 6, border: "1px solid #fb923c" }}>
+        <div className="info-banner info-banner--warning">
           <strong>Representative Revision Pending</strong>
-          <p style={{ fontSize: 13, margin: "4px 0 0 0" }}>
-            A new signing link has been generated. Send it to the representative so they can resubmit.
+          <p>
+            A new signing link has been generated. Send it to the representative so they can
+            resubmit.
           </p>
         </div>
       )}
@@ -608,12 +654,30 @@ export default function AdminRequestReview() {
   const navigate = useNavigate();
 
   const [reqData, setReqData] = useState(null);
+  const [complianceData, setComplianceData] = useState(null);
+  const [complianceLoading, setComplianceLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
         const r = await getRequestById(id);
         setReqData(r);
+
+        // Automatically run the Compliance & Drafting Co-Pilot for pending NDA requests
+        if (r.type === "nda" && r.status === "pending") {
+          setComplianceLoading(true);
+          try {
+            const review = await getComplianceReview({
+              type: r.type,
+              formData: r.formData || {},
+            });
+            setComplianceData(review);
+          } catch {
+            // Compliance review is non-blocking; failure doesn't prevent manual review
+          } finally {
+            setComplianceLoading(false);
+          }
+        }
       } catch (err) {
         alert(err.response?.data?.message || "Failed to load request");
         navigate("/admin/requests");
@@ -629,37 +693,53 @@ export default function AdminRequestReview() {
   const requestTitle =
     reqData.type === "agreement"
       ? "Agreement Request"
-      : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
+      : `NDA Request${reqData.formData?.ndaTypeLabel ? ` — ${reqData.formData.ndaTypeLabel}` : ""}`;
 
   return (
-    <div style={boxStyle}>
-      <button
-        onClick={() => {
-          if (window.history.length > 1) navigate(-1);
-          else navigate("/admin");
-        }}
-        style={{ marginBottom: "10px" }}
-      >
-        Back
-      </button>
+    <div className="review-page">
+      <div className="review-card">
+        <button
+          className="review-back-btn"
+          onClick={() => {
+            if (window.history.length > 1) navigate(-1);
+            else navigate("/admin");
+          }}
+        >
+          ← Back
+        </button>
 
-      <h2 style={{ marginTop: 0 }}>Review {requestTitle}</h2>
+        <div className="review-header">
+          <h2 className="review-title">Review {requestTitle}</h2>
+          <div className="review-meta">
+            <span className="review-meta-row">
+              <b>Status:</b> {prettyStatus(reqData.status)}
+            </span>
+            <span className="review-meta-row">
+              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}
+            </span>
+          </div>
+        </div>
 
-      <div style={{ marginBottom: "14px" }}>
-        <div><b>Request Status:</b> {prettyStatus(reqData.status)}</div>
-        <div><b>Request Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
+        <div className="review-section">
+          <h4 className="review-section-title">Student</h4>
+          <div className="review-info-box">
+            <div style={{ fontWeight: 600 }}>{reqData.userId?.name || "Unknown"}</div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+              {reqData.userId?.email || ""}
+            </div>
+          </div>
+        </div>
+
+        {isAgreement ? (
+          <AgreementReviewPanel reqData={reqData} />
+        ) : (
+          <NdaReviewPanel
+            reqData={reqData}
+            complianceData={complianceData}
+            complianceLoading={complianceLoading}
+          />
+        )}
       </div>
-
-      <div style={{ marginBottom: "14px" }}>
-        <h4 style={sectionTitleStyle}>Student</h4>
-        <div>{reqData.userId?.name || "Unknown"}</div>
-        <div style={{ fontSize: "13px", opacity: 0.85 }}>{reqData.userId?.email || ""}</div>
-      </div>
-
-      {isAgreement
-        ? <AgreementReviewPanel reqData={reqData} />
-        : <NdaReviewPanel reqData={reqData} />
-      }
     </div>
   );
 }
