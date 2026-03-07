@@ -5,13 +5,15 @@ import { getRequestById } from "../../services/requestService";
 
 const prettyStatus = (s) => {
   const map = {
+    // Legacy backward compat
     pending: "Pending",
     approved: "Approved",
+    // Current statuses
+    submitted: "Submitted",
+    completed: "Completed",
     revision_requested: "Revision Requested",
-    submitted: "Submitted – Pending Admin Review",
     awaiting_signature: "Awaiting Representative Signature",
     pending_approval: "Pending Final Admin Review",
-    completed: "Approved",
     declined: "Declined by Representative",
     rep_revision_requested: "Representative Revision Requested",
   };

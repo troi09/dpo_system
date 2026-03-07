@@ -20,13 +20,15 @@ import SignaturePad from "../../components/SignaturePad";
 
 const prettyStatus = (s) => {
   const map = {
+    // Legacy backward compat
     pending: "Pending",
     approved: "Approved",
+    // Current statuses
+    submitted: "Submitted",
+    completed: "Completed",
     revision_requested: "Revision Requested",
-    submitted: "Submitted – Pending Admin Review",
     awaiting_signature: "Awaiting Representative Signature",
     pending_approval: "Pending Final Admin Review",
-    completed: "Approved",
     declined: "Declined by Representative",
     rep_revision_requested: "Representative Revision Requested",
   };
@@ -44,21 +46,27 @@ const getRequestFolder = (predocs = []) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NDA review panel (original flow: pending → approved | revision_requested)
+// NDA review panel (flow: submitted → completed | revision_requested)
 // ─────────────────────────────────────────────────────────────────────────────
 function NdaReviewPanel({ reqData }) {
   const navigate = useNavigate();
   const [remarks, setRemarks] = useState(reqData.remarks || "");
-  const [approving, setApproving] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const adminSigRef = useRef(null);
 
-  const isPending = reqData.status === "pending";
+  const isPending = reqData.status === "submitted";
   const isRevision = reqData.status === "revision_requested";
-  const isApproved = reqData.status === "approved";
+  const isApproved = reqData.status === "completed";
 
   const handleUpdate = async (status) => {
+    setUpdating(true);
     try {
-      if (status === "approved") {
-        setApproving(true);
+      if (status === "completed") {
+        if (!adminSigRef.current || adminSigRef.current.isEmpty()) {
+          alert("Please draw your e-signature before approving.");
+          setUpdating(false);
+          return;
+        }
 
         const updateRes = await updateRequestStatus(reqData._id, { status, remarks });
         const updated = updateRes.request;
@@ -67,6 +75,7 @@ function NdaReviewPanel({ reqData }) {
 
         const verificationUrl = buildVerificationUrl(updated.serialNo);
         const qrDataUrl = await generateQrDataUrl(verificationUrl);
+        const adminSigDataUrl = adminSigRef.current.getDataUrl();
 
         const studentName = reqData.userId?.name || "Unknown Student";
         const requestFolder = getRequestFolder(reqData.predocs);
@@ -74,15 +83,29 @@ function NdaReviewPanel({ reqData }) {
 
         await uploadApprovedQrImage(qrDataUrl, reqData.type, studentName, requestFolder);
 
-        const docReq = { ...updated, userId: reqData.userId, verificationUrl, qrDataUrl };
+        // Fetch student sig via backend proxy (avoids CORS)
+        const { authorizerSig } = await getSignatureImages(reqData._id);
+
+        const docReq = {
+          ...updated,
+          userId: reqData.userId,
+          authorizerSigUrl: authorizerSig,
+          adminSigDataUrl,
+          verificationUrl,
+          qrDataUrl,
+        };
         const pdfBlob = await generateApprovedPDF(docReq);
         const t = reqData.formData?.ndaType || "general";
         const uploaded = await uploadApprovedForm(pdfBlob, reqData.type, studentName, requestFolder, `NDA_${t}_Approved.pdf`);
 
         await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
 
+        // Delete ephemeral student signature
+        if (reqData.authorizerSigPath) {
+          await deleteStorageFile(reqData.authorizerSigPath);
+        }
+
         alert("Approved and document generated!");
-        setApproving(false);
       } else {
         await updateRequestStatus(reqData._id, { status, remarks });
         alert(`Updated to ${status}`);
@@ -90,8 +113,9 @@ function NdaReviewPanel({ reqData }) {
       if (window.history.length > 1) navigate(-1);
       else navigate("/admin");
     } catch (err) {
-      setApproving(false);
       alert(err.response?.data?.message || err.message || "Failed to update request");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -133,16 +157,28 @@ function NdaReviewPanel({ reqData }) {
       </div>
 
       {isPending && (
-        <div className="review-section">
-          <h4 className="review-section-title">Remarks</h4>
-          <textarea
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-            rows={4}
-            className="review-textarea"
-            placeholder="Optional remarks..."
-          />
-        </div>
+        <>
+          <div className="review-section">
+            <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
+            <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
+              Draw your signature below to sign off on approval.
+            </p>
+            <SignaturePad ref={adminSigRef} height={150} />
+            <button type="button" className="review-btn-clear" onClick={() => adminSigRef.current?.clear()}>
+              Clear Signature
+            </button>
+          </div>
+          <div className="review-section">
+            <h4 className="review-section-title">Remarks</h4>
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              rows={4}
+              className="review-textarea"
+              placeholder="Optional remarks..."
+            />
+          </div>
+        </>
       )}
 
       {isRevision && (
@@ -167,10 +203,10 @@ function NdaReviewPanel({ reqData }) {
 
       {isPending && (
         <div className="review-actions">
-          <button onClick={() => handleUpdate("approved")} disabled={approving} className="review-btn-primary">
-            {approving ? "Generating..." : "Approve"}
+          <button onClick={() => handleUpdate("completed")} disabled={updating} className="review-btn-primary">
+            {updating ? "Generating..." : "Approve"}
           </button>
-          <button onClick={() => handleUpdate("revision_requested")} className="review-btn-secondary">
+          <button onClick={() => handleUpdate("revision_requested")} disabled={updating} className="review-btn-secondary">
             Request Revision
           </button>
         </div>

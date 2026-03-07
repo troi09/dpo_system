@@ -22,8 +22,7 @@ exports.createRequest = async (req, res) => {
       return res.status(400).json({ message: "formData must be an object" });
     }
 
-    // Agreements use the multi-phase lifecycle
-    const initialStatus = type === "agreement" ? "submitted" : "pending";
+    const initialStatus = "submitted";
 
     const createPayload = {
       userId: req.user.id,
@@ -33,10 +32,8 @@ exports.createRequest = async (req, res) => {
       predocs: Array.isArray(predocs) ? predocs : [],
     };
 
-    if (type === "agreement") {
-      createPayload.authorizerSigUrl = authorizerSigUrl || "";
-      createPayload.authorizerSigPath = authorizerSigPath || "";
-    }
+    createPayload.authorizerSigUrl = authorizerSigUrl || "";
+    createPayload.authorizerSigPath = authorizerSigPath || "";
 
     const created = await Request.create(createPayload);
 
@@ -75,12 +72,11 @@ exports.resubmitRequest = async (req, res) => {
 
     r.formData = formData && typeof formData === "object" ? formData : r.formData;
     r.predocs = Array.isArray(predocs) ? predocs : [];
-    // Agreements go back to submitted, NDAs go back to pending
-    r.status = r.type === "agreement" ? "submitted" : "pending";
+    r.status = "submitted";
     r.remarks = "";
     r.postdocs = { url: "", path: "", issuedAt: "", verificationUrl: "" };
 
-    if (r.type === "agreement" && authorizerSigUrl) {
+    if (authorizerSigUrl) {
       r.authorizerSigUrl = authorizerSigUrl;
       r.authorizerSigPath = authorizerSigPath || "";
     }
@@ -127,13 +123,13 @@ exports.getRequestById = async (req, res) => {
   }
 };
 
-// NDA status update (pending → approved | revision_requested); also handles Agreement phase1 → revision_requested
+// NDA status update (submitted → completed | revision_requested)
 exports.updateRequestStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, remarks } = req.body;
 
-    const allowedStatuses = ["approved", "revision_requested"];
+    const allowedStatuses = ["completed", "revision_requested"];
     if (!status || !allowedStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
@@ -145,20 +141,19 @@ exports.updateRequestStatus = async (req, res) => {
     const existing = await Request.findById(id).select("type status serialNo");
     if (!existing) return res.status(404).json({ message: "Request not found" });
 
-    // Agreements can only use this endpoint from phase1 (submitted), not other phases
-    if (existing.type === "agreement" && existing.status !== "submitted") {
-      return res.status(400).json({ message: "Use agreement-specific endpoints for agreement requests" });
+    // Agreements complete via adminPhase3Action, not this endpoint
+    if (existing.type === "agreement" && status === "completed") {
+      return res.status(400).json({ message: "Use agreement-specific endpoints for agreement completion" });
     }
 
-    // Allow NDA (pending) and Agreement phase1 (submitted)
-    const allowedCurrentStatuses = ["pending", "submitted"];
-    if (!allowedCurrentStatuses.includes(existing.status)) {
-      return res.status(400).json({ message: "Only pending requests can be updated here" });
+    // Both NDA and Agreement phase1 now start at submitted
+    if (existing.status !== "submitted") {
+      return res.status(400).json({ message: "Only submitted requests can be updated here" });
     }
 
     const updatePayload = { status, remarks: remarks || "" };
 
-    if (status === "approved" && !existing.serialNo) {
+    if (status === "completed" && !existing.serialNo) {
       updatePayload.serialNo = generateVerification();
     }
 
@@ -182,7 +177,7 @@ exports.saveApprovedDocument = async (req, res) => {
     const r = await Request.findById(id);
     if (!r) return res.status(404).json({ message: "Request not found" });
 
-    const validFinalStatuses = ["approved", "completed"];
+    const validFinalStatuses = ["completed"];
     if (!validFinalStatuses.includes(r.status)) {
       return res.status(400).json({ message: "Request is not in a final approved state" });
     }
@@ -433,10 +428,7 @@ exports.verifyRequestCode = async (req, res) => {
 
     if (!r) return res.status(404).json({ valid: false, message: "Not found" });
 
-    // NDA: valid when approved; Agreement: valid when completed
-    const isValid =
-      (r.type === "nda" && r.status === "approved") ||
-      (r.type === "agreement" && r.status === "completed");
+    const isValid = r.status === "completed";
 
     return res.json({
       valid: isValid,

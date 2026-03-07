@@ -36,7 +36,7 @@ const requestSchema = new mongoose.Schema(
         "submitted", "awaiting_signature", "pending_approval", "completed",
         "declined", "rep_revision_requested",
       ],
-      default: "pending",
+      default: "submitted",
     },
 
     formData: {

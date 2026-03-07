@@ -4,8 +4,8 @@ import { getAllRequests } from "../../services/requestService";
 
 const FILTERS = [
   { key: "all", label: "All" },
-  { key: "pending", label: "Pending" },
-  { key: "approved", label: "Approved" },
+  { key: "submitted", label: "Submitted" },
+  { key: "completed", label: "Completed" },
   { key: "revision_requested", label: "Revision Requested" },
 ];
 
@@ -19,8 +19,8 @@ const statusClass = (s) => {
 };
 
 const filterClass = (s) => {
-  if (s === "pending") return "status-filter status-filter--pending";
-  if (s === "approved") return "status-filter status-filter--approved";
+  if (s === "submitted") return "status-filter status-filter--pending";
+  if (s === "completed") return "status-filter status-filter--approved";
   if (s === "revision_requested") return "status-filter status-filter--revision";
   return "status-filter status-filter--all";
 };
