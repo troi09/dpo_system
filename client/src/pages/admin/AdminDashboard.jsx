@@ -2,13 +2,27 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllRequests } from "../../services/requestService";
 
-const prettyStatus = (s) =>
-  s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const prettyStatus = (s) => {
+  const map = {
+    pending: "Pending",
+    approved: "Approved",
+    revision_requested: "Revision Required",
+    submitted: "Submitted",
+    awaiting_signature: "Awaiting Signature",
+    pending_approval: "Pending Approval",
+    completed: "Completed",
+    declined: "Declined",
+    rep_revision_requested: "Rep Revision Requested",
+  };
+  return map[s] || s.charAt(0).toUpperCase() + s.slice(1);
+};
 
 const statusClass = (s) => {
-  if (s === "pending") return "status-pill status-pill--pending";
-  if (s === "approved") return "status-pill status-pill--approved";
-  if (s === "revision_required") return "status-pill status-pill--revision";
+  if (s === "pending" || s === "submitted") return "status-pill status-pill--pending";
+  if (s === "approved" || s === "completed") return "status-pill status-pill--approved";
+  if (s === "revision_requested" || s === "rep_revision_requested") return "status-pill status-pill--revision";
+  if (s === "awaiting_signature" || s === "pending_approval") return "status-pill status-pill--info";
+  if (s === "declined") return "status-pill status-pill--revision";
   return "status-pill";
 };
 
@@ -31,40 +45,45 @@ const AdminDashboard = () => {
   return (
     <div className="dashboard-page">
       <div className="dashboard-card">
-        {requests.length === 0 ? (
-          <p className="dashboard-empty">No requests found.</p>
-        ) : (
-          <table className="dashboard-table">
-            <thead>
-              <tr className="dashboard-table-title-row">
-                <th colSpan={5}>
-                  <div className="dashboard-table-title-wrap">
-                    <span className="dashboard-table-title">Admin Dashboard</span>
-                  </div>
-                </th>
-              </tr>
-              <tr>
-                <th>Student</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Request Date</th>
-                <th></th>
-              </tr>
-            </thead>
+        <table className="dashboard-table">
+          <thead>
+            <tr className="dashboard-table-title-row">
+              <th colSpan={5}>
+                <div className="dashboard-table-title-wrap">
+                  <span className="dashboard-table-title">All Requests</span>
+                </div>
+              </th>
+            </tr>
+            <tr>
+              <th>Student</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Request Date</th>
+              <th></th>
+            </tr>
+          </thead>
 
-            <tbody>
-              {requests.map((r) => (
+          <tbody>
+            {requests.length === 0 ? (
+              <tr>
+                <td colSpan={5}>
+                  <div className="dashboard-empty">
+                    <span className="dashboard-empty-icon">📋</span>
+                    <p className="dashboard-empty-title">No requests found</p>
+                    <p className="dashboard-empty-text">Student requests will appear here once submitted.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              requests.map((r) => (
                 <tr key={r._id}>
                   <td>
-                    {r.userId?.name || "Unknown"}
-                    <br />
-                    <span className="dashboard-subtext">
-                      {r.userId?.email || ""}
-                    </span>
+                    <span style={{ fontWeight: 600 }}>{r.userId?.name || "Unknown"}</span>
+                    <span className="dashboard-subtext">{r.userId?.email || ""}</span>
                   </td>
                   <td>
                     {r.type === "nda"
-                      ? `NDA${r.formData?.ndaTypeLabel ? ` - ${r.formData.ndaTypeLabel}` : ""}`
+                      ? `NDA${r.formData?.ndaTypeLabel ? ` — ${r.formData.ndaTypeLabel}` : ""}`
                       : "Agreement"}
                   </td>
                   <td>
@@ -78,14 +97,14 @@ const AdminDashboard = () => {
                       className="dashboard-action"
                       onClick={() => navigate(`/admin/requests/${r._id}`)}
                     >
-                      View
+                      Review
                     </button>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

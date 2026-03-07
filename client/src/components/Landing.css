@@ -1,34 +1,101 @@
 .landing {
   display: flex;
-  justify-content: flex-start;
-  flex: 1;
+  flex-direction: row;
   width: 100%;
   min-height: 100vh;
-  background: #f6f7fb;
+  background: var(--bg);
 }
 
+/* ── Form Panel (left) ── */
 .landing-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 18px;
-  width: 32%;
-  min-width: 340px;
-  padding: 156px 0 28px;
-  background: #ffffff;
+  justify-content: center;
+  gap: 28px;
+  width: 42%;
+  min-width: 380px;
+  padding: 48px 40px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  box-sizing: border-box;
 }
 
+/* ── Brand Panel (right) ── */
+.landing-brand {
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: linear-gradient(145deg, #0f2d6b 0%, #1a3d84 60%, #0a1f4d 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-brand::before {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.landing-brand::after {
+  content: '';
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+.landing-brand-logo {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.25));
+}
+
+.landing-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.landing-brand-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.landing-brand-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 400;
+}
+
+/* ── Toggle ── */
 .landing-toggle {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 180px;
-  height: 30px;
-  background: #e9edf5;
-  border: 1px solid #d6dbe6;
-  border-radius: 12px;
+  width: 200px;
+  height: 36px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
   overflow: hidden;
 }
 
@@ -38,10 +105,12 @@
   height: 100%;
   border: none;
   background: transparent;
-  color: #0f1c3f;
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
+  font-family: inherit;
+  transition: color 0.2s ease;
 }
 
 .landing-toggle-btn.active {
@@ -50,37 +119,51 @@
 
 .landing-toggle-indicator {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 3px;
+  bottom: 3px;
   z-index: 1;
-  width: 50%;
-  background: #0f2d6b;
-  border-radius: 12px;
-  transition: transform 0.2s ease;
+  width: calc(50% - 3px);
+  background: var(--primary);
+  border-radius: var(--radius-xl);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .landing-toggle-indicator.left {
-  transform: translateX(0);
+  transform: translateX(3px);
 }
 
 .landing-toggle-indicator.right {
-  transform: translateX(100%);
+  transform: translateX(calc(100% + 3px));
 }
 
+/* ── Form Card ── */
 .landing-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 14px;
   width: 100%;
-  max-width: 320px;
-  text-align: center;
+  max-width: 340px;
 }
 
 .landing-title {
-  margin: 4px 0 2px;
+  margin: 0 0 4px;
   font-size: 22px;
-  color: #0f2d6b;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+/* ── Field Groups ── */
+.landing-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.landing-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .landing-name-row.hidden {
@@ -94,81 +177,64 @@
 
 .landing-field {
   box-sizing: border-box;
-  width: 280px;
+  width: 100%;
   height: 44px;
   padding: 10px 14px;
-  background: #ffffff;
-  border: 1px solid #c9d3e3;
-  border-radius: 12px;
-  color: #0f2d6b;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
   font-size: 14px;
+  font-family: inherit;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .landing-field::placeholder {
-  color: #8b95a7;
+  color: var(--text-muted);
 }
 
 .landing-field:focus {
   outline: none;
-  border-color: #0f2d6b;
-  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.12);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
 }
 
+/* ── Submit ── */
 .landing-submit {
-  align-self: center;
-  width: 280px;
-  margin-top: 6px;
-  padding: 10px 12px;
-  background: #0f2d6b;
+  width: 100%;
+  height: 44px;
+  margin-top: 2px;
+  padding: 0 16px;
+  background: var(--primary);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: #ffffff;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  font-family: inherit;
+  transition: background 0.15s ease;
+  letter-spacing: 0.01em;
 }
 
 .landing-submit:hover {
-  background: #12357a;
-}
-
-.landing-brand {
-  flex: 1;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  background: #f6f7fb;
-}
-
-.landing-brand-logo {
-  width: 170px;
-  height: 170px;
-  object-fit: contain;
-}
-
-.landing-brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.landing-brand-title {
-  font-size: 34px;
-  font-weight: 700;
-  color: #0f2d6b;
-}
-
-.landing-brand-subtitle {
-  font-size: 19px;
-  color: #0f1c3f;
+  background: var(--primary-hover);
 }
 
 @media (max-width: 900px) {
+  .landing {
+    flex-direction: column-reverse;
+  }
+
   .landing-panel {
     width: 100%;
     min-width: 0;
+    min-height: auto;
+    padding: 48px 24px;
+  }
+
+  .landing-brand {
+    min-height: 240px;
+    padding: 40px 24px;
   }
 }

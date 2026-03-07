@@ -48,25 +48,20 @@ const Landing = () => {
 
   return (
     <div className="landing">
+      {/* ── Form Panel ── */}
       <div className="landing-panel">
         <div className="landing-toggle">
           <button
             type="button"
             className={`landing-toggle-btn ${isLogin ? "active" : ""}`}
-            onClick={() => {
-              setMode("login");
-              resetForm();
-            }}
+            onClick={() => { setMode("login"); resetForm(); }}
           >
             Login
           </button>
           <button
             type="button"
             className={`landing-toggle-btn ${!isLogin ? "active" : ""}`}
-            onClick={() => {
-              setMode("register");
-              resetForm();
-            }}
+            onClick={() => { setMode("register"); resetForm(); }}
           >
             Register
           </button>
@@ -74,12 +69,14 @@ const Landing = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="landing-card">
-          <h2 className="landing-title">{isLogin ? "Log in" : "Create an Account"}</h2>
+          <h2 className="landing-title">{isLogin ? "Welcome back" : "Create an account"}</h2>
 
-          <div className={`landing-name-row ${isLogin ? "hidden" : ""}`}>
+          <div className={`landing-name-row landing-field-group ${isLogin ? "hidden" : ""}`}>
+            <label className="landing-label" htmlFor="landing-name">Full Name</label>
             <input
+              id="landing-name"
               type="text"
-              placeholder="Full Name"
+              placeholder="Juan Dela Cruz"
               value={form.name}
               onChange={onChange("name")}
               required={!isLogin}
@@ -87,30 +84,39 @@ const Landing = () => {
             />
           </div>
 
-          <input
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={onChange("email")}
-            required
-            className="landing-field"
-          />
+          <div className="landing-field-group">
+            <label className="landing-label" htmlFor="landing-email">Email address</label>
+            <input
+              id="landing-email"
+              type="email"
+              placeholder="you@rtu.edu.ph"
+              value={form.email}
+              onChange={onChange("email")}
+              required
+              className="landing-field"
+            />
+          </div>
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={onChange("password")}
-            required
-            className="landing-field"
-          />
+          <div className="landing-field-group">
+            <label className="landing-label" htmlFor="landing-password">Password</label>
+            <input
+              id="landing-password"
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={onChange("password")}
+              required
+              className="landing-field"
+            />
+          </div>
 
           <button type="submit" className="landing-submit">
-            {isLogin ? "Log in" : "Creat an Account"}
+            {isLogin ? "Log in" : "Create Account"}
           </button>
         </form>
       </div>
 
+      {/* ── Brand Panel ── */}
       <div className="landing-brand">
         <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
         <div className="landing-brand-text">

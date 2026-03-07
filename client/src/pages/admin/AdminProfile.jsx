@@ -4,11 +4,20 @@ import { AuthContext } from "../../context/AuthContext";
 const AdminProfile = () => {
   const { user } = useContext(AuthContext);
 
+  const initials = user?.name
+    ? user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
+    : "?";
+
   return (
-    <div style={{ textAlign: "center" }}>
-      <h2>Admin Profile</h2>
-      <p><b>Name:</b> {user?.name}</p>
-      <p><b>Role:</b> {user?.role}</p>
+    <div className="profile-page">
+      <div className="profile-card">
+        <div className="profile-avatar">
+          <span className="profile-avatar-initials">{initials}</span>
+        </div>
+        <h2 className="profile-name">{user?.name}</h2>
+        <p className="profile-email">{user?.email}</p>
+        <span className="profile-role-badge">{user?.role}</span>
+      </div>
     </div>
   );
 };
