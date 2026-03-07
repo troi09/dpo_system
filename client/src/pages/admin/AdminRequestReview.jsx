@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 
@@ -142,7 +142,7 @@ function NdaReviewPanel({ reqData }) {
     }
   };
 
-  const cfg = FIELDS_FILE_SLOTS_CONFIG.nda?.[reqData.formData?.ndaType];
+
 
   return (
     <>
