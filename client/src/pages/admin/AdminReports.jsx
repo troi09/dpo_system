@@ -33,53 +33,73 @@ const AdminReports = () => {
   const stats = auditData?.operationsSummary?.stats || {};
 
   return (
-    <div style={{ maxWidth: "800px", padding: "20px" }}>
-      <h2 style={{ marginTop: 0 }}>Reports &amp; Analytics</h2>
-
-      {/* Window selector */}
-      <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
-        <span style={{ fontWeight: 600 }}>Period:</span>
-        {[
-          { label: "Last 24 hours", value: 24 },
-          { label: "Last 7 days", value: 168 },
-        ].map((opt) => (
+    <div style={{ maxWidth: "860px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+        <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>
+          Reports &amp; Analytics
+        </h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {[
+            { label: "24 hours", value: 24 },
+            { label: "7 days", value: 168 },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setWindowHours(opt.value)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--border-strong)",
+                background: windowHours === opt.value ? "var(--primary)" : "var(--surface)",
+                color: windowHours === opt.value ? "#fff" : "var(--text-secondary)",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: "12px",
+                fontFamily: "inherit",
+                transition: "background 0.15s ease",
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
           <button
-            key={opt.value}
-            onClick={() => setWindowHours(opt.value)}
+            onClick={() => loadAuditData(windowHours)}
             style={{
-              padding: "6px 14px",
-              borderRadius: "6px",
-              border: "1px solid #cbd5e1",
-              background: windowHours === opt.value ? "#1e40af" : "#fff",
-              color: windowHours === opt.value ? "#fff" : "#374151",
+              padding: "6px 10px",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border-strong)",
+              background: "var(--surface)",
               cursor: "pointer",
-              fontWeight: windowHours === opt.value ? 600 : 400,
+              fontSize: "14px",
+              fontFamily: "inherit",
             }}
+            title="Refresh"
           >
-            {opt.label}
+            ↻
           </button>
-        ))}
-        <button
-          onClick={() => loadAuditData(windowHours)}
-          style={{
-            padding: "6px 12px",
-            borderRadius: "6px",
-            border: "1px solid #cbd5e1",
-            background: "#fff",
-            cursor: "pointer",
-          }}
-        >
-          ↻ Refresh
-        </button>
+        </div>
       </div>
 
-      {loading && <p style={{ color: "#64748b", fontStyle: "italic" }}>Loading audit report…</p>}
-      {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+      {loading && (
+        <p style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: "13px" }}>
+          Loading audit report…
+        </p>
+      )}
+      {error && (
+        <div className="info-banner info-banner--danger">
+          <p>{error}</p>
+        </div>
+      )}
 
       {!loading && auditData && (
         <>
           {/* Stats Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+            gap: "10px",
+            marginBottom: "20px",
+          }}>
             {[
               { label: "New Requests", value: stats.totalRequests ?? 0 },
               { label: "Approved", value: stats.approvedRequests ?? 0 },
@@ -90,79 +110,86 @@ const AdminReports = () => {
               <div
                 key={card.label}
                 style={{
-                  padding: "14px",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  background: "#fff",
+                  padding: "16px",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-lg)",
+                  background: "var(--surface)",
                   textAlign: "center",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  boxShadow: "var(--shadow-sm)",
                 }}
               >
-                <div style={{ fontSize: "28px", fontWeight: 700, color: "#1e40af" }}>
+                <div style={{ fontSize: "26px", fontWeight: 700, color: "var(--primary)" }}>
                   {card.value}
                 </div>
-                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
                   {card.label}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* AI-Generated Natural Language Summary */}
+          {/* AI Summary */}
           <div style={{
-            padding: "16px",
-            background: "#f0f9ff",
-            border: "1px solid #bae6fd",
-            borderRadius: "8px",
+            padding: "16px 20px",
+            background: "var(--s-info-bg)",
+            border: "1px solid var(--s-info-dot)",
+            borderRadius: "var(--radius-lg)",
             marginBottom: "20px",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <span style={{ background: "#0ea5e9", color: "#fff", padding: "2px 7px", borderRadius: "4px", fontSize: "11px", fontWeight: 700 }}>AI</span>
-              <span style={{ fontWeight: 600, color: "#0369a1" }}>DPO Security &amp; Audit Agent Summary</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+              <span style={{
+                background: "var(--s-info-dot)",
+                color: "#fff",
+                padding: "2px 8px",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "10px",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+              }}>
+                AI
+              </span>
+              <span style={{ fontWeight: 700, color: "var(--s-info-text)", fontSize: "13px" }}>
+                DPO Security &amp; Audit Agent Summary
+              </span>
             </div>
             <pre style={{
               margin: 0,
               whiteSpace: "pre-wrap",
               fontFamily: "inherit",
-              fontSize: "14px",
-              color: "#0c4a6e",
-              lineHeight: 1.6,
+              fontSize: "13.5px",
+              color: "var(--s-info-text)",
+              lineHeight: 1.65,
             }}>
               {auditData.operationsSummary.summary}
             </pre>
-            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "8px", fontStyle: "italic" }}>
+            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "10px", fontStyle: "italic" }}>
               {auditData.disclaimer}
             </div>
           </div>
 
           {/* Anomalies */}
           <div>
-            <h3 style={{ marginTop: 0, marginBottom: "10px" }}>
-              Anomaly Detection
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
+                Anomaly Detection
+              </h3>
               {auditData.anomalyCount > 0 && (
                 <span style={{
-                  marginLeft: "8px",
-                  background: "#dc2626",
-                  color: "#fff",
-                  borderRadius: "12px",
+                  background: "var(--s-revision-bg)",
+                  color: "var(--s-revision-text)",
+                  borderRadius: "999px",
                   padding: "2px 8px",
-                  fontSize: "12px",
+                  fontSize: "11px",
                   fontWeight: 700,
                 }}>
                   {auditData.anomalyCount}
                 </span>
               )}
-            </h3>
+            </div>
 
             {auditData.anomalyCount === 0 ? (
-              <div style={{
-                padding: "14px",
-                background: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                borderRadius: "8px",
-                color: "#166534",
-              }}>
-                ✅ No security anomalies detected in this period.
+              <div className="info-banner info-banner--success">
+                <p>✅ No security anomalies detected in this period.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -170,26 +197,30 @@ const AdminReports = () => {
                   <div
                     key={idx}
                     style={{
-                      padding: "12px 14px",
-                      border: `1px solid ${SEVERITY_COLORS[anomaly.severity] || "#e2e8f0"}`,
-                      borderLeft: `4px solid ${SEVERITY_COLORS[anomaly.severity] || "#e2e8f0"}`,
-                      borderRadius: "6px",
-                      background: "#fff",
+                      padding: "12px 16px",
+                      border: `1px solid var(--border)`,
+                      borderLeft: `4px solid ${SEVERITY_COLORS[anomaly.severity] || "var(--border-strong)"}`,
+                      borderRadius: "var(--radius-md)",
+                      background: "var(--surface)",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                       <span style={{
                         fontWeight: 700,
                         fontSize: "11px",
-                        color: SEVERITY_COLORS[anomaly.severity] || "#374151",
+                        color: SEVERITY_COLORS[anomaly.severity] || "var(--text-secondary)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
                       }}>
                         {anomaly.severity}
                       </span>
-                      <span style={{ fontWeight: 600, fontSize: "13px" }}>{anomaly.type.replace(/_/g, " ")}</span>
+                      <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)" }}>
+                        {anomaly.type.replace(/_/g, " ")}
+                      </span>
                     </div>
-                    <div style={{ fontSize: "13px", color: "#374151" }}>{anomaly.message}</div>
+                    <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>{anomaly.message}</div>
                     {anomaly.timestamp && (
-                      <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                      <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
                         {new Date(anomaly.timestamp).toLocaleString("en-US")}
                       </div>
                     )}
@@ -199,7 +230,7 @@ const AdminReports = () => {
             )}
           </div>
 
-          <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "14px" }}>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "16px" }}>
             Report generated at: {new Date(auditData.generatedAt).toLocaleString("en-US")}
           </div>
         </>
@@ -209,4 +240,3 @@ const AdminReports = () => {
 };
 
 export default AdminReports;
-

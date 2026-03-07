@@ -3,23 +3,23 @@
 .rep-signing-outer {
   height: 100vh;
   overflow-y: auto;
-  background: #f6f7fb;
+  background: var(--bg);
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding: 40px 16px;
   box-sizing: border-box;
-  font-family: sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .rep-signing-card {
   width: 100%;
   max-width: 620px;
-  background: #ffffff;
-  border: 1px solid #e3e8f2;
-  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 28px 32px;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -34,13 +34,13 @@
 .rep-signing-state h2 {
   font-size: 17px;
   font-weight: 700;
-  color: #0f1c3f;
+  color: var(--text-primary);
   margin: 0 0 10px 0;
 }
 
 .rep-signing-state p {
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -48,43 +48,43 @@
 .rep-signing-title {
   font-size: 17px;
   font-weight: 700;
-  color: #0f1c3f;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
 }
 
 /* Revision banner */
 .rep-signing-revision-banner {
-  background: #fff8e1;
-  border: 1px solid #ffc107;
-  border-radius: 10px;
+  background: var(--s-warning-bg);
+  border: 1px solid var(--s-warning-dot);
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   margin-bottom: 16px;
 }
 
 .rep-signing-revision-banner strong {
   font-size: 13px;
-  color: #7a5200;
+  color: var(--s-warning-text);
 }
 
 .rep-signing-revision-banner p {
   margin: 6px 0 0 0;
   font-size: 13px;
-  color: #7a5200;
+  color: var(--s-warning-text);
 }
 
 /* Intro text */
 .rep-signing-intro {
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 0 0 18px 0;
   line-height: 1.5;
 }
 
 /* Summary box */
 .rep-signing-summary {
-  background: #f6f7fb;
-  border: 1px solid #e3e8f2;
-  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   padding: 14px 16px;
   margin-bottom: 18px;
   display: flex;
@@ -94,7 +94,7 @@
 
 .rep-signing-summary-row {
   font-size: 13px;
-  color: #0f1c3f;
+  color: var(--text-primary);
 }
 
 .rep-signing-summary-row strong {
@@ -109,15 +109,15 @@
 .rep-signing-auth-sig-label {
   font-size: 12px;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 
 .rep-signing-auth-sig-box {
-  border: 1px solid #e3e8f2;
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   padding: 10px;
-  background: #ffffff;
+  background: var(--surface-2);
   display: inline-block;
 }
 
@@ -128,22 +128,26 @@
 
 .rep-signing-auth-sig-name {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
 /* Divider */
 .rep-signing-divider {
   border: none;
-  border-top: 1px solid #e3e8f2;
+  border-top: 1px solid var(--border);
   margin: 18px 0;
 }
 
 /* Form section title */
 .rep-signing-section-title {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
-  color: #0f1c3f;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
   margin: 0 0 16px 0;
 }
 
@@ -156,27 +160,28 @@
 }
 
 .rep-signing-label {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .rep-signing-input {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #c9d3e3;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
   font-size: 14px;
-  background: #ffffff;
-  color: #0f2d6b;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   box-sizing: border-box;
 }
 
 .rep-signing-input:focus {
   outline: none;
-  border-color: #0f2d6b;
-  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.12);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
 }
 
 /* File upload row */
@@ -185,10 +190,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid #dfe6f3;
-  border-radius: 10px;
-  background: #f9fbff;
-  padding: 10px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  padding: 11px 14px;
   box-sizing: border-box;
 }
 
@@ -196,35 +201,41 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .rep-signing-file-title {
   font-size: 13px;
   font-weight: 600;
-  color: #0f2d6b;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rep-signing-file-subtitle {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .rep-signing-file-action {
-  border: 1px solid #dfe6f3;
-  background: #ffffff;
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: 11px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
   font-weight: 600;
-  color: #0f2d6b;
+  color: var(--primary);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
   white-space: nowrap;
+  font-family: inherit;
 }
 
 .rep-signing-file-action:hover {
-  background: #f3f6fb;
-  border-color: #0f2d6b;
+  background: var(--primary-light);
+  border-color: var(--primary);
 }
 
 .rep-signing-file-action input[type="file"] {
@@ -234,7 +245,7 @@
 /* Signature hint */
 .rep-signing-sig-hint {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0 0 8px 0;
 }
 
@@ -244,17 +255,17 @@
   padding: 5px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #0f2d6b;
-  background: #ffffff;
-  border: 1px solid #c9d3e3;
-  border-radius: 8px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease;
+  font-family: inherit;
 }
 
 .rep-signing-clear-btn:hover {
-  background: #f3f6fb;
-  border-color: #0f2d6b;
+  background: var(--surface-2);
 }
 
 /* Accept checkbox */
@@ -264,7 +275,7 @@
   gap: 8px;
   cursor: pointer;
   font-size: 13px;
-  color: #334155;
+  color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: 20px;
   margin-top: 6px;
@@ -273,7 +284,7 @@
 .rep-signing-accept input[type="checkbox"] {
   margin-top: 3px;
   flex-shrink: 0;
-  accent-color: #0f2d6b;
+  accent-color: var(--primary);
 }
 
 /* Action buttons */
@@ -286,18 +297,19 @@
 .rep-signing-btn-submit {
   flex: 1;
   padding: 11px 12px;
-  background: #0f2d6b;
+  background: var(--primary);
   border: none;
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  font-family: inherit;
   transition: background 0.15s ease;
 }
 
 .rep-signing-btn-submit:hover:not(:disabled) {
-  background: #12357a;
+  background: var(--primary-hover);
 }
 
 .rep-signing-btn-submit:disabled {
@@ -308,19 +320,19 @@
 .rep-signing-btn-decline {
   flex: 1;
   padding: 11px 12px;
-  background: #ffffff;
-  border: 1px solid #fca5a5;
-  color: #dc2626;
+  background: var(--surface);
+  border: 1px solid var(--s-revision-dot);
+  color: var(--s-revision-text);
   font-size: 13px;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  font-family: inherit;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .rep-signing-btn-decline:hover:not(:disabled) {
-  background: #fef2f2;
-  border-color: #dc2626;
+  background: var(--s-revision-bg);
 }
 
 .rep-signing-btn-decline:disabled {
