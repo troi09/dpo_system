@@ -1,0 +1,17 @@
+Login page, add forgot pass
+
+integrate email SMTP 
+for OTP and for logging in
+
+Dashboard
+-limit to 4 most recent request (less clutter)
+-overall view for the admin
+-add activity log/audit trail
+
+in request
+-add check box to set if the requestee is outside of the philippines, then change the requirement of notarized authorization letter to consular notarized authorization
+
+Manage Users (for admin)
+-admin can handles forgot pass
+
+Archive Wala pa (Adhere to Laws regulations of Archving legal documents retaining of 5yrs)
