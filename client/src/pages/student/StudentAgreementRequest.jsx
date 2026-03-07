@@ -1,8 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { createRequest } from "../../services/requestService";
-import { uploadRequirements, getDateRequestFolder } from "../../services/firebaseStorageService";
+import {
+  uploadRequirements,
+  uploadSignatureImage,
+  getDateRequestFolder,
+} from "../../services/firebaseStorageService";
+import SignaturePad from "../../components/SignaturePad";
 import "../../components/RequestForm.css";
 
 export default function StudentAgreementRequest() {
@@ -11,6 +16,8 @@ export default function StudentAgreementRequest() {
 
   const [formData, setFormData] = useState(() => ({}));
   const [files, setFiles] = useState(() => Array(cfg.fileSlots.length).fill(null));
+  const [submitting, setSubmitting] = useState(false);
+  const sigPadRef = useRef(null);
 
   const onChangeField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value }));
@@ -38,6 +45,12 @@ export default function StudentAgreementRequest() {
       return;
     }
 
+    if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
+      alert("Please draw your e-signature before submitting.");
+      return;
+    }
+
+    setSubmitting(true);
     try {
       const user = JSON.parse(localStorage.getItem("user") || "null");
       const studentName = user?.name || "Unknown Student";
@@ -54,16 +67,30 @@ export default function StudentAgreementRequest() {
         })
         .filter(Boolean);
 
+      // Upload authorizer (student) e-signature temporarily
+      const sigDataUrl = sigPadRef.current.getDataUrl();
+      const { url: authorizerSigUrl, path: authorizerSigPath } = await uploadSignatureImage(
+        sigDataUrl,
+        "agreement",
+        studentName,
+        requestFolder,
+        "authorizer_sig.png"
+      );
+
       await createRequest({
         type: "agreement",
         formData,
         predocs,
+        authorizerSigUrl,
+        authorizerSigPath,
       });
 
       alert("Agreement request submitted!");
       navigate("/student");
     } catch (err) {
       alert(err.response?.data?.message || "Failed to submit Agreement request");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -142,11 +169,26 @@ export default function StudentAgreementRequest() {
               </div>
             ))}
           </div>
+
+          <div className="request-section">
+            <div className="request-section-title">Your E-Signature *</div>
+            <p style={{ fontSize: "13px", opacity: 0.7, margin: "0 0 8px 0" }}>
+              Draw your signature below. It will be embedded in the agreement document.
+            </p>
+            <SignaturePad ref={sigPadRef} height={150} />
+            <button
+              type="button"
+              style={{ marginTop: "6px", fontSize: "13px" }}
+              onClick={() => sigPadRef.current?.clear()}
+            >
+              Clear Signature
+            </button>
+          </div>
         </div>
 
         <div className="request-form-actions">
-          <button type="submit" className="request-form-submit">
-            Submit Request
+          <button type="submit" className="request-form-submit" disabled={submitting}>
+            {submitting ? "Submitting..." : "Submit Request"}
           </button>
         </div>
       </form>

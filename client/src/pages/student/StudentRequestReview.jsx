@@ -16,7 +16,20 @@ const fileLabelStyle = { display: "block", fontSize: "13px", marginBottom: "4px"
 const infoBoxStyle = { padding: "10px", border: "1px solid #ddd", borderRadius: "6px" };
 const sectionWrapStyle = { textAlign: "left", marginTop: "10px" };
 
-const prettyStatus = (s) => s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const prettyStatus = (s) => {
+  const map = {
+    pending: "Pending",
+    approved: "Approved",
+    revision_requested: "Revision Requested",
+    submitted: "Submitted – Pending Admin Review",
+    awaiting_signature: "Awaiting Representative Signature",
+    pending_approval: "Pending Final Admin Review",
+    completed: "Approved",
+    declined: "Declined by Representative",
+    rep_revision_requested: "Representative Revision Requested",
+  };
+  return map[s] || s;
+};
 
 export default function StudentRequestReview() {
   const { id } = useParams();
@@ -29,8 +42,8 @@ export default function StudentRequestReview() {
       try {
         const r = await getRequestById(id);
 
-        // If revision required, send to actual resubmit page
-        if (r.status === "revision_required") {
+        // Redirect to resubmit page if revision is requested from student
+        if (r.status === "revision_requested") {
           navigate(`/student/resubmit/${id}`, { replace: true });
           return;
         }
@@ -58,7 +71,8 @@ export default function StudentRequestReview() {
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
 
-  const isApproved = reqData.status === "approved";
+  const isApproved = reqData.status === "approved" || reqData.status === "completed";
+  const isAgreement = reqData.type === "agreement";
 
   return (
     <div style={formStyle}>
@@ -80,7 +94,7 @@ export default function StudentRequestReview() {
         <div><b>Request Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}</div>
       </div>
 
-      {/* Admin Remarks (always shown for consistency) */}
+      {/* Remarks */}
       <div style={sectionWrapStyle}>
         <h4 style={{ margin: "0 0 6px 0" }}>Remarks</h4>
         <div style={infoBoxStyle}>
@@ -88,10 +102,9 @@ export default function StudentRequestReview() {
         </div>
       </div>
 
-      {/* Form Data (view-only) */}
+      {/* Form Data */}
       <div style={sectionWrapStyle}>
         <h4 style={{ margin: "14px 0 6px 0" }}>Data Form</h4>
-
         {cfg?.fields?.length ? (
           cfg.fields.map((f) => (
             <div key={f.name} style={{ marginTop: "10px" }}>
@@ -108,7 +121,7 @@ export default function StudentRequestReview() {
         )}
       </div>
 
-      {/* Files Submitted */}
+      {/* Attachments */}
       <div style={sectionWrapStyle}>
         <h4 style={{ margin: "14px 0 6px 0" }}>Attachments</h4>
         {reqData.predocs?.length ? (
@@ -124,14 +137,51 @@ export default function StudentRequestReview() {
         )}
       </div>
 
+      {/* Agreement-specific status info */}
+      {isAgreement && reqData.status === "awaiting_signature" && (
+        <div style={{ ...sectionWrapStyle, background: "#eff6ff", padding: 12, borderRadius: 6, border: "1px solid #93c5fd", marginTop: 14 }}>
+          <strong>Awaiting Representative</strong>
+          <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
+            The admin has approved your request and a signing link has been sent to the representative.
+          </p>
+        </div>
+      )}
+
+      {isAgreement && reqData.status === "pending_approval" && (
+        <div style={{ ...sectionWrapStyle, background: "#f0fdf4", padding: 12, borderRadius: 6, border: "1px solid #86efac", marginTop: 14 }}>
+          <strong>Representative Signed</strong>
+          <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
+            The representative has submitted their signature. Awaiting final admin approval.
+          </p>
+        </div>
+      )}
+
+      {isAgreement && reqData.status === "declined" && (
+        <div style={{ ...sectionWrapStyle, background: "#fef2f2", padding: 12, borderRadius: 6, border: "1px solid #fca5a5", marginTop: 14 }}>
+          <strong>Representative Declined</strong>
+          <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
+            The representative declined to sign this agreement.
+          </p>
+        </div>
+      )}
+
+      {isAgreement && reqData.status === "rep_revision_requested" && (
+        <div style={{ ...sectionWrapStyle, background: "#fff7ed", padding: 12, borderRadius: 6, border: "1px solid #fb923c", marginTop: 14 }}>
+          <strong>Representative Revision Requested</strong>
+          <p style={{ margin: "4px 0 0 0", fontSize: 13 }}>
+            The admin has requested the representative to revise and resubmit their information.
+          </p>
+        </div>
+      )}
+
       {/* Approved document */}
       {isApproved && (
         <div style={sectionWrapStyle}>
-          <h4 style={{ margin: "14px 0 6px 0" }}>Approved Request Form</h4>
+          <h4 style={{ margin: "14px 0 6px 0" }}>Approved Document</h4>
           <div style={infoBoxStyle}>
             {reqData.postdocs?.url ? (
               <a href={reqData.postdocs.url} target="_blank" rel="noreferrer">
-                Placeholder Document
+                View Approved Document
               </a>
             ) : (
               <span style={{ opacity: 0.7 }}>No approved document uploaded.</span>

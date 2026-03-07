@@ -8,6 +8,7 @@ import RequireRole from "./guards/RequireRole";
 
 import Landing from "./pages/Landing";
 import VerifyDocument from "./pages/VerifyDocument";
+import RepSigningPage from "./pages/public/RepSigningPage";
 
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -51,7 +52,9 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Public routes (no auth, no layout) */}
         <Route path="/verify/:code" element={<VerifyDocument />} />
+        <Route path="/sign/:token" element={<RepSigningPage />} />
 
         <Route element={<AppLayout />}>
           <Route
