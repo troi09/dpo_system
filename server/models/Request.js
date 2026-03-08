@@ -67,42 +67,6 @@ const requestSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
-<<<<<<< HEAD
-    isArchived: {
-      type: Boolean,
-      default: false,
-    },
-=======
-
-    // Agreement e-signature fields
-    signingToken: {
-      type: String,
-      default: "",
-    },
-
-    signingTokenUsed: {
-      type: Boolean,
-      default: false,
-    },
-
-    // Representative info (submitted on signing page)
-    repInfo: {
-      name: { type: String, default: "" },
-      govIdDoc: {
-        origName:    { type: String, default: "" },
-        url:         { type: String, default: "" },
-        path:        { type: String, default: "" },
-        contentType: { type: String, default: "" },
-        uploadedAt:  { type: String, default: "" },
-      },
-    },
-
-    // Ephemeral signature storage (deleted after final PDF generation)
-    authorizerSigUrl:  { type: String, default: "" },
-    authorizerSigPath: { type: String, default: "" },
-    repSigUrl:         { type: String, default: "" },
-    repSigPath:        { type: String, default: "" },
->>>>>>> origin/Branch-ni-Kurl!
   },
   { timestamps: true }
 );

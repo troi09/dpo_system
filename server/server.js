@@ -15,12 +15,6 @@ const Request = require("./models/Request");
 
 const authRoutes = require("./routes/authRoutes");
 const requestRoutes = require("./routes/requestRoutes");
-<<<<<<< HEAD
-const auditRoutes = require("./routes/auditRoutes");
-const userRoutes = require("./routes/userRoutes");
-=======
-const agentRoutes = require("./routes/agentRoutes");
->>>>>>> origin/Branch-ni-Kurl!
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,12 +29,6 @@ connectDB();
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/requests", requestRoutes);
-<<<<<<< HEAD
-app.use("/api/audit", auditRoutes);
-app.use("/api/users", userRoutes);
-=======
-app.use("/api/ai", agentRoutes);
->>>>>>> origin/Branch-ni-Kurl!
 
 // Health check
 app.get("/", (req, res) => {
