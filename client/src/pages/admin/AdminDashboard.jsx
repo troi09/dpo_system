@@ -10,13 +10,29 @@ import { getAuditLogs } from "../../services/auditService";
 
 const COLORS = { pending: "#f59e0b", approved: "#10b981", revision_required: "#ef4444", archived: "#6b7280" };
 
+const STATUS_LABEL = {
+  pending: "Pending",
+  approved: "Approved",
+  revision_required: "Revision Required",
+  revision_requested: "Revision Requested",
+  submitted: "Submitted",
+  awaiting_signature: "Awaiting Signature",
+  pending_approval: "Pending Approval",
+  completed: "Completed",
+  declined: "Declined",
+  rep_revision_requested: "Rep Revision Requested",
+};
+
 const prettyStatus = (s) =>
-  s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+  STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
 const statusClass = (s) => {
-  if (s === "pending") return "status-pill status-pill--pending";
-  if (s === "approved") return "status-pill status-pill--approved";
-  if (s === "revision_required") return "status-pill status-pill--revision";
+  if (s === "pending" || s === "submitted") return "status-pill status-pill--pending";
+  if (s === "approved" || s === "completed") return "status-pill status-pill--approved";
+  if (s === "revision_required" || s === "revision_requested" || s === "rep_revision_requested")
+    return "status-pill status-pill--revision";
+  if (s === "awaiting_signature" || s === "pending_approval") return "status-pill status-pill--info";
+  if (s === "declined") return "status-pill status-pill--revision";
   return "status-pill";
 };
 
@@ -73,6 +89,7 @@ export default function AdminDashboard() {
   ];
 
   return (
+<<<<<<< HEAD
     <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 24px 48px" }}>
 
       {/* ── Stat cards */}
@@ -200,3 +217,73 @@ export default function AdminDashboard() {
     </div>
   );
 }
+=======
+    <div className="dashboard-page">
+      <div className="dashboard-card">
+        <table className="dashboard-table">
+          <thead>
+            <tr className="dashboard-table-title-row">
+              <th colSpan={5}>
+                <div className="dashboard-table-title-wrap">
+                  <span className="dashboard-table-title">All Requests</span>
+                </div>
+              </th>
+            </tr>
+            <tr>
+              <th>Student</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Request Date</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {requests.length === 0 ? (
+              <tr>
+                <td colSpan={5}>
+                  <div className="dashboard-empty">
+                    <span className="dashboard-empty-icon">📋</span>
+                    <p className="dashboard-empty-title">No requests yet</p>
+                    <p className="dashboard-empty-text">Student requests will appear here once submitted.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              requests.map((r) => (
+                <tr key={r._id}>
+                  <td>
+                    <span style={{ fontWeight: 600 }}>{r.userId?.name || "Unknown"}</span>
+                    <span className="dashboard-subtext">{r.userId?.email || ""}</span>
+                  </td>
+                  <td>
+                    {r.type === "nda"
+                      ? `NDA${r.formData?.ndaTypeLabel ? ` — ${r.formData.ndaTypeLabel}` : ""}`
+                      : "Agreement"}
+                  </td>
+                  <td>
+                    <span className={statusClass(r.status)}>
+                      {prettyStatus(r.status)}
+                    </span>
+                  </td>
+                  <td>{new Date(r.createdAt).toLocaleDateString("en-US")}</td>
+                  <td>
+                    <button
+                      className="dashboard-action"
+                      onClick={() => navigate(`/admin/requests/${r._id}`)}
+                    >
+                      Review
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
+>>>>>>> origin/Branch-ni-Kurl!

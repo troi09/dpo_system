@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+<<<<<<< HEAD
 const { logAudit } = require("../utils/auditLogger");
 const {
   sendOtpEmail,
@@ -14,6 +15,14 @@ const generate6DigitOtp = () =>
   String(Math.floor(100000 + Math.random() * 900000));
 
 // ─── REGISTER ────────────────────────────────────────────────────────────────
+=======
+const AuditLog = require("../models/AuditLog");
+
+// Helper to safely log audit events without blocking the response
+const logAudit = (data) => {
+  AuditLog.create(data).catch(() => {});
+};
+>>>>>>> origin/Branch-ni-Kurl!
 
 exports.register = async (req, res) => {
   try {
@@ -88,8 +97,10 @@ exports.login = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
+    if (!isMatch) {
+      logAudit({ action: "login_failed", details: { email: email.toLowerCase() } });
       return res.status(401).json({ message: "Invalid email or password" });
+    }
 
     // Generate OTP and send via email
     const otp = generate6DigitOtp();
@@ -159,7 +170,11 @@ exports.verifyOtp = async (req, res) => {
       { expiresIn: "5m" }
     );
 
+<<<<<<< HEAD
     logAudit(user._id, "USER_LOGIN", `${user.email} logged in successfully`);
+=======
+    logAudit({ userId: user._id, action: "login", details: { role: user.role } });
+>>>>>>> origin/Branch-ni-Kurl!
 
     res.json({
       token,

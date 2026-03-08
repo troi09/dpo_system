@@ -1,8 +1,9 @@
 const AdminTemplates = () => {
   return (
-    <div style={{ textAlign: "center" }}>
-      <h2>Templates</h2>
-      <p>(Template management will go here)</p>
+    <div className="placeholder-page">
+      <span className="placeholder-icon">📄</span>
+      <h2 className="placeholder-title">Templates</h2>
+      <p className="placeholder-desc">Document template management will be available here.</p>
     </div>
   );
 };

@@ -2,26 +2,24 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px;
-  box-sizing: border-box;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .request-form-card {
   width: 100%;
-  max-width: 980px;
-  background: #ffffff;
-  border: 1px solid #e3e8f2;
-  border-radius: 14px;
-  padding: 24px;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+  max-width: 960px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
 }
 
-/* Header */
+/* ── Header ── */
 .request-form-header {
   display: grid;
   grid-template-columns: 120px 1fr 120px;
@@ -30,53 +28,62 @@
 
 .request-form-back {
   justify-self: start;
-  border: 1px solid #d6dbe6;
-  background: #ffffff;
-  color: #0f2d6b;
-  border-radius: 10px;
-  padding: 6px 10px;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
 }
 
 .request-form-back:hover {
-  background: #f3f6fb;
-  border-color: #0f2d6b;
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .request-form-title {
   justify-self: center;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  color: #0f1c3f;
+  color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
-/* Body */
+/* ── Body ── */
 .request-form-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 22px;
+  gap: 24px;
 }
 
 .request-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-width: 0; /* ✅ prevents overlap */
+  gap: 14px;
+  min-width: 0;
 }
 
 .request-section-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  color: #0f1c3f;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #e3e8f2;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin: 0;
 }
 
-/* Fields */
+/* ── Fields ── */
 .request-field {
   display: flex;
   flex-direction: column;
@@ -84,96 +91,141 @@
 }
 
 .request-label {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .request-input,
 .request-textarea {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #c9d3e3;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
   font-size: 14px;
-  background: #ffffff;
-  color: #0f2d6b;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  box-sizing: border-box; /* ✅ prevents overflow */
+  box-sizing: border-box;
+}
+
+.request-input::placeholder,
+.request-textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .request-input:focus,
 .request-textarea:focus {
   outline: none;
-  border-color: #0f2d6b;
-  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.12);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
 }
 
-/* File rows */
+/* ── File Rows ── */
 .request-file-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid #dfe6f3;
-  border-radius: 10px;
-  background: #f9fbff;
-  padding: 10px 12px;
-  box-sizing: border-box; /* ✅ prevents overflow */
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  padding: 11px 14px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .request-file-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .request-file-title {
   font-size: 13px;
   font-weight: 600;
-  color: #0f2d6b;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .request-file-subtitle {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .request-file-action {
-  border: 1px solid #dfe6f3;
-  background: #ffffff;
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: 11px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
   font-weight: 600;
-  color: #0f2d6b;
+  color: var(--primary);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
 }
 
 .request-file-action:hover {
-  background: #f3f6fb;
-  border-color: #0f2d6b;
+  background: var(--primary-light);
+  border-color: var(--primary);
 }
 
 .request-file-action input {
   display: none;
 }
 
-/* Actions */
+/* ── Signature Area ── */
+.request-sig-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 8px 0;
+}
+
+.request-sig-clear {
+  margin-top: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.request-sig-clear:hover {
+  background: var(--surface-2);
+}
+
+/* ── Actions ── */
 .request-form-actions {
   display: flex;
   justify-content: flex-end;
+  padding-top: 4px;
 }
 
 .request-form-submit {
-  width: 190px;
-  padding: 10px 12px;
-  background: #0f2d6b;
+  padding: 11px 28px;
+  background: var(--primary);
   border: none;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+  letter-spacing: 0.01em;
+}
+
+.request-form-submit:hover {
+  background: var(--primary-hover);
 }

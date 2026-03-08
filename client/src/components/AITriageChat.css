@@ -1,0 +1,181 @@
+/* AI Triage Chat component styles */
+
+.ai-triage-chat {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.ai-triage-chat__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--primary);
+  color: #fff;
+}
+
+.ai-triage-chat__badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 700;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+}
+
+.ai-triage-chat__title {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.ai-triage-chat__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+  max-height: 340px;
+  background: var(--surface-2);
+}
+
+.ai-triage-chat__bubble {
+  max-width: 85%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  line-height: 1.5;
+}
+
+.ai-triage-chat__bubble--agent {
+  align-self: flex-start;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.ai-triage-chat__bubble--user {
+  align-self: flex-end;
+  background: var(--primary);
+  color: #fff;
+}
+
+.ai-triage-chat__bubble-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.7;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ai-triage-chat__bubble-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 13px;
+}
+
+.ai-triage-chat__typing {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.ai-triage-chat__recommendation {
+  padding: 12px 16px;
+  background: var(--s-approved-bg);
+  border-top: 1px solid var(--s-approved-dot);
+}
+
+.ai-triage-chat__rec-title {
+  margin-bottom: 8px;
+  color: var(--s-approved-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ai-triage-chat__rec-btn {
+  background: var(--s-approved-dot);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.ai-triage-chat__rec-btn:hover {
+  background: #059669;
+}
+
+.ai-triage-chat__rec-note {
+  margin: 0 0 8px;
+  color: var(--s-warning-text);
+  font-size: 12px;
+}
+
+.ai-triage-chat__disclaimer {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.ai-triage-chat__input-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.ai-triage-chat__input {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.ai-triage-chat__input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
+}
+
+.ai-triage-chat__send {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0 18px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  align-self: flex-end;
+  transition: background 0.15s ease;
+}
+
+.ai-triage-chat__send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-triage-chat__send:not(:disabled):hover {
+  background: var(--primary-hover);
+}

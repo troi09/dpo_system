@@ -4,6 +4,7 @@ import { Check, ChevronRight } from "lucide-react";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById } from "../../services/requestService";
 
+<<<<<<< HEAD
 // ── Stepper ──────────────────────────────────────────────────────────────────
 const STEPS = [
   { key: "submitted",         label: "Submitted" },
@@ -73,6 +74,24 @@ const sectionWrapStyle = { textAlign: "left", marginTop: "10px" };
 const prettyStatus = (s) =>
   s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
 
+=======
+const prettyStatus = (s) => {
+  const map = {
+    pending: "Pending",
+    approved: "Approved",
+    revision_required: "Revision Required",
+    revision_requested: "Revision Requested",
+    submitted: "Submitted",
+    awaiting_signature: "Awaiting Representative Signature",
+    pending_approval: "Pending Final Admin Review",
+    completed: "Completed",
+    declined: "Declined by Representative",
+    rep_revision_requested: "Representative Revision Requested",
+  };
+  return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
+};
+
+>>>>>>> origin/Branch-ni-Kurl!
 export default function StudentRequestReview() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -82,7 +101,13 @@ export default function StudentRequestReview() {
     const load = async () => {
       try {
         const r = await getRequestById(id);
+<<<<<<< HEAD
         if (r.status === "revision_required") {
+=======
+
+        // Redirect to resubmit page if revision is requested from student
+        if (r.status === "revision_requested") {
+>>>>>>> origin/Branch-ni-Kurl!
           navigate(`/student/resubmit/${id}`, { replace: true });
           return;
         }
@@ -107,21 +132,35 @@ export default function StudentRequestReview() {
   const title =
     reqData.type === "agreement"
       ? "Agreement Request"
-      : `NDA Request${reqData.formData?.ndaTypeLabel ? ` - ${reqData.formData.ndaTypeLabel}` : ""}`;
+      : `NDA Request${reqData.formData?.ndaTypeLabel ? ` — ${reqData.formData.ndaTypeLabel}` : ""}`;
 
-  const isApproved = reqData.status === "approved";
+  const isApproved = reqData.status === "approved" || reqData.status === "completed";
+  const isAgreement = reqData.type === "agreement";
 
   return (
+<<<<<<< HEAD
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 16px" }}>
       <div style={formStyle}>
         <button
           type="button"
           onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/student"); }}
           style={{ marginBottom: "10px", background: "none", border: "none", color: "#0f2d6b", cursor: "pointer", fontSize: 14 }}
+=======
+    <div className="review-page">
+      <div className="review-card">
+        <button
+          type="button"
+          className="review-back-btn"
+          onClick={() => {
+            if (window.history.length > 1) navigate(-1);
+            else navigate("/student");
+          }}
+>>>>>>> origin/Branch-ni-Kurl!
         >
           ← Back
         </button>
 
+<<<<<<< HEAD
         <h2 style={{ color: "#0f2d6b", margin: "0 0 4px" }}>{`View ${title}`}</h2>
 
         {/* ── Stepper */}
@@ -137,10 +176,32 @@ export default function StudentRequestReview() {
           <h4 style={{ margin: "0 0 6px" }}>Remarks</h4>
           <div style={infoBoxStyle}>
             {reqData.remarks || <span style={{ opacity: 0.7 }}>No remarks provided.</span>}
+=======
+        <div className="review-header">
+          <h2 className="review-title">{title}</h2>
+          <div className="review-meta">
+            <span className="review-meta-row">
+              <b>Status:</b> {prettyStatus(reqData.status)}
+            </span>
+            <span className="review-meta-row">
+              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}
+            </span>
+          </div>
+        </div>
+
+        {/* Remarks */}
+        <div className="review-section">
+          <h4 className="review-section-title">Remarks</h4>
+          <div className="review-info-box">
+            {reqData.remarks || (
+              <span className="review-info-box--muted">No remarks provided.</span>
+            )}
+>>>>>>> origin/Branch-ni-Kurl!
           </div>
         </div>
 
         {/* Form Data */}
+<<<<<<< HEAD
         <div style={sectionWrapStyle}>
           <h4 style={{ margin: "14px 0 6px" }}>Data Form</h4>
           {cfg?.fields?.length ? (
@@ -149,15 +210,34 @@ export default function StudentRequestReview() {
                 <label style={fileLabelStyle}>{f.label}</label>
                 <div style={infoBoxStyle}>
                   {String(reqData.formData?.[f.name] ?? "") || <span style={{ opacity: 0.6 }}>—</span>}
+=======
+        <div className="review-section">
+          <h4 className="review-section-title">Form Data</h4>
+          {cfg?.fields?.length ? (
+            cfg.fields.map((f) => (
+              <div key={f.name} className="review-field">
+                <span className="review-field-label">{f.label}</span>
+                <div className="review-info-box">
+                  {String(reqData.formData?.[f.name] ?? "") || (
+                    <span className="review-info-box--muted">—</span>
+                  )}
+>>>>>>> origin/Branch-ni-Kurl!
                 </div>
               </div>
             ))
           ) : (
+<<<<<<< HEAD
             <div style={infoBoxStyle}><span style={{ opacity: 0.7 }}>No config fields found.</span></div>
+=======
+            <div className="review-info-box">
+              <span className="review-info-box--muted">No config fields found for this request.</span>
+            </div>
+>>>>>>> origin/Branch-ni-Kurl!
           )}
         </div>
 
         {/* Attachments */}
+<<<<<<< HEAD
         <div style={sectionWrapStyle}>
           <h4 style={{ margin: "14px 0 6px" }}>Attachments</h4>
           {reqData.predocs?.length ? (
@@ -184,6 +264,72 @@ export default function StudentRequestReview() {
                 </a>
               ) : (
                 <span style={{ opacity: 0.7 }}>No approved document uploaded.</span>
+=======
+        <div className="review-section">
+          <h4 className="review-section-title">Attachments</h4>
+          {reqData.predocs?.length ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {reqData.predocs.map((f, idx) => (
+                <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
+                  📎 {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="review-info-box">
+              <span className="review-info-box--muted">No files.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Agreement-specific status banners */}
+        {isAgreement && reqData.status === "awaiting_signature" && (
+          <div className="info-banner info-banner--info">
+            <strong>Awaiting Representative</strong>
+            <p>
+              The admin has approved your request and a signing link has been sent to the
+              representative.
+            </p>
+          </div>
+        )}
+
+        {isAgreement && reqData.status === "pending_approval" && (
+          <div className="info-banner info-banner--success">
+            <strong>Representative Signed</strong>
+            <p>
+              The representative has submitted their signature. Awaiting final admin approval.
+            </p>
+          </div>
+        )}
+
+        {isAgreement && reqData.status === "declined" && (
+          <div className="info-banner info-banner--danger">
+            <strong>Representative Declined</strong>
+            <p>The representative declined to sign this agreement.</p>
+          </div>
+        )}
+
+        {isAgreement && reqData.status === "rep_revision_requested" && (
+          <div className="info-banner info-banner--warning">
+            <strong>Representative Revision Requested</strong>
+            <p>
+              The admin has requested the representative to revise and resubmit their information.
+            </p>
+          </div>
+        )}
+
+        {/* Approved document */}
+        {isApproved && (
+          <div className="review-section">
+            <h4 className="review-section-title">Approved Document</h4>
+            <div className="review-info-box">
+              {reqData.postdocs?.url ? (
+                <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-link">
+                  View Approved Document →
+                </a>
+              ) : (
+                <span className="review-info-box--muted">No approved document uploaded.</span>
+>>>>>>> origin/Branch-ni-Kurl!
               )}
             </div>
           </div>

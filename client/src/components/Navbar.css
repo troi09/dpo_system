@@ -1,75 +1,168 @@
 .navbar {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  width: 200px;
-  min-width: 100px;
+  width: 240px;
+  min-width: 240px;
   height: 100vh;
   box-sizing: border-box;
-  padding: 12px 14px;
-  background: #ffffff;
-  border-right: 1px solid #e3e8f2;
-  box-shadow: 0 0 30px rgba(15, 23, 42, 0.08);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
 }
 
+/* ── Brand ── */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  height: 64px;
+  min-height: 64px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.navbar-brand-logo {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.navbar-brand-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.01em;
+}
+
+/* ── Nav Links ── */
 .navbar-links {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  padding: 16px 12px;
+  flex: 1;
 }
 
 .navbar-link {
-  display: block;
-  width: calc(100% + 28px);
-  margin-left: -14px;
-  margin-right: -14px;
-  border-top-right-radius: 12px;
-  border-bottom-right-radius: 12px;
-  box-sizing: border-box;
-  padding: 12px 14px;
-  color: #0f2d6b;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.15;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
   text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.12s ease, color 0.12s ease;
+  position: relative;
 }
 
 .navbar-link:hover {
-  background: #e9edf5;
-  color: #0f1c3f;
+  background: var(--bg);
+  color: var(--text-primary);
 }
 
 .navbar-link.active {
-  background: #0f2d6b;
-  color: #ffffff;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 600;
 }
 
+.navbar-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--primary);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-icon {
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.7;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.navbar-link.active .nav-icon {
+  opacity: 1;
+}
+
+/* ── User Section ── */
 .navbar-user {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: auto;
-  padding-top: 8px;
+  gap: 8px;
+  padding: 14px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.navbar-user-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.navbar-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .navbar-user-name {
-  color: #0f1c3f;
   font-size: 13px;
-  line-height: 1.15;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar-user-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: capitalize;
 }
 
 .navbar-logout {
-  padding: 8px 10px;
-  background: #0f2d6b;
-  border: none;
-  border-radius: 12px;
-  color: #ffffff;
-  font-size: 13px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
 }
 
 .navbar-logout:hover {
-  background: #12357a;
+  background: var(--s-revision-bg);
+  border-color: var(--s-revision-dot);
+  color: var(--s-revision-text);
 }

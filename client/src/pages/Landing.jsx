@@ -204,32 +204,48 @@ const Landing = () => {
   // ── Default Login / Register Screen
   return (
     <div className="landing">
+      {/* ── Form Panel ── */}
       <div className="landing-panel">
         <div className="landing-toggle">
           <button
             type="button"
             className={`landing-toggle-btn ${isLogin ? "active" : ""}`}
+<<<<<<< HEAD
             onClick={() => { setMode("login"); setForm({ name: "", email: "", password: "" }); }}
+=======
+            onClick={() => { setMode("login"); resetForm(); }}
+>>>>>>> origin/Branch-ni-Kurl!
           >
             Login
           </button>
           <button
             type="button"
             className={`landing-toggle-btn ${!isLogin ? "active" : ""}`}
+<<<<<<< HEAD
             onClick={() => { setMode("register"); setForm({ name: "", email: "", password: "" }); }}
+=======
+            onClick={() => { setMode("register"); resetForm(); }}
+>>>>>>> origin/Branch-ni-Kurl!
           >
             Register
           </button>
           <div className={`landing-toggle-indicator ${isLogin ? "left" : "right"}`} />
         </div>
 
+<<<<<<< HEAD
         <form onSubmit={handleLoginRegister} className="landing-card">
           <h2 className="landing-title">{isLogin ? "Log in" : "Create an Account"}</h2>
+=======
+        <form onSubmit={handleSubmit} className="landing-card">
+          <h2 className="landing-title">{isLogin ? "Welcome back" : "Create an account"}</h2>
+>>>>>>> origin/Branch-ni-Kurl!
 
-          <div className={`landing-name-row ${isLogin ? "hidden" : ""}`}>
+          <div className={`landing-name-row landing-field-group ${isLogin ? "hidden" : ""}`}>
+            <label className="landing-label" htmlFor="landing-name">Full Name</label>
             <input
+              id="landing-name"
               type="text"
-              placeholder="Full Name"
+              placeholder="Juan Dela Cruz"
               value={form.name}
               onChange={onChange("name")}
               required={!isLogin}
@@ -237,24 +253,33 @@ const Landing = () => {
             />
           </div>
 
-          <input
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={onChange("email")}
-            required
-            className="landing-field"
-          />
+          <div className="landing-field-group">
+            <label className="landing-label" htmlFor="landing-email">Email address</label>
+            <input
+              id="landing-email"
+              type="email"
+              placeholder="you@rtu.edu.ph"
+              value={form.email}
+              onChange={onChange("email")}
+              required
+              className="landing-field"
+            />
+          </div>
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={onChange("password")}
-            required
-            className="landing-field"
-          />
+          <div className="landing-field-group">
+            <label className="landing-label" htmlFor="landing-password">Password</label>
+            <input
+              id="landing-password"
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={onChange("password")}
+              required
+              className="landing-field"
+            />
+          </div>
 
+<<<<<<< HEAD
           {isLogin && (
             <button
               type="button"
@@ -277,10 +302,15 @@ const Landing = () => {
 
           <button type="submit" className="landing-submit" disabled={loading}>
             {loading ? "Please wait…" : isLogin ? "Log in" : "Create an Account"}
+=======
+          <button type="submit" className="landing-submit">
+            {isLogin ? "Log in" : "Create Account"}
+>>>>>>> origin/Branch-ni-Kurl!
           </button>
         </form>
       </div>
 
+      {/* ── Brand Panel ── */}
       <div className="landing-brand">
         <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
         <div className="landing-brand-text">

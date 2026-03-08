@@ -22,8 +22,12 @@
     "mongoose": "^9.1.5",
     "multer": "^2.0.2",
     "natural": "^8.1.0",
+<<<<<<< HEAD
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",
+=======
+    "node": "^25.8.0",
+>>>>>>> origin/Branch-ni-Kurl!
     "pdf-parse": "^2.4.5"
   },
   "devDependencies": {

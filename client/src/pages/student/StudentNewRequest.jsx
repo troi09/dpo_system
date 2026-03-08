@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import AITriageChat from "../../components/AITriageChat";
 import "../../components/TypeChooser.css";
 
 export default function StudentNewRequest() {
@@ -26,6 +27,10 @@ export default function StudentNewRequest() {
           Agreement
           <span className="type-chooser-arrow">›</span>
         </button>
+      </div>
+
+      <div style={{ marginTop: "24px", maxWidth: "560px", width: "100%" }}>
+        <AITriageChat />
       </div>
     </div>
   );

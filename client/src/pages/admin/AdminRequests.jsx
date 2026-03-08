@@ -6,25 +6,41 @@ const FILTERS = [
   { key: "all", label: "All" },
   { key: "pending", label: "Pending" },
   { key: "approved", label: "Approved" },
-  { key: "revision_required", label: "Revision Required" },
+  { key: "revision_requested", label: "Revision Requested" },
 ];
 
 const statusClass = (s) => {
-  if (s === "pending") return "status-pill status-pill--pending";
-  if (s === "approved") return "status-pill status-pill--approved";
-  if (s === "revision_required") return "status-pill status-pill--revision";
+  if (s === "pending" || s === "submitted") return "status-pill status-pill--pending";
+  if (s === "approved" || s === "completed") return "status-pill status-pill--approved";
+  if (s === "revision_required" || s === "revision_requested" || s === "rep_revision_requested")
+    return "status-pill status-pill--revision";
+  if (s === "awaiting_signature" || s === "pending_approval") return "status-pill status-pill--info";
+  if (s === "declined") return "status-pill status-pill--revision";
   return "status-pill";
 };
 
 const filterClass = (s) => {
   if (s === "pending") return "status-filter status-filter--pending";
   if (s === "approved") return "status-filter status-filter--approved";
-  if (s === "revision_required") return "status-filter status-filter--revision";
+  if (s === "revision_requested") return "status-filter status-filter--revision";
   return "status-filter status-filter--all";
 };
 
-const prettyStatus = (s) =>
-  s === "revision_required" ? "Revision Required" : s.charAt(0).toUpperCase() + s.slice(1);
+const prettyStatus = (s) => {
+  const map = {
+    pending: "Pending",
+    approved: "Approved",
+    revision_required: "Revision Required",
+    revision_requested: "Revision Requested",
+    submitted: "Submitted",
+    awaiting_signature: "Awaiting Signature",
+    pending_approval: "Pending Approval",
+    completed: "Completed",
+    declined: "Declined",
+    rep_revision_requested: "Rep Revision Requested",
+  };
+  return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
+};
 
 export default function AdminRequests() {
   const navigate = useNavigate();
@@ -84,19 +100,20 @@ export default function AdminRequests() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="dashboard-empty">
-                  No requests found.
+                <td colSpan={5}>
+                  <div className="dashboard-empty">
+                    <span className="dashboard-empty-icon">🔍</span>
+                    <p className="dashboard-empty-title">No requests found</p>
+                    <p className="dashboard-empty-text">No requests match the current filter.</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               filtered.map((r) => (
                 <tr key={r._id}>
                   <td>
-                    {r.userId?.name || "Unknown"}
-                    <br />
-                    <span className="dashboard-subtext">
-                      {r.userId?.email || ""}
-                    </span>
+                    <span style={{ fontWeight: 600 }}>{r.userId?.name || "Unknown"}</span>
+                    <span className="dashboard-subtext">{r.userId?.email || ""}</span>
                   </td>
 
                   <td>
