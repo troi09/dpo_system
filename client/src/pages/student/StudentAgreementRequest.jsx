@@ -5,15 +5,28 @@ import { createRequest } from "../../services/requestService";
 import { uploadRequirements, getDateRequestFolder } from "../../services/firebaseStorageService";
 import "../../components/RequestForm.css";
 
+// Standard authorization label vs. consular notarized (overseas)
+const AUTH_LABEL_STANDARD  = "Notarized Authorization Letter";
+const AUTH_LABEL_CONSULAR  = "Consular Notarized Authorization Letter";
+
 export default function StudentAgreementRequest() {
   const navigate = useNavigate();
   const cfg = useMemo(() => FIELDS_FILE_SLOTS_CONFIG.agreement, []);
 
-  const [formData, setFormData] = useState(() => ({}));
+  const [formData, setFormData] = useState({});
+  const [outsidePhilippines, setOutsidePhilippines] = useState(false);
   const [files, setFiles] = useState(() => Array(cfg.fileSlots.length).fill(null));
 
   const onChangeField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value }));
+
+  // Replace the first slot label dynamically
+  const fileSlots = cfg.fileSlots.map((slot, i) => {
+    if (i === 0) {
+      return { ...slot, label: outsidePhilippines ? AUTH_LABEL_CONSULAR : AUTH_LABEL_STANDARD };
+    }
+    return slot;
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,9 +38,9 @@ export default function StudentAgreementRequest() {
       }
     }
 
-    for (let i = 0; i < cfg.fileSlots.length; i++) {
-      if (cfg.fileSlots[i].required && !files[i]) {
-        alert(`${cfg.fileSlots[i].label} is required`);
+    for (let i = 0; i < fileSlots.length; i++) {
+      if (fileSlots[i].required && !files[i]) {
+        alert(`${fileSlots[i].label} is required`);
         return;
       }
     }
@@ -50,13 +63,13 @@ export default function StudentAgreementRequest() {
         .map((f, i) => {
           if (!f) return null;
           const meta = uploaded[uploadIndex++];
-          return { ...meta, requirementLabel: cfg.fileSlots[i]?.label || `File ${i + 1}` };
+          return { ...meta, requirementLabel: fileSlots[i]?.label || `File ${i + 1}` };
         })
         .filter(Boolean);
 
       await createRequest({
         type: "agreement",
-        formData,
+        formData: { ...formData, outsidePhilippines },
         predocs,
       });
 
@@ -74,10 +87,7 @@ export default function StudentAgreementRequest() {
           <button
             type="button"
             className="request-form-back"
-            onClick={() => {
-              if (window.history.length > 1) navigate(-1);
-              else navigate("/student");
-            }}
+            onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/student"); }}
           >
             ‹ Back
           </button>
@@ -88,6 +98,30 @@ export default function StudentAgreementRequest() {
         <div className="request-form-body">
           <div className="request-section">
             <div className="request-section-title">Data</div>
+
+            {/* Outside Philippines checkbox */}
+            <div className="request-field" style={{ marginBottom: 8 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
+                <input
+                  type="checkbox"
+                  checked={outsidePhilippines}
+                  onChange={(e) => {
+                    setOutsidePhilippines(e.target.checked);
+                    setFiles((prev) => prev.map(() => null)); // reset files when toggling
+                  }}
+                  style={{ width: 16, height: 16, accentColor: "#0f2d6b" }}
+                />
+                <span style={{ fontSize: 14, color: "#0f2d6b", fontWeight: 600 }}>
+                  Is the requestee located outside of the Philippines?
+                </span>
+              </label>
+              {outsidePhilippines && (
+                <p style={{ margin: "8px 0 0 26px", fontSize: 13, color: "#b45309", background: "#fffbeb", padding: "8px 12px", borderRadius: 8, border: "1px solid #fde68a" }}>
+                  A <strong>Consular Notarized Authorization Letter</strong> is required in place of a standard Notarized Authorization Letter.
+                </p>
+              )}
+            </div>
+
             {cfg.fields.map((f) => (
               <div key={f.name} className="request-field">
                 <label className="request-label">{f.label}</label>
@@ -112,18 +146,16 @@ export default function StudentAgreementRequest() {
 
           <div className="request-section">
             <div className="request-section-title">Requirements (Agreement)</div>
-            {files.map((file, index) => (
+            {fileSlots.map((slot, index) => (
               <div key={index} className="request-file-row">
                 <div className="request-file-info">
                   <div className="request-file-title">
-                    {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
-                    {cfg.fileSlots[index]?.required ? " *" : ""}
+                    {slot.label}{slot.required ? " *" : ""}
                   </div>
                   <div className="request-file-subtitle">
-                    {file ? file.name : "No file selected"}
+                    {files[index] ? files[index].name : "No file selected"}
                   </div>
                 </div>
-
                 <label className="request-file-action">
                   Upload File
                   <input
@@ -131,11 +163,7 @@ export default function StudentAgreementRequest() {
                     accept="application/pdf,image/*"
                     onChange={(e) => {
                       const selected = e.target.files?.[0] || null;
-                      setFiles((prev) => {
-                        const copy = [...prev];
-                        copy[index] = selected;
-                        return copy;
-                      });
+                      setFiles((prev) => { const copy = [...prev]; copy[index] = selected; return copy; });
                     }}
                   />
                 </label>
@@ -145,9 +173,7 @@ export default function StudentAgreementRequest() {
         </div>
 
         <div className="request-form-actions">
-          <button type="submit" className="request-form-submit">
-            Submit Request
-          </button>
+          <button type="submit" className="request-form-submit">Submit Request</button>
         </div>
       </form>
     </div>

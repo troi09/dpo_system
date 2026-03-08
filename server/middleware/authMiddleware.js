@@ -30,3 +30,11 @@ exports.authorizeAdmin = (req, res, next) => {
   }
   next();
 };
+
+// Allows admin OR staff (read/review operations)
+exports.authorizeAdminOrStaff = (req, res, next) => {
+  if (!["admin", "staff"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Admin or Staff access only" });
+  }
+  next();
+};

@@ -14,6 +14,8 @@ const buildTitle = (pathname) => {
   if (pathname.startsWith("/admin/requests/")) return "Request Review";
   if (pathname.startsWith("/admin/templates")) return "Templates";
   if (pathname.startsWith("/admin/reports")) return "Reports";
+  if (pathname.startsWith("/admin/users")) return "Manage Users";
+  if (pathname.startsWith("/admin/archives")) return "Archives";
   if (pathname.startsWith("/admin/profile")) return "Profile";
 
   return "Dashboard";
@@ -26,7 +28,7 @@ const Headbar = () => {
   const title = useMemo(() => buildTitle(pathname), [pathname]);
 
   const action =
-    user?.role === "admin"
+    user?.role === "admin" || user?.role === "staff"
       ? { label: "Review Requests", to: "/admin/requests" }
       : { label: "New Request", to: "/student/new-request" };
 
@@ -37,7 +39,6 @@ const Headbar = () => {
   return (
     <div className="headbar">
       <h1 className="headbar-title">{title}</h1>
-
       {showAction && (
         <Link to={action.to} className="headbar-action">
           {action.label}

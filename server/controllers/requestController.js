@@ -1,6 +1,9 @@
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const Request = require("../models/Request");
+const User = require("../models/User");
+const { logAudit } = require("../utils/auditLogger");
+const { sendStatusUpdateEmail } = require("../utils/emailService");
 
 const generateVerification = () => {
   return crypto.randomBytes(8).toString("hex").toUpperCase();
@@ -26,6 +29,12 @@ exports.createRequest = async (req, res) => {
       predocs: Array.isArray(predocs) ? predocs : [],
     });
 
+    logAudit(
+      req.user.id,
+      "REQUEST_SUBMITTED",
+      `${type.toUpperCase()} request submitted (id: ${created._id})`
+    );
+
     return res.status(201).json({
       message: "Request submitted",
       request: created,
@@ -37,7 +46,7 @@ exports.createRequest = async (req, res) => {
 
 exports.getMyRequests = async (req, res) => {
   try {
-    const list = await Request.find({ userId: req.user.id })
+    const list = await Request.find({ userId: req.user.id, isArchived: false })
       .sort({ createdAt: -1 })
       .select("-__v");
 
@@ -59,15 +68,23 @@ exports.resubmitRequest = async (req, res) => {
     }
 
     if (r.status !== "revision_required") {
-      return res.status(400).json({ message: "Only revision_required requests can be resubmitted" });
+      return res
+        .status(400)
+        .json({ message: "Only revision_required requests can be resubmitted" });
     }
 
-    r.formData = (formData && typeof formData === "object") ? formData : r.formData;
+    r.formData = formData && typeof formData === "object" ? formData : r.formData;
     r.predocs = Array.isArray(predocs) ? predocs : [];
     r.status = "pending";
     r.remarks = "";
     r.postdocs = { url: "", path: "", issuedAt: "", verificationUrl: "" };
     await r.save();
+
+    logAudit(
+      req.user.id,
+      "REQUEST_RESUBMITTED",
+      `Request ${r._id} resubmitted`
+    );
 
     return res.json({ message: "Resubmitted", request: r });
   } catch (err) {
@@ -77,7 +94,20 @@ exports.resubmitRequest = async (req, res) => {
 
 exports.getAllRequests = async (req, res) => {
   try {
-    const list = await Request.find()
+    const list = await Request.find({ isArchived: false })
+      .populate("userId", "name email role")
+      .sort({ createdAt: -1 })
+      .select("-__v");
+
+    return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getArchivedRequests = async (req, res) => {
+  try {
+    const list = await Request.find({ isArchived: true })
       .populate("userId", "name email role")
       .sort({ createdAt: -1 })
       .select("-__v");
@@ -93,14 +123,18 @@ exports.saveApprovedDocument = async (req, res) => {
     const { id } = req.params;
     const { url, path, issuedAt, verificationUrl } = req.body;
 
-    if (!url || !path) return res.status(400).json({ message: "url and path are required" });
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid request id" });
+    if (!url || !path)
+      return res.status(400).json({ message: "url and path are required" });
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ message: "Invalid request id" });
 
     const r = await Request.findById(id);
     if (!r) return res.status(404).json({ message: "Request not found" });
 
     if (r.status !== "approved") {
-      return res.status(400).json({ message: "Only approved requests can have an approved document" });
+      return res
+        .status(400)
+        .json({ message: "Only approved requests can have an approved document" });
     }
 
     r.postdocs = {
@@ -111,6 +145,13 @@ exports.saveApprovedDocument = async (req, res) => {
     };
 
     await r.save();
+
+    logAudit(
+      req.user.id,
+      "DOCUMENT_UPLOADED",
+      `Approved document saved for request ${id}`
+    );
+
     return res.json({ message: "Approved document saved", request: r });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -145,14 +186,31 @@ exports.updateRequestStatus = async (req, res) => {
       }
     }
 
-    const updated = await Request.findByIdAndUpdate(
-      id,
-      updatePayload,
-      { new: true }
-    ).select("-__v");
+    const updated = await Request.findByIdAndUpdate(id, updatePayload, {
+      new: true,
+    })
+      .populate("userId", "name email role")
+      .select("-__v");
 
     if (!updated) {
       return res.status(404).json({ message: "Request not found" });
+    }
+
+    // Audit log
+    logAudit(
+      req.user.id,
+      status === "approved" ? "REQUEST_APPROVED" : "REQUEST_REVISION_REQUIRED",
+      `Request ${id} status set to ${status}`
+    );
+
+    // Email notification
+    const userEmail = updated.userId?.email;
+    if (userEmail) {
+      sendStatusUpdateEmail(userEmail, {
+        status,
+        requestType: updated.type,
+        remarks: remarks || "",
+      }).catch((err) => console.error("[status email]", err.message));
     }
 
     return res.json({

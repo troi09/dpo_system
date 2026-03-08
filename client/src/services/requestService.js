@@ -49,3 +49,8 @@ export const verifyRequestCode = async (code) => {
   const res = await axios.get(`${API_URL}/verify/${code}`);
   return res.data;
 };
+// Admin – archived requests
+export const getArchivedRequests = async () => {
+  const res = await axios.get(`${API_URL}/archived`, { headers: authHeader() });
+  return res.data;
+};

@@ -14,35 +14,25 @@ const Navbar = () => {
       <div className="navbar-links">
         {user?.role === "student" && (
           <>
-            <NavLink to="/student" className={linkClass} end>
-              Dashboard
-            </NavLink>
-            <NavLink to="/student/new-request" className={linkClass}>
-              Create Request
-            </NavLink>
-            <NavLink to="/student/profile" className={linkClass}>
-              Profile
-            </NavLink>
+            <NavLink to="/student" className={linkClass} end>Dashboard</NavLink>
+            <NavLink to="/student/new-request" className={linkClass}>Create Request</NavLink>
+            <NavLink to="/student/profile" className={linkClass}>Profile</NavLink>
           </>
         )}
 
-        {user?.role === "admin" && (
+        {(user?.role === "admin" || user?.role === "staff") && (
           <>
-            <NavLink to="/admin" className={linkClass} end>
-              Dashboard
-            </NavLink>
-            <NavLink to="/admin/requests" className={linkClass}>
-              Requests
-            </NavLink>
-            <NavLink to="/admin/templates" className={linkClass}>
-              Templates
-            </NavLink>
-            <NavLink to="/admin/reports" className={linkClass}>
-              Reports
-            </NavLink>
-            <NavLink to="/admin/profile" className={linkClass}>
-              Profile
-            </NavLink>
+            <NavLink to="/admin" className={linkClass} end>Dashboard</NavLink>
+            <NavLink to="/admin/requests" className={linkClass}>Requests</NavLink>
+            <NavLink to="/admin/templates" className={linkClass}>Templates</NavLink>
+            <NavLink to="/admin/reports" className={linkClass}>Reports</NavLink>
+            {user?.role === "admin" && (
+              <>
+                <NavLink to="/admin/users" className={linkClass}>Users</NavLink>
+                <NavLink to="/admin/archives" className={linkClass}>Archives</NavLink>
+              </>
+            )}
+            <NavLink to="/admin/profile" className={linkClass}>Profile</NavLink>
           </>
         )}
       </div>

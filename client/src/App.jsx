@@ -7,6 +7,7 @@ import Headbar from "./components/Headbar";
 import RequireRole from "./guards/RequireRole";
 
 import Landing from "./pages/Landing";
+import ResetPassword from "./pages/ResetPassword";
 import VerifyDocument from "./pages/VerifyDocument";
 
 // Student pages
@@ -27,14 +28,14 @@ import AdminRequestReview from "./pages/admin/AdminRequestReview";
 import AdminTemplates from "./pages/admin/AdminTemplates";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminProfile from "./pages/admin/AdminProfile";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminArchives from "./pages/admin/AdminArchives";
 
 function AppLayout() {
   const { user } = useContext(AuthContext);
-
   return (
     <div className="app-container">
       {user && <Navbar />}
-
       <div className="page-container">
         {user && <Headbar />}
         <div className="page-content">
@@ -51,142 +52,46 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* PUBLIC */}
         <Route path="/verify/:code" element={<VerifyDocument />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
+        {/* MAIN LAYOUT */}
         <Route element={<AppLayout />}>
+          {/* LANDING */}
           <Route
             path="/"
             element={
               user
-                ? <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />
+                ? <Navigate to={user.role === "admin" ? "/admin" : user.role === "staff" ? "/admin" : "/student"} replace />
                 : <Landing />
             }
           />
-          <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="/register" element={<Navigate to="/" replace />} />
 
-          <Route
-            path="/student"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentDashboard />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/student/new-request"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentNewRequest />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/student/new-request/nda"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentNDATypeChooser />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/student/new-request/nda/orgactivities"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentNDAOrgActivities />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/student/new-request/nda/research"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentNDAResearch />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/student/new-request/agreement"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentAgreementRequest />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/student/requests/:id"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentRequestReview />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/student/profile"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentProfile />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/student/resubmit/:id"
-            element={
-              <RequireRole allowedRoles={["student"]}>
-                <StudentResubmitRequest />
-              </RequireRole>
-            }
-          />
+          {/* STUDENT ROUTES */}
+          <Route path="/student" element={<RequireRole allowedRoles={["student"]}><StudentDashboard /></RequireRole>} />
+          <Route path="/student/new-request" element={<RequireRole allowedRoles={["student"]}><StudentNewRequest /></RequireRole>} />
+          <Route path="/student/new-request/nda" element={<RequireRole allowedRoles={["student"]}><StudentNDATypeChooser /></RequireRole>} />
+          <Route path="/student/new-request/nda/orgactivities" element={<RequireRole allowedRoles={["student"]}><StudentNDAOrgActivities /></RequireRole>} />
+          <Route path="/student/new-request/nda/research" element={<RequireRole allowedRoles={["student"]}><StudentNDAResearch /></RequireRole>} />
+          <Route path="/student/new-request/agreement" element={<RequireRole allowedRoles={["student"]}><StudentAgreementRequest /></RequireRole>} />
+          <Route path="/student/requests/:id" element={<RequireRole allowedRoles={["student"]}><StudentRequestReview /></RequireRole>} />
+          <Route path="/student/profile" element={<RequireRole allowedRoles={["student"]}><StudentProfile /></RequireRole>} />
+          <Route path="/student/resubmit/:id" element={<RequireRole allowedRoles={["student"]}><StudentResubmitRequest /></RequireRole>} />
 
-          <Route
-            path="/admin"
-            element={
-              <RequireRole allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/requests"
-            element={
-              <RequireRole allowedRoles={["admin"]}>
-                <AdminRequests />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/requests/:id"
-            element={
-              <RequireRole allowedRoles={["admin"]}>
-                <AdminRequestReview />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/templates"
-            element={
-              <RequireRole allowedRoles={["admin"]}>
-                <AdminTemplates />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/reports"
-            element={
-              <RequireRole allowedRoles={["admin"]}>
-                <AdminReports />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/profile"
-            element={
-              <RequireRole allowedRoles={["admin"]}>
-                <AdminProfile />
-              </RequireRole>
-            }
-          />
+          {/* ADMIN + STAFF ROUTES */}
+          <Route path="/admin" element={<RequireRole allowedRoles={["admin", "staff"]}><AdminDashboard /></RequireRole>} />
+          <Route path="/admin/requests" element={<RequireRole allowedRoles={["admin", "staff"]}><AdminRequests /></RequireRole>} />
+          <Route path="/admin/requests/:id" element={<RequireRole allowedRoles={["admin", "staff"]}><AdminRequestReview /></RequireRole>} />
+          <Route path="/admin/templates" element={<RequireRole allowedRoles={["admin", "staff"]}><AdminTemplates /></RequireRole>} />
+          <Route path="/admin/reports" element={<RequireRole allowedRoles={["admin", "staff"]}><AdminReports /></RequireRole>} />
+          <Route path="/admin/profile" element={<RequireRole allowedRoles={["admin", "staff"]}><AdminProfile /></RequireRole>} />
 
+          {/* ADMIN-ONLY ROUTES */}
+          <Route path="/admin/users" element={<RequireRole allowedRoles={["admin"]}><AdminUsers /></RequireRole>} />
+          <Route path="/admin/archives" element={<RequireRole allowedRoles={["admin"]}><AdminArchives /></RequireRole>} />
+
+          {/* CATCH-ALL */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

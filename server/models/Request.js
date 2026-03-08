@@ -61,6 +61,10 @@ const requestSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
