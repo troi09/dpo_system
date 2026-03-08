@@ -81,3 +81,13 @@ export const getSignatureImages = async (id) => {
   const res = await axios.get(`${API_URL}/${id}/sig-images`, { headers: authHeader() });
   return res.data;
 };
+
+export const getRequestStats = async () => {
+  const res = await axios.get(`${API_URL}/stats`, { headers: authHeader() });
+  return res.data;
+};
+
+export const getArchivedRequests = async () => {
+  const res = await axios.get(`${API_URL}/archived`, { headers: authHeader() });
+  return res.data;
+};

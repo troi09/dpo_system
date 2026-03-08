@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 
 import {
@@ -10,7 +11,6 @@ import {
   adminPhase3Action,
   getSignatureImages,
 } from "../../services/requestService";
-import { getComplianceReview } from "../../services/aiService";
 
 import { generateApprovedPDF } from "../../config/documentTemplates";
 import {
@@ -50,7 +50,7 @@ const getRequestFolder = (predocs = []) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // NDA review panel (flow: pending → approved | revision_requested)
 // ─────────────────────────────────────────────────────────────────────────────
-function NdaReviewPanel({ reqData, complianceData, complianceLoading }) {
+function NdaReviewPanel({ reqData }) {
   const navigate = useNavigate();
   const [remarks, setRemarks] = useState(reqData.remarks || "");
   const [approving, setApproving] = useState(false);
@@ -154,89 +154,6 @@ function NdaReviewPanel({ reqData, complianceData, complianceLoading }) {
           </div>
         )}
       </div>
-
-      {/* AI Compliance Review */}
-      {isPending && (
-        <div className="review-section">
-          <h4 className="review-section-title">
-            🤖 AI Compliance &amp; Drafting Co-Pilot
-            <span style={{ fontSize: "11px", fontWeight: 400, marginLeft: "8px", opacity: 0.7 }}>
-              (Agent 2 — Draft for Human Review)
-            </span>
-          </h4>
-          {complianceLoading && (
-            <div style={{ padding: "10px", color: "var(--text-muted)", fontStyle: "italic", fontSize: "13px" }}>
-              Analyzing document for compliance…
-            </div>
-          )}
-          {!complianceLoading && complianceData && (
-            <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
-              <div style={{
-                padding: "10px 14px",
-                background: complianceData.compliance.riskLevel === "HIGH"
-                  ? "var(--s-revision-bg)"
-                  : complianceData.compliance.riskLevel === "MODERATE"
-                  ? "var(--s-warning-bg)"
-                  : "var(--s-approved-bg)",
-                borderBottom: "1px solid var(--border)",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-              }}>
-                <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-primary)" }}>
-                  Compliance Risk Score:
-                </span>
-                <span style={{
-                  fontWeight: 700,
-                  color: complianceData.compliance.riskLevel === "HIGH"
-                    ? "var(--s-revision-text)"
-                    : complianceData.compliance.riskLevel === "MODERATE"
-                    ? "var(--s-warning-text)"
-                    : "var(--s-approved-text)",
-                }}>
-                  {complianceData.compliance.riskScore}/100 — {complianceData.compliance.riskLevel}
-                </span>
-              </div>
-              <div style={{ padding: "10px 14px" }}>
-                {complianceData.compliance.flags.map((flag, i) => (
-                  <div key={i} style={{ marginBottom: "6px", fontSize: "13px" }}>
-                    <span style={{
-                      fontWeight: 600,
-                      color: flag.level === "HIGH"
-                        ? "var(--s-revision-text)"
-                        : flag.level === "MODERATE"
-                        ? "var(--s-warning-text)"
-                        : "var(--s-approved-text)",
-                    }}>
-                      [{flag.level}]
-                    </span>{" "}
-                    {flag.message}
-                  </div>
-                ))}
-              </div>
-              <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)" }}>
-                <div style={{ fontWeight: 600, marginBottom: "6px", fontSize: "13px", color: "var(--text-primary)" }}>
-                  Draft Summary
-                </div>
-                <pre style={{
-                  background: "var(--surface-2)",
-                  padding: "10px",
-                  borderRadius: "var(--radius-sm)",
-                  fontSize: "12px",
-                  whiteSpace: "pre-wrap",
-                  margin: 0,
-                  color: "var(--text-secondary)",
-                }}>
-                  {complianceData.draft.summary}
-                </pre>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "6px", fontStyle: "italic" }}>
-                  {complianceData.draft.disclaimer}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {isPending && (
         <div className="review-section">
@@ -654,30 +571,11 @@ export default function AdminRequestReview() {
   const navigate = useNavigate();
 
   const [reqData, setReqData] = useState(null);
-  const [complianceData, setComplianceData] = useState(null);
-  const [complianceLoading, setComplianceLoading] = useState(false);
-
   useEffect(() => {
     const load = async () => {
       try {
         const r = await getRequestById(id);
         setReqData(r);
-
-        // Automatically run the Compliance & Drafting Co-Pilot for pending NDA requests
-        if (r.type === "nda" && r.status === "pending") {
-          setComplianceLoading(true);
-          try {
-            const review = await getComplianceReview({
-              type: r.type,
-              formData: r.formData || {},
-            });
-            setComplianceData(review);
-          } catch {
-            // Compliance review is non-blocking; failure doesn't prevent manual review
-          } finally {
-            setComplianceLoading(false);
-          }
-        }
       } catch (err) {
         alert(err.response?.data?.message || "Failed to load request");
         navigate("/admin/requests");
@@ -721,6 +619,10 @@ export default function AdminRequestReview() {
         </div>
 
         <div className="review-section">
+          <RequestStepper status={reqData.status} />
+        </div>
+
+        <div className="review-section">
           <h4 className="review-section-title">Student</h4>
           <div className="review-info-box">
             <div style={{ fontWeight: 600 }}>{reqData.userId?.name || "Unknown"}</div>
@@ -733,11 +635,7 @@ export default function AdminRequestReview() {
         {isAgreement ? (
           <AgreementReviewPanel reqData={reqData} />
         ) : (
-          <NdaReviewPanel
-            reqData={reqData}
-            complianceData={complianceData}
-            complianceLoading={complianceLoading}
-          />
+          <NdaReviewPanel reqData={reqData} />
         )}
       </div>
     </div>

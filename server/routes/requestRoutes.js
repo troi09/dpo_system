@@ -17,6 +17,8 @@ const {
   repReject,
   adminPhase3Action,
   getSignatureImages,
+  getRequestStats,
+  getArchivedRequests,
 } = require("../controllers/requestController");
 
 // ── Public ─────────────────────────────────────────────────────────────────
@@ -34,6 +36,8 @@ router.patch("/:id/resubmit", protect, resubmitRequest);
 
 // ── Admin ──────────────────────────────────────────────────────────────────
 router.get("/all", protect, authorizeAdmin, getAllRequests);
+router.get("/stats", protect, authorizeAdmin, getRequestStats);
+router.get("/archived", protect, authorizeAdmin, getArchivedRequests);
 router.patch("/:id/approved-document", protect, authorizeAdmin, saveApprovedDocument);
 
 // Agreement-specific admin actions
@@ -47,3 +51,4 @@ router.patch("/:id", protect, authorizeAdmin, updateRequestStatus);
 router.get("/:id", protect, getRequestById);
 
 module.exports = router;
+

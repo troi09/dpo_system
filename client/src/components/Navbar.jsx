@@ -1,6 +1,18 @@
 import { NavLink } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import {
+  LayoutDashboard,
+  FilePlus,
+  ClipboardList,
+  FileText,
+  BarChart2,
+  Users,
+  Archive,
+  Activity,
+  UserCircle,
+  LogOut,
+} from "lucide-react";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -26,15 +38,15 @@ const Navbar = () => {
         {user?.role === "student" && (
           <>
             <NavLink to="/student" className={linkClass} end>
-              <span className="nav-icon">⊞</span>
+              <LayoutDashboard size={16} className="nav-icon" />
               Dashboard
             </NavLink>
             <NavLink to="/student/new-request" className={linkClass}>
-              <span className="nav-icon">＋</span>
+              <FilePlus size={16} className="nav-icon" />
               Create Request
             </NavLink>
             <NavLink to="/student/profile" className={linkClass}>
-              <span className="nav-icon">◎</span>
+              <UserCircle size={16} className="nav-icon" />
               Profile
             </NavLink>
           </>
@@ -43,23 +55,35 @@ const Navbar = () => {
         {user?.role === "admin" && (
           <>
             <NavLink to="/admin" className={linkClass} end>
-              <span className="nav-icon">⊞</span>
+              <LayoutDashboard size={16} className="nav-icon" />
               Dashboard
             </NavLink>
             <NavLink to="/admin/requests" className={linkClass}>
-              <span className="nav-icon">≡</span>
+              <ClipboardList size={16} className="nav-icon" />
               Requests
             </NavLink>
             <NavLink to="/admin/templates" className={linkClass}>
-              <span className="nav-icon">◈</span>
+              <FileText size={16} className="nav-icon" />
               Templates
             </NavLink>
             <NavLink to="/admin/reports" className={linkClass}>
-              <span className="nav-icon">◷</span>
+              <BarChart2 size={16} className="nav-icon" />
               Reports
             </NavLink>
+            <NavLink to="/admin/users" className={linkClass}>
+              <Users size={16} className="nav-icon" />
+              Users
+            </NavLink>
+            <NavLink to="/admin/archives" className={linkClass}>
+              <Archive size={16} className="nav-icon" />
+              Archives
+            </NavLink>
+            <NavLink to="/admin/audit" className={linkClass}>
+              <Activity size={16} className="nav-icon" />
+              Audit
+            </NavLink>
             <NavLink to="/admin/profile" className={linkClass}>
-              <span className="nav-icon">◎</span>
+              <UserCircle size={16} className="nav-icon" />
               Profile
             </NavLink>
           </>
@@ -79,6 +103,7 @@ const Navbar = () => {
             </div>
           </div>
           <button className="navbar-logout" onClick={logout}>
+            <LogOut size={14} style={{ marginRight: 6 }} />
             Log out
           </button>
         </div>

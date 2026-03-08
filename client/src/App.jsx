@@ -28,6 +28,9 @@ import AdminRequestReview from "./pages/admin/AdminRequestReview";
 import AdminTemplates from "./pages/admin/AdminTemplates";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminProfile from "./pages/admin/AdminProfile";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminArchives from "./pages/admin/AdminArchives";
+import AdminAuditLog from "./pages/admin/AdminAuditLog";
 
 function AppLayout() {
   const { user } = useContext(AuthContext);
@@ -186,6 +189,30 @@ function App() {
             element={
               <RequireRole allowedRoles={["admin"]}>
                 <AdminProfile />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireRole allowedRoles={["admin"]}>
+                <AdminUsers />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/archives"
+            element={
+              <RequireRole allowedRoles={["admin"]}>
+                <AdminArchives />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/audit"
+            element={
+              <RequireRole allowedRoles={["admin"]}>
+                <AdminAuditLog />
               </RequireRole>
             }
           />

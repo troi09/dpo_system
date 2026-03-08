@@ -96,6 +96,10 @@ const requestSchema = new mongoose.Schema(
     authorizerSigPath: { type: String, default: "" },
     repSigUrl:         { type: String, default: "" },
     repSigPath:        { type: String, default: "" },
+
+    // 5-year retention / archiving
+    isArchived: { type: Boolean, default: false },
+    archivedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

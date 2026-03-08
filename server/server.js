@@ -3,17 +3,17 @@ const cors = require("cors");
 require("dotenv").config();
 
 const mongoose = require("mongoose");
-const dns = require("node:dns"); // 1. Import dns module
+const dns = require("node:dns");
+const cron = require("node-cron");
 
-// 2. Explicitly set DNS servers before connecting
-dns.setServers(["8.8.8.8", "8.8.4.4"]); 
-
+// Explicitly set DNS servers before connecting
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const connectDB = require("./config/db");
 
 const authRoutes = require("./routes/authRoutes");
 const requestRoutes = require("./routes/requestRoutes");
-const agentRoutes = require("./routes/agentRoutes");
+const auditRoutes = require("./routes/auditRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,7 +27,32 @@ connectDB();
 
 app.use("/api/auth", authRoutes);
 app.use("/api/requests", requestRoutes);
-app.use("/api/ai", agentRoutes);
+app.use("/api/audit", auditRoutes);
+
+// ── 5-year retention cron job (runs daily at 02:00) ──────────────────────────
+// Flags approved/completed requests older than 5 years as isArchived=true
+cron.schedule("0 2 * * *", async () => {
+  try {
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+
+    const Request = require("./models/Request");
+    const result = await Request.updateMany(
+      {
+        isArchived: false,
+        status: { $in: ["approved", "completed"] },
+        createdAt: { $lte: fiveYearsAgo },
+      },
+      { $set: { isArchived: true, archivedAt: new Date() } }
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log(`[Archive Job] Archived ${result.modifiedCount} requests (5-year retention policy).`);
+    }
+  } catch (err) {
+    console.error("[Archive Job] Error:", err.message);
+  }
+});
 
 // Test route
 app.get("/", (req, res) => {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById } from "../../services/requestService";
 
@@ -86,6 +87,10 @@ export default function StudentRequestReview() {
               <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}
             </span>
           </div>
+        </div>
+
+        <div className="review-section">
+          <RequestStepper status={reqData.status} />
         </div>
 
         {/* Remarks */}

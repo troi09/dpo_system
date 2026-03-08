@@ -1,7 +1,9 @@
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const Request = require("../models/Request");
+const User = require("../models/User");
 const AuditLog = require("../models/AuditLog");
+const { sendStatusUpdateEmail } = require("../utils/emailService");
 
 const logAudit = (data) => {
   AuditLog.create(data).catch(() => {});
@@ -44,6 +46,14 @@ exports.createRequest = async (req, res) => {
     }
 
     const created = await Request.create(createPayload);
+
+    logAudit({
+      userId: req.user.id,
+      action: "request_created",
+      resourceType: "request",
+      resourceId: String(created._id),
+      details: { type, status: initialStatus },
+    });
 
     return res.status(201).json({ message: "Request submitted", request: created });
   } catch (err) {
@@ -169,6 +179,21 @@ exports.updateRequestStatus = async (req, res) => {
 
     const updated = await Request.findByIdAndUpdate(id, updatePayload, { new: true }).select("-__v");
     if (!updated) return res.status(404).json({ message: "Request not found" });
+
+    logAudit({
+      userId: req.user.id,
+      action: status === "approved" ? "request_approved" : "request_revision_required",
+      resourceType: "request",
+      resourceId: String(id),
+      details: { newStatus: status, type: existing.type },
+    });
+
+    // Notify student by email
+    User.findById(updated.userId).then((owner) => {
+      if (owner?.email) {
+        sendStatusUpdateEmail(owner.email, owner.name, updated.type, status, remarks || "").catch(() => {});
+      }
+    }).catch(() => {});
 
     return res.json({ message: "Request updated", request: updated });
   } catch (err) {
@@ -356,13 +381,48 @@ exports.adminPhase3Action = async (req, res) => {
       return res.status(400).json({ message: "action must be 'approve' or 'rep_revision_requested'" });
     }
 
-    // Audit log: record status changes for the Auditor Agent (Agent 3)
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid request id" });
+    }
+
+    const r = await Request.findById(id);
+    if (!r) return res.status(404).json({ message: "Request not found" });
+
+    if (r.type !== "agreement") {
+      return res.status(400).json({ message: "Only agreement requests use this endpoint" });
+    }
+    if (r.status !== "pending_approval") {
+      return res.status(400).json({ message: `Cannot perform phase3 action from status: ${r.status}` });
+    }
+
+    if (action === "approve") {
+      r.status = "completed";
+      if (!r.serialNo) r.serialNo = generateVerification();
+      r.remarks = "";
+    } else {
+      // rep_revision_requested: generate new signing token
+      r.signingToken = generateSigningTokenValue();
+      r.signingTokenUsed = false;
+      r.status = "rep_revision_requested";
+      r.remarks = remarks || "";
+    }
+
+    await r.save();
+
     logAudit({
       userId: req.user.id,
-      action: status === "approved" ? "request_approved" : "request_revision_required",
+      action: action === "approve" ? "request_approved" : "request_revision_required",
       resourceType: "request",
       resourceId: String(id),
+      details: { newStatus: r.status },
     });
+
+    // Notify student
+    User.findById(r.userId).then((owner) => {
+      if (owner?.email) {
+        sendStatusUpdateEmail(owner.email, owner.name, r.type, r.status, r.remarks).catch(() => {});
+      }
+    }).catch(() => {});
 
     return res.json({
       message: action === "approve" ? "Agreement approved" : "Rep revision requested",
@@ -415,7 +475,6 @@ exports.verifyRequestCode = async (req, res) => {
 
     if (!r) return res.status(404).json({ valid: false, message: "Not found" });
 
-    // NDA: valid when approved; Agreement: valid when completed
     const isValid =
       (r.type === "nda" && r.status === "approved") ||
       (r.type === "agreement" && r.status === "completed");
@@ -430,5 +489,51 @@ exports.verifyRequestCode = async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ valid: false, message: err.message });
+  }
+};
+
+// ─── Admin: stats for dashboard / reports ────────────────────────────────────
+
+exports.getRequestStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [statusCounts, typeCounts, monthlyTypeCounts, totalArchived] = await Promise.all([
+      // Status distribution
+      Request.aggregate([
+        { $match: { isArchived: false } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+      // Type distribution (all time, not archived)
+      Request.aggregate([
+        { $match: { isArchived: false } },
+        { $group: { _id: "$type", count: { $sum: 1 } } },
+      ]),
+      // Type distribution for current month
+      Request.aggregate([
+        { $match: { isArchived: false, createdAt: { $gte: startOfMonth } } },
+        { $group: { _id: "$type", count: { $sum: 1 } } },
+      ]),
+      Request.countDocuments({ isArchived: true }),
+    ]);
+
+    res.json({ statusCounts, typeCounts, monthlyTypeCounts, totalArchived });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── Admin: get archived requests ────────────────────────────────────────────
+
+exports.getArchivedRequests = async (req, res) => {
+  try {
+    const list = await Request.find({ isArchived: true })
+      .populate("userId", "name email role")
+      .sort({ archivedAt: -1 })
+      .select("-__v");
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

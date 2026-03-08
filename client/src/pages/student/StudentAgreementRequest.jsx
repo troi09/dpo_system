@@ -16,8 +16,18 @@ export default function StudentAgreementRequest() {
 
   const [formData, setFormData] = useState(() => ({}));
   const [files, setFiles] = useState(() => Array(cfg.fileSlots.length).fill(null));
+  const [outsidePH, setOutsidePH] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const sigPadRef = useRef(null);
+
+  // Derive fileSlots with dynamic first-slot label when requestee is outside PH
+  const fileSlots = useMemo(() => {
+    const slots = [...cfg.fileSlots];
+    if (outsidePH) {
+      slots[0] = { ...slots[0], label: "Consular Notarized Authorization" };
+    }
+    return slots;
+  }, [cfg.fileSlots, outsidePH]);
 
   const onChangeField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value }));
@@ -32,9 +42,9 @@ export default function StudentAgreementRequest() {
       }
     }
 
-    for (let i = 0; i < cfg.fileSlots.length; i++) {
-      if (cfg.fileSlots[i].required && !files[i]) {
-        alert(`${cfg.fileSlots[i].label} is required`);
+    for (let i = 0; i < fileSlots.length; i++) {
+      if (fileSlots[i].required && !files[i]) {
+        alert(`${fileSlots[i].label} is required`);
         return;
       }
     }
@@ -63,7 +73,7 @@ export default function StudentAgreementRequest() {
         .map((f, i) => {
           if (!f) return null;
           const meta = uploaded[uploadIndex++];
-          return { ...meta, requirementLabel: cfg.fileSlots[i]?.label || `File ${i + 1}` };
+          return { ...meta, requirementLabel: fileSlots[i]?.label || `File ${i + 1}` };
         })
         .filter(Boolean);
 
@@ -79,7 +89,7 @@ export default function StudentAgreementRequest() {
 
       await createRequest({
         type: "agreement",
-        formData,
+        formData: { ...formData, outsidePH },
         predocs,
         authorizerSigUrl,
         authorizerSigPath,
@@ -135,6 +145,25 @@ export default function StudentAgreementRequest() {
                 )}
               </div>
             ))}
+
+            {/* Outside Philippines checkbox */}
+            <div className="request-field" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <input
+                type="checkbox"
+                id="outsidePH"
+                checked={outsidePH}
+                onChange={(e) => setOutsidePH(e.target.checked)}
+                style={{ width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: "var(--primary)" }}
+              />
+              <label htmlFor="outsidePH" style={{ cursor: "pointer", fontSize: 14, color: "var(--text-primary)", margin: 0 }}>
+                The requestee is located outside of the Philippines
+              </label>
+            </div>
+            {outsidePH && (
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: -6, marginBottom: 4, paddingLeft: 26 }}>
+                The authorization letter must be consular-notarized (apostilled or authenticated by the Philippine Embassy/Consulate).
+              </div>
+            )}
           </div>
 
           <div className="request-section">
@@ -143,8 +172,8 @@ export default function StudentAgreementRequest() {
               <div key={index} className="request-file-row">
                 <div className="request-file-info">
                   <div className="request-file-title">
-                    {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
-                    {cfg.fileSlots[index]?.required ? " *" : ""}
+                    {fileSlots[index]?.label || `Attach file ${index + 1}`}
+                    {fileSlots[index]?.required ? " *" : ""}
                   </div>
                   <div className="request-file-subtitle">
                     {file ? file.name : "No file selected"}

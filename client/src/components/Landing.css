@@ -222,6 +222,37 @@
   background: var(--primary-hover);
 }
 
+.landing-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.landing-error {
+  font-size: 13px;
+  color: var(--s-revision-text);
+  background: var(--s-revision-bg);
+  border: 1px solid var(--s-revision-dot);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}
+
+.landing-link-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  text-align: left;
+  transition: opacity 0.15s;
+}
+
+.landing-link-btn:hover {
+  opacity: 0.75;
+}
+
 @media (max-width: 900px) {
   .landing {
     flex-direction: column-reverse;
