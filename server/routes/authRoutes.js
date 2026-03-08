@@ -9,13 +9,14 @@ const {
   resetPassword,
 } = require("../controllers/authController");
 const { protect, authorizeAdmin } = require("../middleware/authMiddleware");
+const { authLimiter } = require("../middleware/rateLimiter");
 
-// Public
-router.post("/register", register);
-router.post("/login", login);
-router.post("/verify-otp", verifyOtp);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+// Public – rate-limited
+router.post("/register", authLimiter, register);
+router.post("/login", authLimiter, login);
+router.post("/verify-otp", authLimiter, verifyOtp);
+router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/reset-password", authLimiter, resetPassword);
 
 // Admin-only test
 router.get("/admin", protect, authorizeAdmin, (req, res) => {

@@ -44,7 +44,7 @@ npm install
 ```
 
 New packages added:
-- **server**: `nodemailer@^8.0.1`, `node-cron@^3.0.3`
+- **server**: `nodemailer@^8.0.1`, `node-cron@^4.2.1`, `express-rate-limit@^8.3.0`
 - **client**: `recharts`, `lucide-react`, `framer-motion`
 
 ---

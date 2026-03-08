@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { protect, authorizeAdmin, authorizeAdminOrStaff } = require("../middleware/authMiddleware");
+const { apiLimiter } = require("../middleware/rateLimiter");
 const {
   createRequest,
   getMyRequests,
@@ -14,23 +15,23 @@ const {
   verifyRequestCode,
 } = require("../controllers/requestController");
 
-// PUBLIC (no auth)
-router.get("/verify/:code", verifyRequestCode);
+// PUBLIC (no auth) – rate limited
+router.get("/verify/:code", apiLimiter, verifyRequestCode);
 
 // STUDENT (protected)
-router.post("/", protect, createRequest);
-router.get("/my", protect, getMyRequests);
-router.patch("/:id/resubmit", protect, resubmitRequest);
+router.post("/", apiLimiter, protect, createRequest);
+router.get("/my", apiLimiter, protect, getMyRequests);
+router.patch("/:id/resubmit", apiLimiter, protect, resubmitRequest);
 
 // ADMIN + STAFF (can view and review)
-router.get("/all", protect, authorizeAdminOrStaff, getAllRequests);
-router.patch("/:id/approved-document", protect, authorizeAdminOrStaff, saveApprovedDocument);
-router.patch("/:id", protect, authorizeAdminOrStaff, updateRequestStatus);
+router.get("/all", apiLimiter, protect, authorizeAdminOrStaff, getAllRequests);
+router.patch("/:id/approved-document", apiLimiter, protect, authorizeAdminOrStaff, saveApprovedDocument);
+router.patch("/:id", apiLimiter, protect, authorizeAdminOrStaff, updateRequestStatus);
 
 // ADMIN ONLY (archives)
-router.get("/archived", protect, authorizeAdmin, getArchivedRequests);
+router.get("/archived", apiLimiter, protect, authorizeAdmin, getArchivedRequests);
 
 // SHARED (protected - checks ownership)
-router.get("/:id", protect, getRequestById);
+router.get("/:id", apiLimiter, protect, getRequestById);
 
 module.exports = router;
