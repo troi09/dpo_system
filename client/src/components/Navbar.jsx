@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   FilePlus,
   ClipboardList,
-  FileText,
   BarChart2,
   Users,
   Archive,
@@ -61,10 +60,6 @@ const Navbar = () => {
             <NavLink to="/admin/requests" className={linkClass}>
               <ClipboardList size={16} className="nav-icon" />
               Requests
-            </NavLink>
-            <NavLink to="/admin/templates" className={linkClass}>
-              <FileText size={16} className="nav-icon" />
-              Templates
             </NavLink>
             <NavLink to="/admin/reports" className={linkClass}>
               <BarChart2 size={16} className="nav-icon" />

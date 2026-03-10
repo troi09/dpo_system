@@ -122,8 +122,6 @@ body {
 ───────────────────────────────────────────── */
 .dashboard-page {
   width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
 }
 
 .dashboard-card {
@@ -369,7 +367,6 @@ body {
 ───────────────────────────────────────────── */
 .review-page {
   width: 100%;
-  max-width: 800px;
 }
 
 .review-card {

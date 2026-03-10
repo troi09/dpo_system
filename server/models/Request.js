@@ -97,6 +97,12 @@ const requestSchema = new mongoose.Schema(
     repSigUrl:         { type: String, default: "" },
     repSigPath:        { type: String, default: "" },
 
+    // NDA e-signature fields
+    studentSigUrl:  { type: String, default: "" },
+    studentSigPath: { type: String, default: "" },
+    adminSigUrl:    { type: String, default: "" },
+    adminSigPath:   { type: String, default: "" },
+
     // 5-year retention / archiving
     isArchived: { type: Boolean, default: false },
     archivedAt: { type: Date, default: null },

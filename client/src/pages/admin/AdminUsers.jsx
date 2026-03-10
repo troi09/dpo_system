@@ -96,7 +96,7 @@ export default function AdminUsers() {
   );
 
   return (
-    <div style={{ maxWidth: 1000 }}>
+    <div>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>

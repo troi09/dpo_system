@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { CheckCircle, XCircle } from "lucide-react";
 import { verifyRequestCode } from "../services/requestService";
 
 export default function VerifyDocument() {
@@ -23,7 +24,7 @@ export default function VerifyDocument() {
     return (
       <div className="verify-outer">
         <div className="verify-card">
-          <span className="verify-result-icon">❌</span>
+          <span className="verify-result-icon"><XCircle size={48} color="#dc2626" /></span>
           <h2 className="verify-result-error">Verification Failed</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "14px", margin: 0 }}>{error}</p>
         </div>
@@ -36,7 +37,7 @@ export default function VerifyDocument() {
   return (
     <div className="verify-outer">
       <div className="verify-card">
-        <span className="verify-result-icon">{data.valid ? "✅" : "❌"}</span>
+        <span className="verify-result-icon">{data.valid ? <CheckCircle size={48} color="#16a34a" /> : <XCircle size={48} color="#dc2626" />}</span>
         {data.valid ? (
           <h2 className="verify-result-title">Document Verified</h2>
         ) : (

@@ -54,6 +54,7 @@ function NdaReviewPanel({ reqData }) {
   const navigate = useNavigate();
   const [remarks, setRemarks] = useState(reqData.remarks || "");
   const [approving, setApproving] = useState(false);
+  const adminSigRef = useRef(null);
 
   const cfg = useMemo(() => {
     if (reqData.type === "nda") return FIELDS_FILE_SLOTS_CONFIG.nda?.[reqData.formData?.ndaType];
@@ -66,10 +67,36 @@ function NdaReviewPanel({ reqData }) {
 
 
   const handleUpdate = async (status) => {
+    if (status === "approved") {
+      if (!adminSigRef.current || adminSigRef.current.isEmpty()) {
+        alert("Please draw your e-signature before approving.");
+        return;
+      }
+    }
     setApproving(true);
     try {
       if (status === "approved") {
-        const updateRes = await updateRequestStatus(reqData._id, { status, remarks });
+        const adminSigDataUrl = adminSigRef.current.getDataUrl();
+
+        // Upload admin signature to Firebase
+        const studentName = reqData.userId?.name || "Unknown Student";
+        const requestFolder = getRequestFolder(reqData.predocs);
+
+        const { uploadSignatureImage } = await import("../../services/firebaseStorageService");
+        const { url: adminSigFirebaseUrl, path: adminSigFirebasePath } = await uploadSignatureImage(
+          adminSigDataUrl,
+          "nda",
+          studentName,
+          requestFolder || "unknown",
+          "admin_sig.png"
+        );
+
+        const updateRes = await updateRequestStatus(reqData._id, {
+          status,
+          remarks,
+          adminSigUrl: adminSigFirebaseUrl,
+          adminSigPath: adminSigFirebasePath,
+        });
         const updated = updateRes.request;
 
         if (!updated?.serialNo) throw new Error("Serial number missing");
@@ -77,13 +104,21 @@ function NdaReviewPanel({ reqData }) {
         const verificationUrl = buildVerificationUrl(updated.serialNo);
         const qrDataUrl = await generateQrDataUrl(verificationUrl);
 
-        const studentName = reqData.userId?.name || "Unknown Student";
-        const requestFolder = getRequestFolder(reqData.predocs);
         if (!requestFolder) throw new Error("Could not determine request folder");
 
         await uploadApprovedQrImage(qrDataUrl, reqData.type, studentName, requestFolder);
 
-        const docReq = { ...updated, userId: reqData.userId, verificationUrl, qrDataUrl };
+        // Fetch signature images via proxy to avoid CORS
+        const sigImages = await getSignatureImages(reqData._id);
+
+        const docReq = {
+          ...updated,
+          userId: reqData.userId,
+          studentSigDataUrl: sigImages.studentSig,
+          adminSigDataUrl: sigImages.adminSig || adminSigDataUrl,
+          verificationUrl,
+          qrDataUrl,
+        };
         const pdfBlob = await generateApprovedPDF(docReq);
         const t = reqData.formData?.ndaType || "general";
         const uploaded = await uploadApprovedForm(
@@ -192,6 +227,34 @@ function NdaReviewPanel({ reqData }) {
         </div>
       )}
 
+      {/* Student E-Signature */}
+      {reqData.studentSigUrl && (
+        <div className="review-section">
+          <h4 className="review-section-title">Student E-Signature</h4>
+          <div className="review-sig-wrap">
+            <img src={reqData.studentSigUrl} alt="Student signature" className="review-sig-img" />
+            <span className="review-sig-name">{reqData.userId?.name}</span>
+          </div>
+        </div>
+      )}
+
+      {isPending && (
+        <div className="review-section">
+          <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
+          <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
+            Draw your signature below to sign off on the NDA approval.
+          </p>
+          <SignaturePad ref={adminSigRef} height={150} />
+          <button
+            type="button"
+            className="review-btn-clear"
+            onClick={() => adminSigRef.current?.clear()}
+          >
+            Clear Signature
+          </button>
+        </div>
+      )}
+
       {isPending && (
         <div className="review-actions">
           <button
@@ -220,7 +283,13 @@ function NdaReviewPanel({ reqData }) {
 function AgreementReviewPanel({ reqData }) {
   const navigate = useNavigate();
   const [remarks, setRemarks] = useState(reqData.remarks || "");
-  const [signingLink, setSigningLink] = useState("");
+  const [signingLink, setSigningLink] = useState(() => {
+    // Reconstruct signing link from persisted token if it exists and hasn't been fully used
+    if (reqData.signingToken && !reqData.signingTokenUsed) {
+      return `${window.location.origin}/sign/${reqData.signingToken}`;
+    }
+    return "";
+  });
   const [generating, setGenerating] = useState(false);
   const [approving, setApproving] = useState(false);
   const adminSigRef = useRef(null);

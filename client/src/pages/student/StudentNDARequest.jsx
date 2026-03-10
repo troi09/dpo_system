@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { createRequest } from "../../services/requestService";
-import { uploadRequirements, getDateRequestFolder } from "../../services/firebaseStorageService";
+import { uploadRequirements, uploadSignatureImage, getDateRequestFolder } from "../../services/firebaseStorageService";
+import SignaturePad from "../../components/SignaturePad";
 import "../../components/RequestForm.css";
 
 export default function StudentNDARequest({ ndaType }) {
@@ -11,6 +12,8 @@ export default function StudentNDARequest({ ndaType }) {
 
   const [formData, setFormData] = useState(() => ({}));
   const [files, setFiles] = useState(() => Array(cfg.fileSlots.length).fill(null));
+  const [submitting, setSubmitting] = useState(false);
+  const sigPadRef = useRef(null);
 
   const onChangeField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value }));
@@ -38,29 +41,53 @@ export default function StudentNDARequest({ ndaType }) {
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    const studentName = user?.name || "Unknown Student";
-    const requestFolder = getDateRequestFolder();
+    if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
+      alert("Please draw your e-signature before submitting.");
+      return;
+    }
 
-    const uploaded = await uploadRequirements(selectedFiles, "nda", studentName, requestFolder);
+    setSubmitting(true);
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const studentName = user?.name || "Unknown Student";
+      const requestFolder = getDateRequestFolder();
 
-    let uploadIndex = 0;
-    const predocs = files
-      .map((f, i) => {
-        if (!f) return null;
-        const meta = uploaded[uploadIndex++];
-        return { ...meta, requirementLabel: cfg.fileSlots[i]?.label || `File ${i + 1}` };
-      })
-      .filter(Boolean);
+      const uploaded = await uploadRequirements(selectedFiles, "nda", studentName, requestFolder);
 
-    await createRequest({
-      type: "nda",
-      formData: { ...formData, ndaType, ndaTypeLabel: cfg.label },
-      predocs,
-    });
+      let uploadIndex = 0;
+      const predocs = files
+        .map((f, i) => {
+          if (!f) return null;
+          const meta = uploaded[uploadIndex++];
+          return { ...meta, requirementLabel: cfg.fileSlots[i]?.label || `File ${i + 1}` };
+        })
+        .filter(Boolean);
 
-    alert("Request submitted!");
-    navigate("/student");
+      // Upload student e-signature
+      const sigDataUrl = sigPadRef.current.getDataUrl();
+      const { url: studentSigUrl, path: studentSigPath } = await uploadSignatureImage(
+        sigDataUrl,
+        "nda",
+        studentName,
+        requestFolder,
+        "student_sig.png"
+      );
+
+      await createRequest({
+        type: "nda",
+        formData: { ...formData, ndaType, ndaTypeLabel: cfg.label },
+        predocs,
+        studentSigUrl,
+        studentSigPath,
+      });
+
+      alert("Request submitted!");
+      navigate("/student");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to submit request");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -138,11 +165,26 @@ export default function StudentNDARequest({ ndaType }) {
               </div>
             ))}
           </div>
+
+          <div className="request-section">
+            <div className="request-section-title">Your E-Signature *</div>
+            <p className="request-sig-hint">
+              Draw your signature below. It will be embedded in the NDA document.
+            </p>
+            <SignaturePad ref={sigPadRef} height={150} />
+            <button
+              type="button"
+              className="request-sig-clear"
+              onClick={() => sigPadRef.current?.clear()}
+            >
+              Clear Signature
+            </button>
+          </div>
         </div>
 
         <div className="request-form-actions">
-          <button type="submit" className="request-form-submit">
-            Submit Request
+          <button type="submit" className="request-form-submit" disabled={submitting}>
+            {submitting ? "Submitting..." : "Submit Request"}
           </button>
         </div>
       </form>

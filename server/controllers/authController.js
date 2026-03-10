@@ -3,7 +3,14 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const AuditLog = require("../models/AuditLog");
-const { sendOtpEmail, sendWelcomeEmail } = require("../utils/emailService");
+const {
+  sendOtpEmail,
+  sendWelcomeEmail,
+  sendVerificationEmail,
+  sendWelcomeVerificationEmail,
+  sendLoginOtpEmail,
+  sendVerificationOtpEmail,
+} = require("../utils/emailService");
 
 // Helper to safely log audit events without blocking the response
 const logAudit = (data) => {
@@ -11,6 +18,15 @@ const logAudit = (data) => {
 };
 
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+
+const getClientIp = (req) => {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return req.socket?.remoteAddress || req.ip || "";
+};
+
+const FRONTEND_URL = () => process.env.FRONTEND_URL || "http://localhost:5173";
+const OTP_TRUST_WINDOW_MS = 72 * 60 * 60 * 1000; // 72 hours
 
 // REGISTER
 exports.register = async (req, res) => {
@@ -35,24 +51,151 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    const otp = generateOtp();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
     const user = await User.create({
       name: String(name).trim(),
       email: email.toLowerCase(),
       password: hashedPassword,
+      isVerified: false,
+      otp: hashedOtp,
+      otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 min
     });
+
+    sendVerificationOtpEmail(user.email, user.name, otp).catch(() => {});
 
     logAudit({ userId: user._id, action: "account_created", details: { role: user.role, method: "self_register" } });
 
-    res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ requireVerification: true, email: user.email, message: "Account created! Please check your email for the verification OTP." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// LOGIN
+// VERIFY EMAIL (OTP-based)
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { email, otp, token } = req.body;
+
+    // Support legacy token-based verification for existing links
+    if (token) {
+      const user = await User.findOne({
+        verificationToken: token,
+        verificationExpires: { $gt: new Date() },
+      });
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification link. Please register again or contact an administrator." });
+      }
+      user.isVerified = true;
+      user.verificationToken = null;
+      user.verificationExpires = null;
+      await user.save();
+      logAudit({ userId: user._id, action: "email_verified", details: { email: user.email } });
+      return res.json({ message: "Email verified successfully! You can now log in." });
+    }
+
+    // OTP-based verification
+    if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || !user.otp || !user.otpExpiry) {
+      return res.status(400).json({ message: "Invalid or expired OTP. Please request a new one." });
+    }
+
+    if (user.isVerified) {
+      return res.json({ message: "Email is already verified. You can log in." });
+    }
+
+    if (user.otpExpiry < new Date()) {
+      return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+    }
+
+    const otpMatch = await bcrypt.compare(String(otp), user.otp);
+    if (!otpMatch) return res.status(400).json({ message: "Invalid OTP" });
+
+    user.isVerified = true;
+    user.otp = null;
+    user.otpExpiry = null;
+    await user.save();
+
+    logAudit({ userId: user._id, action: "email_verified", details: { email: user.email } });
+
+    res.json({ message: "Email verified successfully! You can now log in." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// RESEND VERIFICATION OTP
+exports.resendVerificationOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      // Don't reveal whether account exists
+      return res.json({ message: "If that account exists, a new OTP has been sent." });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "This account is already verified. You can log in." });
+    }
+
+    const otp = generateOtp();
+    user.otp = await bcrypt.hash(otp, 10);
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    sendVerificationOtpEmail(user.email, user.name, otp).catch(() => {});
+
+    res.json({ message: "A new verification OTP has been sent to your email." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// VERIFY EMAIL & SET PASSWORD (for admin-created users without a password)
+exports.activateAccount = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired activation link." });
+    }
+
+    user.password = await bcrypt.hash(password, 12);
+    user.isVerified = true;
+    user.verificationToken = null;
+    user.verificationExpires = null;
+    await user.save();
+
+    logAudit({ userId: user._id, action: "account_activated", details: { email: user.email } });
+
+    res.json({ message: "Account activated! You can now log in." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// LOGIN — Step 1: credentials check + OTP challenge if needed
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers["user-agent"] || "";
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
@@ -60,8 +203,12 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      logAudit({ action: "login_failed", details: { email: email.toLowerCase(), reason: "user_not_found" } });
+      logAudit({ action: "login_failed", details: { email: email.toLowerCase(), reason: "user_not_found" }, ipAddress: clientIp });
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ message: "Please verify your email before logging in. Check your inbox for the verification link." });
     }
 
     if (!user.isActive) {
@@ -70,9 +217,95 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      logAudit({ userId: user._id, action: "login_failed", details: { reason: "wrong_password" } });
+      logAudit({ userId: user._id, action: "login_failed", details: { reason: "wrong_password" }, ipAddress: clientIp });
       return res.status(401).json({ message: "Invalid email or password" });
     }
+
+    // Check if this device/IP is trusted and within 72h window
+    const trustedDevice = user.trustedDevices.find((d) => d.ip === clientIp);
+    const isWithinWindow = trustedDevice?.lastOtpVerifiedAt &&
+      (Date.now() - trustedDevice.lastOtpVerifiedAt.getTime()) < OTP_TRUST_WINDOW_MS;
+
+    if (trustedDevice && isWithinWindow) {
+      // Device is trusted → issue token directly
+      const token = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "8h" }
+      );
+
+      logAudit({ userId: user._id, action: "login", details: { role: user.role, ip: clientIp }, ipAddress: clientIp });
+
+      return res.json({
+        token,
+        user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      });
+    }
+
+    // Device not trusted or expired → send OTP
+    const otp = generateOtp();
+    user.otp = await bcrypt.hash(otp, 10);
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    sendLoginOtpEmail(user.email, otp).catch(() => {});
+    logAudit({ userId: user._id, action: "login_otp_sent", details: { ip: clientIp }, ipAddress: clientIp });
+
+    return res.json({
+      requireOtp: true,
+      message: "A verification code has been sent to your email.",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// LOGIN — Step 2: verify login OTP
+exports.verifyLoginOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers["user-agent"] || "";
+
+    if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || !user.otp || !user.otpExpiry) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    if (user.otpExpiry < new Date()) {
+      return res.status(400).json({ message: "OTP has expired. Please log in again." });
+    }
+
+    const otpMatch = await bcrypt.compare(String(otp), user.otp);
+    if (!otpMatch) return res.status(400).json({ message: "Invalid OTP" });
+
+    // Clear OTP
+    user.otp = null;
+    user.otpExpiry = null;
+
+    // Trust this device
+    const existingIdx = user.trustedDevices.findIndex((d) => d.ip === clientIp);
+    const deviceEntry = {
+      ip: clientIp,
+      userAgent: userAgent.substring(0, 200),
+      label: userAgent.substring(0, 60),
+      lastOtpVerifiedAt: new Date(),
+    };
+
+    if (existingIdx >= 0) {
+      user.trustedDevices[existingIdx] = deviceEntry;
+    } else {
+      // Keep max 10 trusted devices
+      if (user.trustedDevices.length >= 10) {
+        user.trustedDevices.sort((a, b) => (a.lastOtpVerifiedAt || 0) - (b.lastOtpVerifiedAt || 0));
+        user.trustedDevices.shift();
+      }
+      user.trustedDevices.push(deviceEntry);
+    }
+
+    await user.save();
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -80,16 +313,77 @@ exports.login = async (req, res) => {
       { expiresIn: "8h" }
     );
 
-    logAudit({ userId: user._id, action: "login", details: { role: user.role } });
+    logAudit({ userId: user._id, action: "login", details: { role: user.role, ip: clientIp, method: "otp" }, ipAddress: clientIp });
 
-    res.json({
+    return res.json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// REFRESH TOKEN (for session extension)
+exports.refreshToken = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("_id role name email");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// UPDATE PROFILE (name & password)
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    let updated = false;
+
+    // Update name
+    if (name && String(name).trim().length >= 2) {
+      user.name = String(name).trim();
+      updated = true;
+    }
+
+    // Update password
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Current password is required to set a new password" });
       }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters" });
+      }
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      user.password = await bcrypt.hash(newPassword, 12);
+      updated = true;
+      logAudit({ userId: user._id, action: "password_changed", details: { method: "profile" } });
+    }
+
+    if (!updated) {
+      return res.status(400).json({ message: "No changes provided" });
+    }
+
+    await user.save();
+
+    // Return updated user info (so frontend can update context)
+    res.json({
+      message: "Profile updated successfully",
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -188,7 +482,7 @@ exports.resetPassword = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select("-password -otp -otpExpiry -resetToken -resetTokenExpiry")
+      .select("-password -otp -otpExpiry -resetToken -resetTokenExpiry -verificationToken -trustedDevices")
       .sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
@@ -196,10 +490,10 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// ADMIN: Create user (with temp password emailed)
+// ADMIN: Create user (with verification email)
 exports.adminCreateUser = async (req, res) => {
   try {
-    const { name, email, role } = req.body;
+    const { name, email, role, password } = req.body;
 
     if (!name || !email) return res.status(400).json({ message: "Name and email are required" });
     if (!["student", "admin", "staff"].includes(role))
@@ -208,17 +502,37 @@ exports.adminCreateUser = async (req, res) => {
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) return res.status(400).json({ message: "User with this email already exists" });
 
-    const tempPassword = crypto.randomBytes(6).toString("hex");
-    const hashedPassword = await bcrypt.hash(tempPassword, 12);
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const hasPasswordSet = password && password.length >= 8;
+
+    // If admin set a password, hash it; otherwise use a placeholder (user will set via activate link)
+    const hashedPassword = hasPasswordSet
+      ? await bcrypt.hash(password, 12)
+      : await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12);
 
     const user = await User.create({
       name: String(name).trim(),
       email: email.toLowerCase(),
       password: hashedPassword,
       role: role || "student",
+      isVerified: false,
+      verificationToken,
+      verificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
     });
 
-    await sendWelcomeEmail(user.email, user.name, tempPassword).catch(() => {});
+    if (hasPasswordSet) {
+      // Admin set a password → send verification OTP
+      const verifyOtp = generateOtp();
+      user.otp = await bcrypt.hash(verifyOtp, 10);
+      user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+      await user.save();
+      sendVerificationOtpEmail(user.email, user.name, verifyOtp).catch(() => {});
+    } else {
+      // No password set → send activation link (verify + set password)
+      const activateUrl = `${FRONTEND_URL()}/activate?token=${verificationToken}`;
+      sendWelcomeVerificationEmail(user.email, user.name, activateUrl).catch(() => {});
+    }
+
     logAudit({
       userId: req.user.id,
       action: "account_created",
@@ -228,7 +542,9 @@ exports.adminCreateUser = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "User created. Temporary password sent to their email.",
+      message: hasPasswordSet
+        ? "User created. A verification email has been sent."
+        : "User created. An activation email has been sent to set their password.",
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {

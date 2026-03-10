@@ -1,90 +1,104 @@
 .landing {
   display: flex;
-  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   margin: -24px -28px;
   width: calc(100% + 56px);
   min-height: calc(100% + 48px);
-  background: var(--bg);
-}
-
-/* ── Form Panel (left) ── */
-.landing-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 28px;
-  width: 42%;
-  min-width: 380px;
-  padding: 48px 40px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  box-sizing: border-box;
-}
-
-/* ── Brand Panel (right) ── */
-.landing-brand {
-  flex: 1;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
   background: linear-gradient(145deg, #0f2d6b 0%, #1a3d84 60%, #0a1f4d 100%);
   position: relative;
   overflow: hidden;
 }
 
-.landing-brand::before {
-  content: '';
-  position: absolute;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  pointer-events: none;
-}
-
-.landing-brand::after {
+.landing::before {
   content: '';
   position: absolute;
   width: 500px;
   height: 500px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  top: -120px;
+  right: -100px;
   pointer-events: none;
 }
 
-.landing-brand-logo {
-  width: 110px;
-  height: 110px;
-  object-fit: contain;
+.landing::after {
+  content: '';
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  bottom: -80px;
+  left: -60px;
+  pointer-events: none;
+}
+
+/* ── Centered Wrapper ── */
+.landing-wrapper {
   position: relative;
   z-index: 1;
-  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.25));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  max-width: 440px;
+  padding: 48px 40px;
+  box-sizing: border-box;
+}
+
+/* ── White Form Panel (form only) ── */
+.landing-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  padding: 36px 32px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+/* ── Brand (on blue background, above panel) ── */
+.landing-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.landing-brand-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
 }
 
 .landing-brand-text {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   text-align: center;
-  position: relative;
-  z-index: 1;
 }
 
 .landing-brand-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.95);
   letter-spacing: -0.02em;
 }
 
 .landing-brand-subtitle {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.65);
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
 }
 
 /* ── Toggle ── */
@@ -143,7 +157,7 @@
   flex-direction: column;
   gap: 14px;
   width: 100%;
-  max-width: 340px;
+  max-width: 380px;
 }
 
 .landing-title {
@@ -181,7 +195,7 @@
   width: 100%;
   height: 44px;
   padding: 10px 14px;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   color: var(--text-primary);
@@ -253,20 +267,24 @@
   opacity: 0.75;
 }
 
-@media (max-width: 900px) {
-  .landing {
-    flex-direction: column-reverse;
+.landing-success {
+  font-size: 13px;
+  color: var(--s-approved-text);
+  background: var(--s-approved-bg);
+  border: 1px solid var(--s-approved-dot);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}
+
+@media (max-width: 520px) {
+  .landing-wrapper {
+    max-width: 100%;
+    margin: 0 16px;
+    padding: 36px 0;
   }
 
   .landing-panel {
-    width: 100%;
-    min-width: 0;
-    min-height: auto;
-    padding: 48px 24px;
-  }
-
-  .landing-brand {
-    min-height: 240px;
-    padding: 40px 24px;
+    padding: 28px 20px;
+    border-radius: 12px;
   }
 }

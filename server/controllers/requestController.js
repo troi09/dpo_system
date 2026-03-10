@@ -19,7 +19,7 @@ const generateSigningTokenValue = () =>
 
 exports.createRequest = async (req, res) => {
   try {
-    const { type, formData, predocs, authorizerSigUrl, authorizerSigPath } = req.body;
+    const { type, formData, predocs, authorizerSigUrl, authorizerSigPath, studentSigUrl, studentSigPath } = req.body;
 
     if (!type || !["nda", "agreement"].includes(type)) {
       return res.status(400).json({ message: "Invalid type" });
@@ -43,6 +43,11 @@ exports.createRequest = async (req, res) => {
     if (type === "agreement") {
       createPayload.authorizerSigUrl = authorizerSigUrl || "";
       createPayload.authorizerSigPath = authorizerSigPath || "";
+    }
+
+    if (type === "nda") {
+      createPayload.studentSigUrl = studentSigUrl || "";
+      createPayload.studentSigPath = studentSigPath || "";
     }
 
     const created = await Request.create(createPayload);
@@ -75,7 +80,7 @@ exports.getMyRequests = async (req, res) => {
 
 exports.resubmitRequest = async (req, res) => {
   try {
-    const { formData, predocs, authorizerSigUrl, authorizerSigPath } = req.body;
+    const { formData, predocs, authorizerSigUrl, authorizerSigPath, studentSigUrl, studentSigPath } = req.body;
 
     const r = await Request.findById(req.params.id);
     if (!r) return res.status(404).json({ message: "Request not found" });
@@ -100,7 +105,21 @@ exports.resubmitRequest = async (req, res) => {
       r.authorizerSigPath = authorizerSigPath || "";
     }
 
+    if (r.type === "nda" && studentSigUrl) {
+      r.studentSigUrl = studentSigUrl;
+      r.studentSigPath = studentSigPath || "";
+    }
+
     await r.save();
+
+    logAudit({
+      userId: req.user.id,
+      action: "request_resubmitted",
+      resourceType: "request",
+      resourceId: String(r._id),
+      details: { type: r.type, newStatus: r.status },
+    });
+
     return res.json({ message: "Resubmitted", request: r });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -136,6 +155,13 @@ exports.getRequestById = async (req, res) => {
 
     if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
+    // Strip signing token from non-admin responses for security
+    if (!isAdmin) {
+      const obj = r.toObject();
+      delete obj.signingToken;
+      return res.json(obj);
+    }
+
     return res.json(r);
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -146,7 +172,7 @@ exports.getRequestById = async (req, res) => {
 exports.updateRequestStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, remarks } = req.body;
+    const { status, remarks, adminSigUrl, adminSigPath } = req.body;
 
     const allowedStatuses = ["approved", "revision_requested"];
     if (!status || !allowedStatuses.includes(status)) {
@@ -175,6 +201,12 @@ exports.updateRequestStatus = async (req, res) => {
 
     if (status === "approved" && !existing.serialNo) {
       updatePayload.serialNo = generateVerification();
+    }
+
+    // Store admin signature for NDA approvals
+    if (status === "approved" && existing.type === "nda" && adminSigUrl) {
+      updatePayload.adminSigUrl = adminSigUrl;
+      updatePayload.adminSigPath = adminSigPath || "";
     }
 
     const updated = await Request.findByIdAndUpdate(id, updatePayload, { new: true }).select("-__v");
@@ -264,6 +296,14 @@ exports.generateSigningLink = async (req, res) => {
 
     await r.save();
 
+    logAudit({
+      userId: req.user.id,
+      action: "signing_link_generated",
+      resourceType: "request",
+      resourceId: String(id),
+      details: { type: r.type },
+    });
+
     return res.json({
       message: "Signing link generated",
       signingToken: r.signingToken,
@@ -335,6 +375,13 @@ exports.repSubmit = async (req, res) => {
 
     await r.save();
 
+    logAudit({
+      action: "rep_signature_submitted",
+      resourceType: "request",
+      resourceId: String(r._id),
+      details: { repName: repName.trim() },
+    });
+
     return res.json({ message: "Submission received. Thank you." });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -364,6 +411,12 @@ exports.repReject = async (req, res) => {
     r.status = "declined";
 
     await r.save();
+
+    logAudit({
+      action: "rep_signature_declined",
+      resourceType: "request",
+      resourceId: String(r._id),
+    });
 
     return res.json({ message: "You have declined the signing request." });
   } catch (err) {
@@ -438,7 +491,7 @@ exports.adminPhase3Action = async (req, res) => {
 exports.getSignatureImages = async (req, res) => {
   try {
     const request = await Request.findById(req.params.id)
-      .select("authorizerSigUrl repSigUrl");
+      .select("authorizerSigUrl repSigUrl studentSigUrl adminSigUrl type");
     if (!request) return res.status(404).json({ message: "Request not found" });
 
     const toDataUrl = async (url) => {
@@ -449,6 +502,14 @@ exports.getSignatureImages = async (req, res) => {
       const base64 = Buffer.from(buffer).toString("base64");
       return `data:${mimeType};base64,${base64}`;
     };
+
+    if (request.type === "nda") {
+      const [studentSig, adminSig] = await Promise.all([
+        toDataUrl(request.studentSigUrl),
+        toDataUrl(request.adminSigUrl),
+      ]);
+      return res.json({ studentSig, adminSig });
+    }
 
     const [authorizerSig, repSig] = await Promise.all([
       toDataUrl(request.authorizerSigUrl),

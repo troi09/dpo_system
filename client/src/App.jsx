@@ -4,10 +4,13 @@ import { AuthContext } from "./context/AuthContext";
 
 import Navbar from "./components/Navbar";
 import Headbar from "./components/Headbar";
+import SessionWarningModal from "./components/SessionWarningModal";
 import RequireRole from "./guards/RequireRole";
 
 import Landing from "./pages/Landing";
 import VerifyDocument from "./pages/VerifyDocument";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import ActivateAccountPage from "./pages/ActivateAccountPage";
 import RepSigningPage from "./pages/public/RepSigningPage";
 
 // Student pages
@@ -25,7 +28,6 @@ import StudentResubmitRequest from "./pages/student/StudentResubmitRequest";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminRequests from "./pages/admin/AdminRequests";
 import AdminRequestReview from "./pages/admin/AdminRequestReview";
-import AdminTemplates from "./pages/admin/AdminTemplates";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -33,7 +35,7 @@ import AdminArchives from "./pages/admin/AdminArchives";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 
 function AppLayout() {
-  const { user } = useContext(AuthContext);
+  const { user, showSessionWarning, extendSession } = useContext(AuthContext);
 
   return (
     <div className="app-container">
@@ -45,6 +47,8 @@ function AppLayout() {
           <Outlet />
         </div>
       </div>
+
+      {showSessionWarning && <SessionWarningModal onExtend={extendSession} />}
     </div>
   );
 }
@@ -58,6 +62,8 @@ function App() {
         {/* Public routes (no auth, no layout) */}
         <Route path="/verify/:code" element={<VerifyDocument />} />
         <Route path="/sign/:token" element={<RepSigningPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/activate" element={<ActivateAccountPage />} />
 
         <Route element={<AppLayout />}>
           <Route
@@ -165,14 +171,6 @@ function App() {
             element={
               <RequireRole allowedRoles={["admin"]}>
                 <AdminRequestReview />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/admin/templates"
-            element={
-              <RequireRole allowedRoles={["admin"]}>
-                <AdminTemplates />
               </RequireRole>
             }
           />

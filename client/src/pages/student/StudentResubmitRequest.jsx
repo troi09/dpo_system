@@ -89,6 +89,13 @@ export default function StudentResubmitRequest() {
       }
     }
 
+    if (reqData.type === "nda") {
+      if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
+        alert("Please draw your e-signature before resubmitting.");
+        return;
+      }
+    }
+
     const basePath = reqData.predocs?.[0]?.path || "";
     const initialFolder = getInitialFolderFromPath(basePath);
     if (!initialFolder) {
@@ -125,6 +132,19 @@ export default function StudentResubmitRequest() {
       );
       payload.authorizerSigUrl = authorizerSigUrl;
       payload.authorizerSigPath = authorizerSigPath;
+    }
+
+    if (reqData.type === "nda") {
+      const sigDataUrl = sigPadRef.current.getDataUrl();
+      const { url: studentSigUrl, path: studentSigPath } = await uploadSignatureImage(
+        sigDataUrl,
+        "nda",
+        studentName,
+        resubPath,
+        "student_sig.png"
+      );
+      payload.studentSigUrl = studentSigUrl;
+      payload.studentSigPath = studentSigPath;
     }
 
     await resubmitRequest(id, payload);
@@ -292,6 +312,26 @@ export default function StudentResubmitRequest() {
 
             {/* E-signature for agreement resubmit */}
             {reqData.type === "agreement" && (
+              <>
+                <div className="request-section-title" style={{ marginTop: "16px" }}>
+                  Your E-Signature *
+                </div>
+                <p className="request-sig-hint">
+                  Please draw your signature again for this resubmission.
+                </p>
+                <SignaturePad ref={sigPadRef} height={150} />
+                <button
+                  type="button"
+                  className="request-sig-clear"
+                  onClick={() => sigPadRef.current?.clear()}
+                >
+                  Clear Signature
+                </button>
+              </>
+            )}
+
+            {/* E-signature for NDA resubmit */}
+            {reqData.type === "nda" && (
               <>
                 <div className="request-section-title" style={{ marginTop: "16px" }}>
                   Your E-Signature *

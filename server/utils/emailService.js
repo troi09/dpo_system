@@ -121,3 +121,89 @@ exports.sendWelcomeEmail = (email, name, tempPassword) =>
         </div>
       </div>`,
   });
+
+/**
+ * Send an email verification link.
+ */
+exports.sendVerificationEmail = (email, name, verifyUrl) =>
+  sendMail({
+    to: email,
+    subject: "RTU DPO Portal – Verify Your Email",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="background:#0f2d6b;padding:24px 32px">
+          <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
+        </div>
+        <div style="padding:32px">
+          <p style="color:#0f172a;font-size:15px;margin-top:0">Hi <strong>${name}</strong>,</p>
+          <p style="color:#475569;font-size:14px">Please verify your email address to activate your account.</p>
+          <a href="${verifyUrl}" style="display:inline-block;background:#0f2d6b;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin:8px 0 16px">Verify Email</a>
+          <p style="color:#64748b;font-size:13px">This link expires in <strong>24 hours</strong>. If you did not create this account, please ignore this email.</p>
+        </div>
+      </div>`,
+  });
+
+/**
+ * Send a welcome email with a verification/activation link (admin-created user, no password set).
+ */
+exports.sendWelcomeVerificationEmail = (email, name, activateUrl) =>
+  sendMail({
+    to: email,
+    subject: "RTU DPO Portal – Welcome! Activate Your Account",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="background:#0f2d6b;padding:24px 32px">
+          <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
+        </div>
+        <div style="padding:32px">
+          <p style="color:#0f172a;font-size:15px;margin-top:0">Hi <strong>${name}</strong>,</p>
+          <p style="color:#475569;font-size:14px">An administrator has created an account for you at the RTU DPO Portal. Click the button below to verify your email and set your password.</p>
+          <a href="${activateUrl}" style="display:inline-block;background:#0f2d6b;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin:8px 0 16px">Activate Account</a>
+          <p style="color:#64748b;font-size:13px">This link expires in <strong>24 hours</strong>. If you did not expect this, please contact your administrator.</p>
+        </div>
+      </div>`,
+  });
+
+/**
+ * Send a verification OTP email for new account registration.
+ */
+exports.sendVerificationOtpEmail = (email, name, otp) =>
+  sendMail({
+    to: email,
+    subject: "RTU DPO Portal \u2013 Verify Your Email",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="background:#0f2d6b;padding:24px 32px">
+          <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
+        </div>
+        <div style="padding:32px">
+          <p style="color:#0f172a;font-size:15px;margin-top:0">Hi <strong>${name}</strong>,</p>
+          <p style="color:#475569;font-size:14px">Use the code below to verify your email address and activate your account.</p>
+          <div style="font-size:36px;font-weight:700;letter-spacing:8px;color:#0f2d6b;padding:16px 0">${otp}</div>
+          <p style="color:#64748b;font-size:13px">This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+          <p style="color:#94a3b8;font-size:12px;margin:0">If you did not create this account, please ignore this email.</p>
+        </div>
+      </div>`,
+  });
+
+/**
+ * Send a login OTP email for device/IP verification.
+ */
+exports.sendLoginOtpEmail = (email, otp) =>
+  sendMail({
+    to: email,
+    subject: "RTU DPO Portal – Login Verification OTP",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="background:#0f2d6b;padding:24px 32px">
+          <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
+        </div>
+        <div style="padding:32px">
+          <p style="color:#0f172a;font-size:15px;margin-top:0">A login attempt was made from an unrecognized device or location.</p>
+          <p style="color:#475569;font-size:14px">Your verification code is:</p>
+          <div style="font-size:36px;font-weight:700;letter-spacing:8px;color:#0f2d6b;padding:16px 0">${otp}</div>
+          <p style="color:#64748b;font-size:13px">This code expires in <strong>10 minutes</strong>. If you did not attempt to log in, your password may be compromised — please reset it immediately.</p>
+        </div>
+      </div>`,
+  });

@@ -12,11 +12,47 @@ const ACTION_COLORS = {
   ARCHIVE: { bg: "#fef9c3", color: "#78350f" },
   PASSWORD_RESET: { bg: "#ffedd5", color: "#9a3412" },
   REGISTER: { bg: "#d1fae5", color: "#065f46" },
+  SIGNATURE: { bg: "#e0e7ff", color: "#3730a3" },
+  DECLINED: { bg: "#fee2e2", color: "#991b1b" },
 };
 
+const ACTION_LABELS = {
+  login: "Login",
+  login_failed: "Login Failed",
+  login_otp_sent: "Login OTP Sent",
+  account_created: "Account Created",
+  account_activated: "Account Activated",
+  email_verified: "Email Verified",
+  request_created: "Request Created",
+  request_approved: "Request Approved",
+  request_revision_required: "Revision Requested",
+  request_resubmitted: "Request Resubmitted",
+  password_changed: "Password Changed",
+  password_reset_requested: "Password Reset Requested",
+  password_reset_triggered_by_admin: "Password Reset (Admin)",
+  user_activated: "User Activated",
+  user_deactivated: "User Deactivated",
+  signing_link_generated: "Signing Link Generated",
+  rep_signature_submitted: "Rep Signature Submitted",
+  rep_signature_declined: "Rep Signature Declined",
+};
+
+const prettyAction = (action) =>
+  ACTION_LABELS[action] || (action ? action.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—");
+
 const actionStyle = (action = "") => {
-  const key = action.toUpperCase().split("_")[0];
-  return ACTION_COLORS[action.toUpperCase()] || ACTION_COLORS[key] || { bg: "#f1f5f9", color: "#64748b" };
+  // Direct match
+  const upper = action.toUpperCase();
+  if (ACTION_COLORS[upper]) return ACTION_COLORS[upper];
+  // Category match
+  if (upper.includes("LOGIN") || upper.includes("OTP")) return ACTION_COLORS.LOGIN;
+  if (upper.includes("DECLINED") || upper.includes("FAILED") || upper.includes("DEACTIVATED")) return ACTION_COLORS.DECLINED;
+  if (upper.includes("CREATED") || upper.includes("REGISTER") || upper.includes("ACTIVATED") || upper.includes("VERIFIED")) return ACTION_COLORS.CREATE;
+  if (upper.includes("APPROVED") || upper.includes("UPDATED") || upper.includes("RESUBMIT")) return ACTION_COLORS.UPDATE;
+  if (upper.includes("PASSWORD") || upper.includes("RESET")) return ACTION_COLORS.PASSWORD_RESET;
+  if (upper.includes("SIGN")) return ACTION_COLORS.SIGNATURE;
+  if (upper.includes("ARCHIVE")) return ACTION_COLORS.ARCHIVE;
+  return { bg: "#f1f5f9", color: "#64748b" };
 };
 
 const PAGE_SIZE = 20;
@@ -34,7 +70,8 @@ export default function AdminAuditLog() {
     try {
       const res = await getAuditLogs({ page: p, limit: PAGE_SIZE, action: action || undefined });
       setLogs(res.logs || res);
-      if (res.totalPages) setTotalPages(res.totalPages);
+      if (res.total) setTotalPages(Math.ceil(res.total / PAGE_SIZE));
+      else if (res.totalPages) setTotalPages(res.totalPages);
     } catch (err) {
       console.error(err);
     } finally {
@@ -59,7 +96,25 @@ export default function AdminAuditLog() {
       )
     : logs;
 
-  const ACTION_TYPES = ["", "CREATE", "UPDATE", "LOGIN", "LOGOUT", "PASSWORD_RESET", "REGISTER", "ARCHIVE"];
+  const ACTION_TYPES = [
+    { label: "All Actions", value: "" },
+    { label: "Login", value: "login" },
+    { label: "Login Failed", value: "login_failed" },
+    { label: "Account Created", value: "account_created" },
+    { label: "Account Activated", value: "account_activated" },
+    { label: "Request Created", value: "request_created" },
+    { label: "Request Approved", value: "request_approved" },
+    { label: "Revision Requested", value: "request_revision_required" },
+    { label: "Request Resubmitted", value: "request_resubmitted" },
+    { label: "Password Changed", value: "password_changed" },
+    { label: "Password Reset", value: "password_reset_requested" },
+    { label: "User Activated", value: "user_activated" },
+    { label: "User Deactivated", value: "user_deactivated" },
+    { label: "Email Verified", value: "email_verified" },
+    { label: "Signing Link Generated", value: "signing_link_generated" },
+    { label: "Rep Signature Submitted", value: "rep_signature_submitted" },
+    { label: "Rep Signature Declined", value: "rep_signature_declined" },
+  ];
 
   return (
     <div style={{ maxWidth: 1100 }}>
@@ -105,16 +160,16 @@ export default function AdminAuditLog() {
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {ACTION_TYPES.map((a) => (
             <button
-              key={a || "all"}
-              onClick={() => handleActionFilter(a)}
+              key={a.value || "all"}
+              onClick={() => handleActionFilter(a.value)}
               style={{
                 padding: "8px 12px", borderRadius: "var(--radius-md)", fontWeight: 600, fontSize: 11,
                 border: "1px solid var(--border-strong)", fontFamily: "inherit", cursor: "pointer",
-                background: actionFilter === a ? "var(--primary)" : "var(--surface)",
-                color: actionFilter === a ? "#fff" : "var(--text-secondary)",
+                background: actionFilter === a.value ? "var(--primary)" : "var(--surface)",
+                color: actionFilter === a.value ? "#fff" : "var(--text-secondary)",
               }}
             >
-              {a || "All Actions"}
+              {a.label}
             </button>
           ))}
         </div>
@@ -161,7 +216,7 @@ export default function AdminAuditLog() {
                     </td>
                     <td style={{ padding: "11px 14px" }}>
                       <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: style.bg, color: style.color, whiteSpace: "nowrap" }}>
-                        {log.action || "—"}
+                        {prettyAction(log.action)}
                       </span>
                     </td>
                     <td style={{ padding: "11px 14px" }}>
@@ -175,12 +230,16 @@ export default function AdminAuditLog() {
                       )}
                     </td>
                     <td style={{ padding: "11px 14px", color: "var(--text-secondary)", fontSize: 12 }}>
-                      {log.resourceType || "—"}
+                      {log.resourceType ? log.resourceType.charAt(0).toUpperCase() + log.resourceType.slice(1) : "—"}
                       {log.resourceId ? <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{String(log.resourceId).slice(-8)}</div> : null}
                     </td>
                     <td style={{ padding: "11px 14px", color: "var(--text-secondary)", fontSize: 12, maxWidth: 240 }}>
                       <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {log.details ? (typeof log.details === "string" ? log.details : JSON.stringify(log.details)) : "—"}
+                        {log.details && typeof log.details === "object" && Object.keys(log.details).length > 0
+                          ? Object.entries(log.details).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join(", ")
+                          : log.details && typeof log.details === "string"
+                          ? log.details
+                          : "—"}
                       </div>
                     </td>
                     <td style={{ padding: "11px 14px", color: "var(--text-muted)", fontSize: 11, fontFamily: "monospace" }}>
