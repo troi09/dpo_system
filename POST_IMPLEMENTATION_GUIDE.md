@@ -337,6 +337,61 @@ Set all server env vars (`MONGO_URI`, `JWT_SECRET`, `SMTP_USER`, `SMTP_PASS`, `C
 
 ---
 
+## March 2026 Update Notes
+
+### Login Portal Redesign (Glassmorphism + Hierarchy)
+
+- The login portal now uses a stronger glassmorphic panel (`rgba(255,255,255,0.15)` + blur + subtle white border).
+- Branding hierarchy was updated:
+- DPO logo is larger.
+- `Data Protection Office` title is larger than `Rizal Technological University`.
+- Login/register form container was reduced in width and input sizes to keep visual balance.
+
+### OTP Verification Flow Changes
+
+- Public registration still creates users as `isVerified: false` and sends a 6-digit email OTP.
+- Admin-created users now require a `temporary password` field and are always created as `isVerified: false`.
+- Admin-created users receive:
+- a welcome email containing the temporary password, and
+- a verification OTP email.
+- Login interception for unverified users now automatically sends a fresh verification OTP and returns a `requireVerification` response. The frontend redirects to `/verify-email?email=...`.
+
+### Staff Access Scope
+
+- `staff` now has access to the same operational admin pages as `admin`:
+- dashboard, requests, reports, archives, and audit.
+- `staff` does **not** have access to user management (`/admin/users` remains admin-only).
+- Backend route guards were updated to enforce this policy server-side.
+
+### Audit Trail Improvements
+
+- Removed the `IP` column from the audit table UI.
+- The `Details` column now renders human-readable event narratives (login, account creation, request lifecycle, password and status actions) instead of raw key-value tags when possible.
+
+### Vercel / Production Checklist
+
+1. Set client env in Vercel:
+- `VITE_API_BASE_URL=https://<your-backend-host>`
+
+2. Set server env in host (Render/Railway/etc):
+- `MONGO_URI`
+- `JWT_SECRET`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `FRONTEND_URL=https://<your-vercel-domain>`
+- `ALLOWED_ORIGINS=https://<your-vercel-domain>`
+
+3. Confirm email delivery:
+- Gmail app password is valid.
+- SMTP sender is allowed and not blocked by provider limits.
+
+4. Verify end-to-end scenarios after deploy:
+- Public registration -> OTP verification -> login.
+- Admin creates user with temporary password -> user login intercepted -> OTP verification -> dashboard access.
+- Staff account can access `/admin` operational pages but gets blocked from `/admin/users`.
+
+---
+
 ## Security Notes
 
 - OTPs are stored **hashed** (bcrypt, 10 rounds) in the database. The plain OTP is only ever sent by email, never stored.

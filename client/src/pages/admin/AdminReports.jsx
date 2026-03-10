@@ -138,14 +138,14 @@ export default function AdminReports() {
   ];
 
   return (
-    <div style={{ maxWidth: 1100 }}>
+    <div>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Reports &amp; Analytics</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-muted)" }}>System-wide request data and trends</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {filterOptions.map((opt) => (
             <button
               key={opt.value}
@@ -178,7 +178,7 @@ export default function AdminReports() {
       </div>
 
       {loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+        <div className="responsive-grid-4" style={{ gap: 14, marginBottom: 24 }}>
           {[...Array(4)].map((_, i) => (
             <div
               key={`sk-${i}`}
@@ -198,7 +198,7 @@ export default function AdminReports() {
       {!loading && (
         <>
           {/* KPI Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+          <div className="responsive-grid-4" style={{ gap: 14, marginBottom: 24 }}>
             {[
               { label: "Total", value: total, color: "#3b82f6" },
               { label: "Approved", value: approved, color: "#10b981" },
@@ -237,7 +237,7 @@ export default function AdminReports() {
           </motion.div>
 
           {/* Charts Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+          <div className="responsive-grid-2" style={{ marginBottom: 24 }}>
             {/* Donut – Status distribution */}
             <motion.div
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}

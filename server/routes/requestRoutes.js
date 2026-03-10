@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { protect, authorizeAdmin } = require("../middleware/authMiddleware");
+const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 const {
   createRequest,
   getMyRequests,
@@ -35,18 +35,18 @@ router.get("/my", protect, getMyRequests);
 router.patch("/:id/resubmit", protect, resubmitRequest);
 
 // ── Admin ──────────────────────────────────────────────────────────────────
-router.get("/all", protect, authorizeAdmin, getAllRequests);
-router.get("/stats", protect, authorizeAdmin, getRequestStats);
-router.get("/archived", protect, authorizeAdmin, getArchivedRequests);
-router.patch("/:id/approved-document", protect, authorizeAdmin, saveApprovedDocument);
+router.get("/all", protect, authorizeRoles("admin", "staff"), getAllRequests);
+router.get("/stats", protect, authorizeRoles("admin", "staff"), getRequestStats);
+router.get("/archived", protect, authorizeRoles("admin", "staff"), getArchivedRequests);
+router.patch("/:id/approved-document", protect, authorizeRoles("admin", "staff"), saveApprovedDocument);
 
 // Agreement-specific admin actions
-router.patch("/:id/generate-signing-link", protect, authorizeAdmin, generateSigningLink);
-router.patch("/:id/admin-phase3", protect, authorizeAdmin, adminPhase3Action);
-router.get("/:id/sig-images", protect, authorizeAdmin, getSignatureImages);
+router.patch("/:id/generate-signing-link", protect, authorizeRoles("admin", "staff"), generateSigningLink);
+router.patch("/:id/admin-phase3", protect, authorizeRoles("admin", "staff"), adminPhase3Action);
+router.get("/:id/sig-images", protect, authorizeRoles("admin", "staff"), getSignatureImages);
 
 // NDA status update (pending → approved | revision_required)
-router.patch("/:id", protect, authorizeAdmin, updateRequestStatus);
+router.patch("/:id", protect, authorizeRoles("admin", "staff"), updateRequestStatus);
 
 router.get("/:id", protect, getRequestById);
 

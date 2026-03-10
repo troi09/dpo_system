@@ -170,3 +170,49 @@
   border-color: var(--s-revision-dot);
   color: var(--s-revision-text);
 }
+
+@media (max-width: 900px) {
+  .navbar {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .navbar-brand {
+    height: 56px;
+    min-height: 56px;
+    padding: 0 14px;
+  }
+
+  .navbar-links {
+    flex-direction: row;
+    gap: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .navbar-link {
+    flex-shrink: 0;
+  }
+
+  .navbar-user {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    gap: 12px;
+  }
+
+  .navbar-user-top {
+    min-width: 0;
+  }
+
+  .navbar-logout {
+    width: auto;
+    min-width: 92px;
+    padding: 7px 10px;
+  }
+}

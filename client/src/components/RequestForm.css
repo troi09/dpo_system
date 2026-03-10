@@ -147,9 +147,8 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .request-file-subtitle {
@@ -228,4 +227,52 @@
 
 .request-form-submit:hover {
   background: var(--primary-hover);
+}
+
+@media (max-width: 900px) {
+  .request-form-page {
+    max-width: 100%;
+  }
+
+  .request-form-card {
+    max-width: 100%;
+    padding: 18px 14px;
+    gap: 16px;
+  }
+
+  .request-form-header {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    justify-items: start;
+  }
+
+  .request-form-title {
+    justify-self: start;
+    font-size: 15px;
+  }
+
+  .request-form-body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .request-file-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .request-file-action {
+    width: 100%;
+    text-align: center;
+  }
+
+  .request-form-actions {
+    justify-content: stretch;
+  }
+
+  .request-form-submit {
+    width: 100%;
+    padding: 11px 14px;
+  }
 }

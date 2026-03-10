@@ -151,7 +151,7 @@ export default function AdminDashboard() {
   return (
     <div className="dashboard-page">
       {/* ── Summary Cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+      <div className="responsive-grid-4" style={{ marginBottom: 24 }}>
         {summaryCards.map((card, i) => (
           <motion.div
             key={card.label}
@@ -193,6 +193,7 @@ export default function AdminDashboard() {
         className="dashboard-card"
         style={{ marginBottom: 24 }}
       >
+        <div className="table-scroll">
         <table className="dashboard-table">
           <thead>
             <tr className="dashboard-table-title-row">
@@ -269,10 +270,11 @@ export default function AdminDashboard() {
             )}
           </tbody>
         </table>
+        </div>
       </motion.div>
 
       {/* ── MIDDLE: Analytics Charts ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+      <div className="responsive-grid-2" style={{ marginBottom: 24 }}>
         {/* Donut Chart – Status Distribution */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}

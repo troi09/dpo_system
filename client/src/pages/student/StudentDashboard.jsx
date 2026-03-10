@@ -50,6 +50,7 @@ const StudentDashboard = () => {
   return (
     <div className="dashboard-page">
       <div className="dashboard-card">
+        <div className="table-scroll">
         <table className="dashboard-table">
           <thead>
             <tr className="dashboard-table-title-row">
@@ -120,6 +121,7 @@ const StudentDashboard = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

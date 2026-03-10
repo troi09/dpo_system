@@ -55,6 +55,69 @@ const actionStyle = (action = "") => {
   return { bg: "#f1f5f9", color: "#64748b" };
 };
 
+const formatActor = (user) => {
+  if (!user) return "System";
+  const role = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "User";
+  return `${role} ${user.name || user.email || "User"}`;
+};
+
+const formatAuditDetails = (log) => {
+  const actor = formatActor(log.userId);
+  const details = log.details && typeof log.details === "object" ? log.details : {};
+  const resourceLabel = log.resourceType || "record";
+  const resourceId = log.resourceId ? ` (${String(log.resourceId).slice(-8)})` : "";
+
+  switch (log.action) {
+    case "login":
+      return `${actor} signed in successfully.`;
+    case "login_failed":
+      return `${actor} failed to sign in (${details.reason || "invalid credentials"}).`;
+    case "login_otp_sent":
+      return `A login OTP was sent to ${actor}.`;
+    case "verification_otp_sent":
+      return `A verification OTP was sent to ${actor} before account access.`;
+    case "account_created":
+      if (details.createdBy === "admin") {
+        return `${actor} created an account for ${details.targetEmail || "a user"} with role ${details.role || "student"}.`;
+      }
+      return `${actor} created a new account.`;
+    case "account_activated":
+      return `${actor} activated their account.`;
+    case "email_verified":
+      return `${actor} verified their email address.`;
+    case "request_created":
+      return `${actor} submitted a ${String(details.type || "document").toUpperCase()} request.`;
+    case "request_resubmitted":
+      return `${actor} resubmitted a ${String(details.type || "document").toUpperCase()} request.`;
+    case "request_approved":
+      return `${actor} approved a ${resourceLabel}${resourceId}.`;
+    case "request_revision_required":
+      return `${actor} requested revisions for a ${resourceLabel}${resourceId}.`;
+    case "signing_link_generated":
+      return `${actor} generated a representative signing link.`;
+    case "rep_signature_submitted":
+      return `Representative ${details.repName || "user"} submitted a signature.`;
+    case "rep_signature_declined":
+      return `The representative declined the signing request.`;
+    case "password_changed":
+      return `${actor} changed their password (${details.method || "profile"}).`;
+    case "password_reset_requested":
+      return `${actor} requested a password reset OTP.`;
+    case "password_reset_triggered_by_admin":
+      return `${actor} triggered a password reset OTP for ${details.targetEmail || "a user"}.`;
+    case "user_activated":
+      return `${actor} reactivated ${details.targetEmail || "a user account"}.`;
+    case "user_deactivated":
+      return `${actor} deactivated ${details.targetEmail || "a user account"}.`;
+    default:
+      if (typeof log.details === "string" && log.details.trim()) return log.details;
+      if (log.details && typeof log.details === "object" && Object.keys(log.details).length > 0) {
+        return Object.entries(log.details).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join(", ");
+      }
+      return "No additional details were recorded.";
+  }
+};
+
 const PAGE_SIZE = 20;
 
 export default function AdminAuditLog() {
@@ -178,14 +241,14 @@ export default function AdminAuditLog() {
       {/* Table */}
       <div style={{
         background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: "var(--radius-lg)", overflow: "hidden", boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--radius-lg)", overflowX: "auto", boxShadow: "var(--shadow-sm)",
         marginBottom: 16,
       }}>
         {loading ? (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", minWidth: 960, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
-                {["Timestamp", "Action", "User", "Resource", "Details", "IP"].map((h) => (
+                {["Timestamp", "Action", "User", "Resource", "Details"].map((h) => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
                 ))}
               </tr>
@@ -195,7 +258,6 @@ export default function AdminAuditLog() {
                 <tr key={`sk-${i}`} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
                   <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-pill" /></td>
-                  <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
                   <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
                   <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
                   <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
@@ -209,10 +271,10 @@ export default function AdminAuditLog() {
             No audit logs found.
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", minWidth: 960, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
-                {["Timestamp", "Action", "User", "Resource", "Details", "IP"].map((h) => (
+                {["Timestamp", "Action", "User", "Resource", "Details"].map((h) => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
                 ))}
               </tr>
@@ -255,15 +317,8 @@ export default function AdminAuditLog() {
                     </td>
                     <td style={{ padding: "11px 14px", color: "var(--text-secondary)", fontSize: 12, maxWidth: 240 }}>
                       <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {log.details && typeof log.details === "object" && Object.keys(log.details).length > 0
-                          ? Object.entries(log.details).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join(", ")
-                          : log.details && typeof log.details === "string"
-                          ? log.details
-                          : "—"}
+                        {formatAuditDetails(log)}
                       </div>
-                    </td>
-                    <td style={{ padding: "11px 14px", color: "var(--text-muted)", fontSize: 11, fontFamily: "monospace" }}>
-                      {log.ipAddress || "—"}
                     </td>
                   </motion.tr>
                 );

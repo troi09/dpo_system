@@ -28,7 +28,7 @@ const Headbar = () => {
   const title = useMemo(() => buildTitle(pathname), [pathname]);
 
   const action =
-    user?.role === "admin"
+    (user?.role === "admin" || user?.role === "staff")
       ? { label: "Review Requests", to: "/admin/requests" }
       : { label: "New Request", to: "/student/new-request" };
 

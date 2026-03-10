@@ -25,7 +25,7 @@ export default function AdminUsers() {
   const [actionId, setActionId] = useState(null); // id of user being actioned
   const [flash, setFlash] = useState(null); // { type: "success"|"error", msg }
 
-  const [form, setForm] = useState({ name: "", email: "", role: "student" });
+  const [form, setForm] = useState({ name: "", email: "", role: "student", password: "" });
 
   const load = async () => {
     setLoading(true);
@@ -48,12 +48,15 @@ export default function AdminUsers() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) return;
+    if (!form.name.trim() || !form.email.trim() || form.password.length < 8) {
+      showFlash("error", "Name, email, and a temporary password (minimum 8 characters) are required.");
+      return;
+    }
     setCreating(true);
     try {
       await adminCreateUser(form);
-      showFlash("success", `User created. A welcome email with a temporary password has been sent to ${form.email}.`);
-      setForm({ name: "", email: "", role: "student" });
+      showFlash("success", `User created. Temporary password and verification OTP were sent to ${form.email}.`);
+      setForm({ name: "", email: "", role: "student", password: "" });
       setShowCreate(false);
       await load();
     } catch (err) {
@@ -167,7 +170,7 @@ export default function AdminUsers() {
               }}
             >
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Create New User</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, alignItems: "flex-end" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, alignItems: "flex-end" }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Full Name</label>
                   <input
@@ -213,6 +216,22 @@ export default function AdminUsers() {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Temporary Password</label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                    required
+                    minLength={8}
+                    placeholder="At least 8 characters"
+                    style={{
+                      width: "100%", padding: "9px 12px", borderRadius: "var(--radius-md)",
+                      border: "1px solid var(--border-strong)", background: "var(--surface)",
+                      fontSize: 14, fontFamily: "inherit", color: "var(--text-primary)", boxSizing: "border-box",
+                    }}
+                  />
+                </div>
               </div>
               <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
                 <button
@@ -251,10 +270,10 @@ export default function AdminUsers() {
       {/* Table */}
       <div style={{
         background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: "var(--radius-lg)", overflow: "hidden", boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--radius-lg)", overflowX: "auto", boxShadow: "var(--shadow-sm)",
       }}>
         {loading ? (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
                 {["Name", "Email", "Role", "Status", "Joined", "Actions"].map((h) => (
@@ -278,7 +297,7 @@ export default function AdminUsers() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: "24px 20px", color: "var(--text-muted)", fontSize: 13 }}>No users found.</div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
                 {["Name", "Email", "Role", "Status", "Joined", "Actions"].map((h) => (

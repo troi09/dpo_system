@@ -70,7 +70,7 @@ function App() {
             path="/"
             element={
               user
-                ? <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />
+                ? <Navigate to={user.role === "student" ? "/student" : "/admin"} replace />
                 : <Landing />
             }
           />
@@ -153,7 +153,7 @@ function App() {
           <Route
             path="/admin"
             element={
-              <RequireRole allowedRoles={["admin"]}>
+              <RequireRole allowedRoles={["admin", "staff"]}>
                 <AdminDashboard />
               </RequireRole>
             }
@@ -161,7 +161,7 @@ function App() {
           <Route
             path="/admin/requests"
             element={
-              <RequireRole allowedRoles={["admin"]}>
+              <RequireRole allowedRoles={["admin", "staff"]}>
                 <AdminRequests />
               </RequireRole>
             }
@@ -169,7 +169,7 @@ function App() {
           <Route
             path="/admin/requests/:id"
             element={
-              <RequireRole allowedRoles={["admin"]}>
+              <RequireRole allowedRoles={["admin", "staff"]}>
                 <AdminRequestReview />
               </RequireRole>
             }
@@ -177,7 +177,7 @@ function App() {
           <Route
             path="/admin/reports"
             element={
-              <RequireRole allowedRoles={["admin"]}>
+              <RequireRole allowedRoles={["admin", "staff"]}>
                 <AdminReports />
               </RequireRole>
             }
@@ -185,7 +185,7 @@ function App() {
           <Route
             path="/admin/profile"
             element={
-              <RequireRole allowedRoles={["admin"]}>
+              <RequireRole allowedRoles={["admin", "staff"]}>
                 <AdminProfile />
               </RequireRole>
             }
@@ -201,7 +201,7 @@ function App() {
           <Route
             path="/admin/archives"
             element={
-              <RequireRole allowedRoles={["admin"]}>
+              <RequireRole allowedRoles={["admin", "staff"]}>
                 <AdminArchives />
               </RequireRole>
             }
@@ -209,7 +209,7 @@ function App() {
           <Route
             path="/admin/audit"
             element={
-              <RequireRole allowedRoles={["admin"]}>
+              <RequireRole allowedRoles={["admin", "staff"]}>
                 <AdminAuditLog />
               </RequireRole>
             }

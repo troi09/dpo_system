@@ -51,7 +51,7 @@ const Navbar = () => {
           </>
         )}
 
-        {user?.role === "admin" && (
+        {(user?.role === "admin" || user?.role === "staff") && (
           <>
             <NavLink to="/admin" className={linkClass} end>
               <LayoutDashboard size={16} className="nav-icon" />
@@ -65,10 +65,12 @@ const Navbar = () => {
               <BarChart2 size={16} className="nav-icon" />
               Reports
             </NavLink>
-            <NavLink to="/admin/users" className={linkClass}>
-              <Users size={16} className="nav-icon" />
-              Users
-            </NavLink>
+            {user?.role === "admin" && (
+              <NavLink to="/admin/users" className={linkClass}>
+                <Users size={16} className="nav-icon" />
+                Users
+              </NavLink>
+            )}
             <NavLink to="/admin/archives" className={linkClass}>
               <Archive size={16} className="nav-icon" />
               Archives

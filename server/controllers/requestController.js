@@ -149,7 +149,7 @@ exports.getRequestById = async (req, res) => {
 
     if (!r) return res.status(404).json({ message: "Request not found" });
 
-    const isAdmin = req.user.role === "admin";
+    const isAdmin = req.user.role === "admin" || req.user.role === "staff";
     const ownerId = r.userId?._id || r.userId;
     const isOwner = String(ownerId) === String(req.user.id);
 

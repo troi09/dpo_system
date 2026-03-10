@@ -19,7 +19,8 @@ export default function RequestStepper({ status }) {
   const isDeclined = status === "declined";
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0, width: "100%", padding: "8px 0" }}>
+    <div style={{ width: "100%", overflowX: "auto", padding: "8px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 0, minWidth: 620 }}>
       {STEPS.map((step, i) => {
         const done = i < active;
         const current = i === active;
@@ -61,7 +62,7 @@ export default function RequestStepper({ status }) {
               </div>
               <span style={{
                 marginTop: 6, fontSize: 11, fontWeight: current ? 700 : 500,
-                whiteSpace: "nowrap", textAlign: "center",
+                whiteSpace: "normal", textAlign: "center", maxWidth: 110, lineHeight: 1.25,
                 color: isDeclined && i === STEPS.length - 1 ? "#ef4444" : labelColor,
               }}>
                 {isDeclined && i === STEPS.length - 1 ? "Declined" : step.label}
@@ -79,6 +80,7 @@ export default function RequestStepper({ status }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

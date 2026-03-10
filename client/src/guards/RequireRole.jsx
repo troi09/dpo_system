@@ -8,7 +8,7 @@ const RequireRole = ({ allowedRoles, children }) => {
   if (!user) return <Navigate to="/" replace />;
 
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />;
+    return <Navigate to={user.role === "student" ? "/student" : "/admin"} replace />;
   }
 
   return children;

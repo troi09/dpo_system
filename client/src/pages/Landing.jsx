@@ -183,8 +183,12 @@ const Landing = () => {
           setLoading(false);
           return;
         }
+        if (data.requireVerification) {
+          navigate(`/verify-email?email=${encodeURIComponent(data.email || form.email)}`);
+          return;
+        }
         login(data.user);
-        navigate(data.user.role === "admin" ? "/admin" : "/student");
+        navigate(data.user.role === "student" ? "/student" : "/admin");
         return;
       }
       const res = await axios.post(`${API_URL}/register`, {
@@ -200,6 +204,10 @@ const Landing = () => {
       resetForm();
       setMode("login");
     } catch (err) {
+      if (mode === "login" && err.response?.data?.requireVerification) {
+        navigate(`/verify-email?email=${encodeURIComponent(err.response?.data?.email || form.email)}`);
+        return;
+      }
       setError(
         err.response?.data?.message ||
           (mode === "login" ? "Invalid credentials" : "Registration failed")
@@ -216,7 +224,7 @@ const Landing = () => {
     try {
       const data = await verifyLoginOtp(pendingEmail, loginOtp.trim());
       login(data.user);
-      navigate(data.user.role === "admin" ? "/admin" : "/student");
+      navigate(data.user.role === "student" ? "/student" : "/admin");
     } catch (err) {
       setError(err.response?.data?.message || "Invalid or expired OTP.");
     } finally {

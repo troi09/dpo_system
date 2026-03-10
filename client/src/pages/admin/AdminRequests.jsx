@@ -77,6 +77,7 @@ export default function AdminRequests() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-card">
+        <div className="table-scroll">
         <table className="dashboard-table">
           <thead>
             <tr className="dashboard-table-title-row">
@@ -157,6 +158,7 @@ export default function AdminRequests() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

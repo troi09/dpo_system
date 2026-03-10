@@ -38,7 +38,7 @@ export default function AdminArchives() {
   }, [requests, search, typeFilter]);
 
   return (
-    <div style={{ maxWidth: 1000 }}>
+    <div>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
@@ -97,10 +97,10 @@ export default function AdminArchives() {
       {/* Table */}
       <div style={{
         background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: "var(--radius-lg)", overflow: "hidden", boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--radius-lg)", overflowX: "auto", boxShadow: "var(--shadow-sm)",
       }}>
         {loading ? (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", minWidth: 900, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
                 {["Student", "Type", "NDA Sub-type", "Submitted", "Archived On", "Status"].map((h) => (
@@ -127,7 +127,7 @@ export default function AdminArchives() {
             No archived requests found.
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", minWidth: 900, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
                 {["Student", "Type", "NDA Sub-type", "Submitted", "Archived On", "Status"].map((h) => (

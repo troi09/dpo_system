@@ -38,3 +38,22 @@
 .headbar-action:hover {
   background: var(--primary-hover);
 }
+
+@media (max-width: 900px) {
+  .headbar {
+    height: auto;
+    min-height: 0;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .headbar-title {
+    font-size: 15px;
+  }
+
+  .headbar-action {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+}

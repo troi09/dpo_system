@@ -6,8 +6,6 @@ const AuditLog = require("../models/AuditLog");
 const {
   sendOtpEmail,
   sendWelcomeEmail,
-  sendVerificationEmail,
-  sendWelcomeVerificationEmail,
   sendLoginOtpEmail,
   sendVerificationOtpEmail,
 } = require("../utils/emailService");
@@ -25,8 +23,15 @@ const getClientIp = (req) => {
   return req.socket?.remoteAddress || req.ip || "";
 };
 
-const FRONTEND_URL = () => process.env.FRONTEND_URL || "http://localhost:5173";
 const OTP_TRUST_WINDOW_MS = 72 * 60 * 60 * 1000; // 72 hours
+
+const sendVerificationOtpToUser = async (user) => {
+  const otp = generateOtp();
+  user.otp = await bcrypt.hash(otp, 10);
+  user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+  sendVerificationOtpEmail(user.email, user.name, otp).catch(() => {});
+};
 
 // REGISTER
 exports.register = async (req, res) => {
@@ -207,12 +212,18 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    if (!user.isVerified) {
-      return res.status(403).json({ message: "Please verify your email before logging in. Check your inbox for the verification link." });
-    }
-
     if (!user.isActive) {
       return res.status(403).json({ message: "Account is deactivated. Contact an administrator." });
+    }
+
+    if (!user.isVerified) {
+      await sendVerificationOtpToUser(user);
+      logAudit({ userId: user._id, action: "verification_otp_sent", details: { reason: "login_intercept" }, ipAddress: clientIp });
+      return res.status(403).json({
+        requireVerification: true,
+        email: user.email,
+        message: "Your email is not verified yet. We sent a verification OTP to your email.",
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -495,20 +506,17 @@ exports.adminCreateUser = async (req, res) => {
   try {
     const { name, email, role, password } = req.body;
 
-    if (!name || !email) return res.status(400).json({ message: "Name and email are required" });
+    if (!name || !email || !password) return res.status(400).json({ message: "Name, email, role, and temporary password are required" });
     if (!["student", "admin", "staff"].includes(role))
       return res.status(400).json({ message: "Invalid role" });
+    if (String(password).length < 8) {
+      return res.status(400).json({ message: "Temporary password must be at least 8 characters" });
+    }
 
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) return res.status(400).json({ message: "User with this email already exists" });
 
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const hasPasswordSet = password && password.length >= 8;
-
-    // If admin set a password, hash it; otherwise use a placeholder (user will set via activate link)
-    const hashedPassword = hasPasswordSet
-      ? await bcrypt.hash(password, 12)
-      : await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
       name: String(name).trim(),
@@ -516,35 +524,23 @@ exports.adminCreateUser = async (req, res) => {
       password: hashedPassword,
       role: role || "student",
       isVerified: false,
-      verificationToken,
-      verificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+      verificationToken: null,
+      verificationExpires: null,
     });
 
-    if (hasPasswordSet) {
-      // Admin set a password → send verification OTP
-      const verifyOtp = generateOtp();
-      user.otp = await bcrypt.hash(verifyOtp, 10);
-      user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-      await user.save();
-      sendVerificationOtpEmail(user.email, user.name, verifyOtp).catch(() => {});
-    } else {
-      // No password set → send activation link (verify + set password)
-      const activateUrl = `${FRONTEND_URL()}/activate?token=${verificationToken}`;
-      sendWelcomeVerificationEmail(user.email, user.name, activateUrl).catch(() => {});
-    }
+    await sendVerificationOtpToUser(user);
+    sendWelcomeEmail(user.email, user.name, password).catch(() => {});
 
     logAudit({
       userId: req.user.id,
       action: "account_created",
       resourceType: "user",
       resourceId: String(user._id),
-      details: { createdBy: "admin", targetEmail: user.email, role: user.role },
+      details: { createdBy: "admin", targetEmail: user.email, role: user.role, tempPasswordSet: true },
     });
 
     res.status(201).json({
-      message: hasPasswordSet
-        ? "User created. A verification email has been sent."
-        : "User created. An activation email has been sent to set their password.",
+      message: "User created. A temporary password and verification OTP were sent by email.",
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
