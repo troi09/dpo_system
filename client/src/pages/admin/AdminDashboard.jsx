@@ -15,12 +15,12 @@ import { getRecentAuditLogs } from "../../services/auditService";
 
 const STATUS_LABEL = {
   pending: "Pending",
-  approved: "Approved",
+  approved: "Approved/Completed",
   revision_requested: "Revision Requested",
   submitted: "Submitted",
   awaiting_signature: "Awaiting Signature",
   pending_approval: "Pending Approval",
-  completed: "Completed",
+  completed: "Approved/Completed",
   declined: "Declined",
   rep_revision_requested: "Rep Revision",
 };
@@ -75,6 +75,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -87,6 +88,8 @@ export default function AdminDashboard() {
         setAuditLogs(auditData);
       } catch (err) {
         console.error("Dashboard load error:", err);
+      } finally {
+        setLoading(false);
       }
     };
     load();
@@ -141,7 +144,7 @@ export default function AdminDashboard() {
   const summaryCards = [
     { icon: FileText, label: "Total Requests", value: totalActive, color: "#3b82f6" },
     { icon: Clock, label: "Pending", value: totalPending, color: "#f59e0b" },
-    { icon: CheckCircle, label: "Approved", value: totalApproved, color: "#10b981" },
+    { icon: CheckCircle, label: "Approved/Completed", value: totalApproved, color: "#10b981" },
     { icon: Archive, label: "Archived", value: totalArchived, color: "#64748b" },
   ];
 
@@ -217,7 +220,17 @@ export default function AdminDashboard() {
             </tr>
           </thead>
           <tbody>
-            {recentRequests.length === 0 ? (
+            {loading ? (
+              [1, 2, 3, 4].map((i) => (
+                <tr key={i}>
+                  <td><div className="skeleton-row" style={{ padding: 0, border: "none" }}><div className="skeleton-block skeleton-block--lg" /><div className="skeleton-block skeleton-block--md" style={{ height: 10 }} /></div></td>
+                  <td><div className="skeleton-block skeleton-block--md" /></td>
+                  <td><div className="skeleton-block skeleton-block--sm" style={{ borderRadius: 99 }} /></td>
+                  <td><div className="skeleton-block skeleton-block--sm" /></td>
+                  <td><div className="skeleton-block skeleton-block--sm" /></td>
+                </tr>
+              ))
+            ) : recentRequests.length === 0 ? (
               <tr>
                 <td colSpan={5}>
                   <div className="dashboard-empty">
@@ -340,7 +353,7 @@ export default function AdminDashboard() {
             <Tooltip />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Total" />
-            <Line type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Approved" />
+            <Line type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Approved/Completed" />
             <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} name="Pending" />
           </LineChart>
         </ResponsiveContainer>

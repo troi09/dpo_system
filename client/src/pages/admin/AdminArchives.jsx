@@ -100,7 +100,27 @@ export default function AdminArchives() {
         borderRadius: "var(--radius-lg)", overflow: "hidden", boxShadow: "var(--shadow-sm)",
       }}>
         {loading ? (
-          <div style={{ padding: "24px 20px", color: "var(--text-muted)", fontStyle: "italic", fontSize: 13 }}>Loading archives…</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
+                {["Student", "Type", "NDA Sub-type", "Submitted", "Archived On", "Status"].map((h) => (
+                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(4)].map((_, i) => (
+                <tr key={`sk-${i}`} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-text" /></td>
+                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-pill" /></td>
+                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-text" /></td>
+                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-text" /></td>
+                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-text" /></td>
+                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-pill" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : filtered.length === 0 ? (
           <div style={{ padding: "32px 20px", color: "var(--text-muted)", fontSize: 13, textAlign: "center" }}>
             <Archive size={32} color="var(--border-strong)" style={{ display: "block", margin: "0 auto 10px" }} />

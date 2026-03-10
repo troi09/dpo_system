@@ -24,6 +24,9 @@ SMTP_PASS=your_16_char_app_password
 # Client origin (for CORS and email links)
 CLIENT_URL=http://localhost:5173
 
+# Allowed CORS origins (comma-separated, no trailing slash)
+ALLOWED_ORIGINS=http://localhost:5173,https://your-app.vercel.app
+
 # Frontend URL (used for verification/activation email links)
 FRONTEND_URL=http://localhost:5173
 ```
@@ -472,3 +475,120 @@ Set all server env vars (`MONGO_URI`, `JWT_SECRET`, `SMTP_USER`, `SMTP_PASS`, `C
 - [ ] NDA resubmit: signature pad present for NDA type
 - [ ] Audit trail: all actions show human-readable labels
 - [ ] Audit trail filters: new action types work correctly
+
+---
+
+## Phase 6 — Login Parallax, Status Unification, CORS Fix, Global UI Polish
+
+### 6.1 Login Page Parallax Background
+
+- **File:** `client/src/pages/Landing.jsx`
+- Added `useCallback`, `useRef` imports; `Eye`, `EyeOff` from `lucide-react`
+- `bgRef` tracks a full-viewport background `<div>` with `RTU-Background.jpg`
+- `handleMouseMove` applies a subtle `translate3d` (up to ±15px) via `requestAnimationFrame` for a parallax hover effect
+- A gradient overlay sits between the background and the login panel for readability
+- **File:** `client/src/components/Landing.css`
+- `.landing-parallax-bg`: absolute-fill, `background-size: cover`, `will-change: transform`, `scale(1.05)` (prevents edge bleed during parallax)
+- `.landing-overlay`: dark gradient overlay (`rgba(0,0,0,0.45) → rgba(0,0,0,0.65)`)
+- `.landing-wrapper` z-index raised to 2
+- **Asset:** `client/public/RTU-Background.jpg` — RTU campus photo used as background
+
+### 6.2 Password Visibility Toggle
+
+- **File:** `client/src/pages/Landing.jsx`
+- `showPassword` state toggles `<input type>` between `password` and `text`
+- Toggle button with `Eye`/`EyeOff` icon inside a `.landing-password-wrap` wrapper
+- **File:** `client/src/components/Landing.css`
+- `.landing-password-wrap`: relative positioned wrapper for password field + icon
+- `.landing-password-toggle`: absolute-right positioned icon button (transparent bg, pointer cursor)
+
+### 6.3 Status Unification ("Approved/Completed")
+
+**Rationale:** The backend maintains both `approved` and `completed` statuses for different NDA lifecycle flows, but they represent the same end-user state. Display was unified to "Approved/Completed" — backend schema unchanged.
+
+**Files modified:**
+| File | Change |
+|---|---|
+| `AdminDashboard.jsx` | `STATUS_LABEL` map: `approved` and `completed` → `"Approved/Completed"`; chart legend updated |
+| `StudentDashboard.jsx` | Same `STATUS_LABEL` map update |
+| `AdminRequests.jsx` | Filter label → "Approved/Completed"; `prettyStatus` map updated; filter logic includes both `approved` and `completed` when filtering by "approved" |
+| `AdminRequestReview.jsx` | `prettyStatus` map updated |
+| `StudentRequestReview.jsx` | `prettyStatus` map updated |
+| `AdminReports.jsx` | `prettyStatus` map updated; chart legend "Approved" → "Approved/Completed" |
+
+### 6.4 Production CORS Fix
+
+- **File:** `server/server.js`
+- Replaced `app.use(cors())` with a proper CORS configuration:
+  - `ALLOWED_ORIGINS` env var: comma-separated list of allowed origins (e.g., `https://your-app.vercel.app,http://localhost:5173`)
+  - `credentials: true` — supports JWT cookies
+  - `methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"]`
+  - `allowedHeaders: ["Content-Type","Authorization"]`
+  - Allows requests with no origin (mobile apps, cURL) as fallback
+
+**New env var required in `server/.env`:**
+```env
+ALLOWED_ORIGINS=http://localhost:5173,https://your-app.vercel.app
+```
+
+### 6.5 Global UI Polish
+
+#### Loading Skeletons
+
+All data-fetching table pages now show animated shimmer skeleton rows while loading, replacing the previous italic "Loading…" text placeholders.
+
+**Files with skeleton loading added:**
+| File | Skeleton Rows |
+|---|---|
+| `AdminDashboard.jsx` | 4 rows (5 cols) |
+| `StudentDashboard.jsx` | 4 rows (4 cols) |
+| `AdminRequests.jsx` | 4 rows (5 cols) |
+| `AdminUsers.jsx` | 5 rows (6 cols) with full table headers |
+| `AdminAuditLog.jsx` | 6 rows (6 cols) with full table headers |
+| `AdminArchives.jsx` | 4 rows (6 cols) with full table headers |
+| `AdminReports.jsx` | 4 KPI card skeletons (grid layout) |
+
+#### CSS Design Tokens Added (`index.css`)
+
+| Class | Purpose |
+|---|---|
+| `.skeleton-block` | Base shimmer block (gradient animation, 1.4s cycle) |
+| `.skeleton-text` | Inline text placeholder (80×14px) |
+| `.skeleton-pill` | Status pill placeholder (72×22px, pill border-radius) |
+| `.skeleton-btn` | Button placeholder (52×28px) |
+| `.skeleton-block--sm/md/lg/xl` | Preset width variants |
+| `.skeleton-block--circle` | Avatar placeholder (32×32px circle) |
+| `.skeleton-row` | Row container with consistent padding/gap |
+| `@keyframes shimmer` | Background gradient slide animation |
+
+#### Other Global Styles
+
+| Change | Detail |
+|---|---|
+| `.dashboard-page` max-width | Set to `1200px` with `margin: 0 auto` |
+| `.review-card` max-width | Set to `800px` with `margin: 0 auto` |
+| Global input focus ring | All `input`, `select`, `textarea` get consistent `box-shadow: 0 0 0 3px rgba(15,45,107,0.1)` on focus |
+| Global transitions | All `button`, `a`, `input`, `select`, `textarea` get `transition: 0.15s ease` on background, border-color, box-shadow, color, opacity, transform |
+| Empty state polish | `.dashboard-empty-title` font-weight → 700; `.dashboard-empty-icon` opacity → 0.35 |
+
+---
+
+### Deployment Notes (Phase 6)
+
+- **New server env var:** `ALLOWED_ORIGINS` — comma-separated list of allowed CORS origins. Must include your Vercel client URL and `http://localhost:5173` (for local dev).
+- **New asset:** `client/public/RTU-Background.jpg` — must be present in the public folder for the parallax background.
+- **No new npm dependencies** — all changes use existing packages (`lucide-react` already installed).
+- **No database migration** — all changes are frontend-only or server config.
+- Push to `Branch-ni-Kurl!` and deploy.
+
+### Testing Checklist (Phase 6)
+- [ ] Login page: parallax background moves subtly on mouse hover
+- [ ] Login page: password eye icon toggles visibility
+- [ ] All dashboards/tables: skeleton shimmer rows appear during initial load
+- [ ] AdminReports: KPI card skeletons during load
+- [ ] Status displays: "Approved/Completed" shown consistently for both `approved` and `completed` statuses
+- [ ] AdminRequests filter: "Approved/Completed" button filters both `approved` and `completed` requests
+- [ ] CORS: API calls work from Vercel deployment (set `ALLOWED_ORIGINS` on server)
+- [ ] CORS: API calls work from localhost (include `http://localhost:5173` in `ALLOWED_ORIGINS`)
+- [ ] Global: inputs show blue focus ring on focus
+- [ ] Global: buttons/inputs have smooth hover transitions

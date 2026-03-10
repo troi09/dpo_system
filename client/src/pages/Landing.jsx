@@ -1,7 +1,8 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import {
   login as loginService,
@@ -138,8 +139,20 @@ const Landing = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Parallax state
+  const bgRef = useRef(null);
+  const handleMouseMove = useCallback((e) => {
+    if (!bgRef.current) return;
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    const x = ((clientX / innerWidth) - 0.5) * -20;
+    const y = ((clientY / innerHeight) - 0.5) * -20;
+    bgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1.05)`;
+  }, []);
 
   // OTP step state (for context-aware login OTP)
   const [otpStep, setOtpStep] = useState(false);
@@ -214,7 +227,13 @@ const Landing = () => {
   const isLogin = mode === "login";
 
   return (
-    <div className="landing">
+    <div className="landing" onMouseMove={handleMouseMove}>
+      <div
+        ref={bgRef}
+        className="landing-parallax-bg"
+        style={{ backgroundImage: "url('/RTU-Background.jpg')" }}
+      />
+      <div className="landing-overlay" />
       <div className="landing-wrapper">
         {/* ── Brand Header (on blue background) ── */}
         <div className="landing-brand">
@@ -339,15 +358,26 @@ const Landing = () => {
 
                 <div className="landing-field-group">
                   <label className="landing-label" htmlFor="landing-password">Password</label>
-                  <input
-                    id="landing-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={form.password}
-                    onChange={onChange("password")}
-                    required
-                    className="landing-field"
-                  />
+                  <div className="landing-password-wrap">
+                    <input
+                      id="landing-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={form.password}
+                      onChange={onChange("password")}
+                      required
+                      className="landing-field"
+                    />
+                    <button
+                      type="button"
+                      className="landing-password-toggle"
+                      onClick={() => setShowPassword((v) => !v)}
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
 
                 {error && <div className="landing-error">{error}</div>}

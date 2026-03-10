@@ -5,9 +5,29 @@
   margin: -24px -28px;
   width: calc(100% + 56px);
   min-height: calc(100% + 48px);
-  background: linear-gradient(145deg, #0f2d6b 0%, #1a3d84 60%, #0a1f4d 100%);
+  background: #0a1f4d;
   position: relative;
   overflow: hidden;
+}
+
+/* ── Parallax Background ── */
+.landing-parallax-bg {
+  position: absolute;
+  inset: -30px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  will-change: transform;
+  transition: transform 0.15s ease-out;
+  transform: translate3d(0, 0, 0) scale(1.05);
+  z-index: 0;
+}
+
+.landing-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(15, 45, 107, 0.75) 0%, rgba(26, 61, 132, 0.65) 60%, rgba(10, 31, 77, 0.8) 100%);
+  z-index: 0;
 }
 
 .landing::before {
@@ -37,7 +57,7 @@
 /* ── Centered Wrapper ── */
 .landing-wrapper {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -212,6 +232,37 @@
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
+}
+
+/* ── Password Toggle ── */
+.landing-password-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.landing-password-wrap .landing-field {
+  padding-right: 44px;
+}
+
+.landing-password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.landing-password-toggle:hover {
+  color: var(--text-primary);
 }
 
 /* ── Submit ── */

@@ -24,13 +24,13 @@ import SignaturePad from "../../components/SignaturePad";
 const prettyStatus = (s) => {
   const map = {
     pending: "Pending",
-    approved: "Approved",
+    approved: "Approved/Completed",
     revision_required: "Revision Required",
     revision_requested: "Revision Requested",
     submitted: "Submitted",
     awaiting_signature: "Awaiting Representative Signature",
     pending_approval: "Pending Final Admin Review",
-    completed: "Completed",
+    completed: "Approved/Completed",
     declined: "Declined by Representative",
     rep_revision_requested: "Representative Revision Requested",
   };

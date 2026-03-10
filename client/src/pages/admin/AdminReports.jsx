@@ -27,9 +27,9 @@ const DONUT_COLORS = [
 
 const prettyStatus = (s) => {
   const map = {
-    pending: "Pending", approved: "Approved", revision_requested: "Revision Requested",
+    pending: "Pending", approved: "Approved/Completed", revision_requested: "Revision Requested",
     submitted: "Submitted", awaiting_signature: "Awaiting Signature",
-    pending_approval: "Pending Approval", completed: "Completed",
+    pending_approval: "Pending Approval", completed: "Approved/Completed",
     declined: "Declined", rep_revision_requested: "Rep Revision",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
@@ -178,7 +178,21 @@ export default function AdminReports() {
       </div>
 
       {loading && (
-        <p style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: 13 }}>Loading data…</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={`sk-${i}`}
+              style={{
+                background: "var(--surface)", border: "1px solid var(--border)",
+                borderRadius: "var(--radius-lg)", padding: "18px 20px",
+                boxShadow: "var(--shadow-sm)", textAlign: "center",
+              }}
+            >
+              <span className="skeleton-block" style={{ width: 60, height: 28, margin: "0 auto 8px", borderRadius: "var(--radius-md)" }} />
+              <span className="skeleton-block skeleton-text" style={{ width: 70, margin: "0 auto" }} />
+            </div>
+          ))}
+        </div>
       )}
 
       {!loading && (
@@ -293,7 +307,7 @@ export default function AdminReports() {
                 <Tooltip />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Total" />
-                <Line type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Approved" />
+                <Line type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Approved/Completed" />
                 <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} name="Pending" />
               </LineChart>
             </ResponsiveContainer>

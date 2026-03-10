@@ -4,13 +4,13 @@ import { getMyRequests } from "../../services/requestService";
 
 const STATUS_LABEL = {
   pending: "Pending",
-  approved: "Approved",
+  approved: "Approved/Completed",
   revision_required: "Revision Required",
   revision_requested: "Revision Requested",
   submitted: "Submitted",
   awaiting_signature: "Awaiting Signature",
   pending_approval: "Pending Approval",
-  completed: "Completed",
+  completed: "Approved/Completed",
   declined: "Declined",
   rep_revision_requested: "Rep Revision Requested",
 };
@@ -31,6 +31,7 @@ const statusClass = (s) => {
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -39,6 +40,8 @@ const StudentDashboard = () => {
         setRequests(data);
       } catch (err) {
         alert(err.response?.data?.message || "Failed to load requests");
+      } finally {
+        setLoading(false);
       }
     };
     load();
@@ -65,7 +68,16 @@ const StudentDashboard = () => {
           </thead>
 
           <tbody>
-            {requests.length === 0 ? (
+            {loading ? (
+              [...Array(4)].map((_, i) => (
+                <tr key={`sk-${i}`}>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-pill" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-btn" /></td>
+                </tr>
+              ))
+            ) : requests.length === 0 ? (
               <tr>
                 <td colSpan={4}>
                   <div className="dashboard-empty">

@@ -5,7 +5,7 @@ import { getAllRequests } from "../../services/requestService";
 const FILTERS = [
   { key: "all", label: "All" },
   { key: "pending", label: "Pending" },
-  { key: "approved", label: "Approved" },
+  { key: "approved", label: "Approved/Completed" },
   { key: "revision_requested", label: "Revision Requested" },
 ];
 
@@ -29,13 +29,13 @@ const filterClass = (s) => {
 const prettyStatus = (s) => {
   const map = {
     pending: "Pending",
-    approved: "Approved",
+    approved: "Approved/Completed",
     revision_required: "Revision Required",
     revision_requested: "Revision Requested",
     submitted: "Submitted",
     awaiting_signature: "Awaiting Signature",
     pending_approval: "Pending Approval",
-    completed: "Completed",
+    completed: "Approved/Completed",
     declined: "Declined",
     rep_revision_requested: "Rep Revision Requested",
   };
@@ -45,6 +45,7 @@ const prettyStatus = (s) => {
 export default function AdminRequests() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filterIndex, setFilterIndex] = useState(0);
 
   useEffect(() => {
@@ -54,6 +55,8 @@ export default function AdminRequests() {
         setRequests(data);
       } catch (err) {
         alert(err.response?.data?.message || "Failed to load requests");
+      } finally {
+        setLoading(false);
       }
     };
     load();
@@ -63,6 +66,7 @@ export default function AdminRequests() {
 
   const filtered = useMemo(() => {
     if (activeFilter.key === "all") return requests;
+    if (activeFilter.key === "approved") return requests.filter((r) => r.status === "approved" || r.status === "completed");
     return requests.filter((r) => r.status === activeFilter.key);
   }, [requests, activeFilter]);
 
@@ -98,7 +102,17 @@ export default function AdminRequests() {
           </thead>
 
           <tbody>
-            {filtered.length === 0 ? (
+            {loading ? (
+              [...Array(4)].map((_, i) => (
+                <tr key={`sk-${i}`}>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-pill" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-btn" /></td>
+                </tr>
+              ))
+            ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={5}>
                   <div className="dashboard-empty">
