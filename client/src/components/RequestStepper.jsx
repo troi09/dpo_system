@@ -61,7 +61,7 @@ export default function RequestStepper({ status }) {
               </div>
               <span style={{
                 marginTop: 6, fontSize: 11, fontWeight: current ? 700 : 500,
-                color: labelColor, whiteSpace: "nowrap", textAlign: "center",
+                whiteSpace: "nowrap", textAlign: "center",
                 color: isDeclined && i === STEPS.length - 1 ? "#ef4444" : labelColor,
               }}>
                 {isDeclined && i === STEPS.length - 1 ? "Declined" : step.label}

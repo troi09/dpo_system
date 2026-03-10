@@ -290,35 +290,3 @@ const Landing = () => {
 };
 
 export default Landing;
-
-            <label className="landing-label" htmlFor="landing-password">Password</label>
-            <input
-              id="landing-password"
-              type="password"
-              placeholder="••••••••"
-              value={form.password}
-              onChange={onChange("password")}
-              required
-              className="landing-field"
-            />
-          </div>
-
-          <button type="submit" className="landing-submit">
-            {isLogin ? "Log in" : "Create Account"}
-          </button>
-        </form>
-      </div>
-
-      {/* ── Brand Panel ── */}
-      <div className="landing-brand">
-        <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
-        <div className="landing-brand-text">
-          <div className="landing-brand-title">Data Protection Office</div>
-          <div className="landing-brand-subtitle">Rizal Technological University</div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Landing;

@@ -121,7 +121,7 @@ export default function AdminUsers() {
             onClick={() => setShowCreate((v) => !v)}
             style={{
               display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
-              borderRadius: "var(--radius-md)", border: "none",
+              borderRadius: "var(--radius-md)",
               background: showCreate ? "var(--surface)" : "var(--primary)", color: showCreate ? "var(--text-primary)" : "#fff",
               cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "inherit",
               border: showCreate ? "1px solid var(--border-strong)" : "none",
