@@ -647,3 +647,166 @@ All data-fetching table pages now show animated shimmer skeleton rows while load
 - [ ] CORS: API calls work from localhost (include `http://localhost:5173` in `ALLOWED_ORIGINS`)
 - [ ] Global: inputs show blue focus ring on focus
 - [ ] Global: buttons/inputs have smooth hover transitions
+
+---
+
+## Phase 7 — Production Deployment Bug Fixes (Localhost vs. Vercel)
+
+### 7.1 Critical Fix: Dashboard `Promise.all` Race Condition
+
+**Root Cause:** `AdminDashboard.jsx` used `Promise.all([getAllRequests(), getRecentAuditLogs()])`. If **either** call failed (e.g., audit logs returning 401/403 during a brief token race), the entire `Promise.all` rejected and **neither** `setRequests` nor `setAuditLogs` was called. This caused:
+- Summary cards showing `0` for Total, Pending, Approved, Archived
+- Charts rendering empty (no data set)
+- The identical charts on `AdminReports.jsx` **did** work because Reports only calls `getAllRequests()` independently
+
+**Fix:** Replaced `Promise.all` with independent `try/catch` blocks. Each API call now succeeds or fails independently — a failure in audit logs no longer blocks request data from populating the dashboard.
+
+**File:** `client/src/pages/admin/AdminDashboard.jsx`
+
+### 7.2 CORS Hardening for Vercel
+
+**Root Cause:** Trailing slashes in `ALLOWED_ORIGINS` or in the browser's `Origin` header caused exact-match failures (e.g., `https://app.vercel.app/` !== `https://app.vercel.app`). Additionally, explicit `OPTIONS` preflight handling was missing, which some edge runtimes require.
+
+**Fix:**
+- Both `ALLOWED_ORIGINS` values and incoming `Origin` headers are now normalized by stripping trailing slashes before comparison
+- Added `app.options("*", cors(corsOptions))` for explicit preflight handling
+- CORS options are extracted to a shared `corsOptions` object applied to both the preflight handler and the global middleware
+
+**File:** `server/server.js`
+
+### 7.3 Error Surface Improvements
+
+**Root Cause:** Multiple admin pages caught API errors with only `console.error()`, hiding the actual HTTP status code and error message from the user. This made it impossible to diagnose whether failures were caused by 401 (auth), 403 (forbidden), 404 (bad route), or 500 (server error).
+
+**Fix:** All admin data-fetching pages now surface the real `error.response.data.message` and HTTP status code in a visible red error banner at the top of the page.
+
+**Files modified:**
+| File | Change |
+|---|---|
+| `AdminDashboard.jsx` | Added `error` state; each fetch has its own catch that surfaces message + HTTP status |
+| `AdminAuditLog.jsx` | Added `error` state; catch block surfaces message + HTTP status in red banner |
+| `AdminReports.jsx` | Added `error` state; catch block surfaces message + HTTP status in red banner |
+| `AdminUsers.jsx` | Already had error surfacing via flash messages (no change needed) |
+
+### 7.4 Case-Sensitivity Audit
+
+**Result:** All import paths across client and server were audited for Linux case-sensitivity compatibility. **No mismatches found** — all imports match exact file names on disk. The codebase is safe for Vercel's Linux file system.
+
+---
+
+### Deployment Notes (Phase 7)
+
+- **No new dependencies**
+- **No new env vars**
+- **No database migration**
+- Push to `Branch-ni-Kurl!` and deploy
+
+### Testing Checklist (Phase 7)
+
+- [ ] Admin Dashboard: summary cards show correct counts (not 0)
+- [ ] Admin Dashboard: charts render data even if audit log fetch fails
+- [ ] Admin Dashboard: error banner appears with HTTP status when API fails
+- [ ] Audit Trail: error banner appears with HTTP status when fetch fails
+- [ ] Reports: error banner appears with HTTP status when fetch fails
+- [ ] User Management: "Failed to load users" shows specific HTTP error code
+- [ ] CORS: no preflight failures in browser Network tab on Vercel
+
+---
+
+## Vercel Deployment Troubleshooting Guide
+
+If admin pages show empty data, 0-count metrics, or "Failed to load" errors **only on Vercel** (but work locally), follow this checklist:
+
+### Step 1: Verify Environment Variables
+
+**Client (Vercel Dashboard → Project → Settings → Environment Variables):**
+
+| Variable | Required Value | Common Mistake |
+|---|---|---|
+| `VITE_API_BASE_URL` | `https://your-backend.onrender.com` (no trailing `/`, no `/api`) | Leaving it as `http://localhost:5000` or adding `/api` suffix |
+
+> After changing any `VITE_` env var in Vercel, you **must redeploy** — Vite bakes these into the build at compile time.
+
+**Server (Render/Railway Dashboard → Environment):**
+
+| Variable | Required Value | Common Mistake |
+|---|---|---|
+| `ALLOWED_ORIGINS` | `https://your-app.vercel.app` (exact URL, no trailing `/`) | Mismatch with actual Vercel URL, or missing preview deploy URLs |
+| `FRONTEND_URL` | `https://your-app.vercel.app` | Still set to `http://localhost:5173` |
+| `CLIENT_URL` | `https://your-app.vercel.app` | Still set to `http://localhost:5173` |
+| `MONGO_URI` | Your MongoDB Atlas connection string | Whitelist `0.0.0.0/0` in Atlas Network Access for Render/Railway |
+| `JWT_SECRET` | A strong random string | Using a weak or empty value |
+
+### Step 2: Check CORS in Browser DevTools
+
+1. Open browser DevTools → **Network** tab
+2. Find any failing API request (red status)
+3. Check:
+   - **Status Code**: `401` = token not sent, `403` = wrong role or expired token, `404` = wrong route, `500` = server error
+   - **Response Headers**: look for `access-control-allow-origin`. If missing, CORS is blocking the request
+   - **Preflight (OPTIONS)**: check if the OPTIONS request returns `200`. If not, the server isn't handling preflight
+
+**Fix CORS issues:**
+```env
+# Server .env — include ALL client URLs (comma-separated, no trailing slashes)
+ALLOWED_ORIGINS=https://your-app.vercel.app,https://your-app-git-branch-name.vercel.app,http://localhost:5173
+```
+
+> Vercel preview deployments get unique URLs (e.g., `https://your-app-abc123.vercel.app`). Add these to `ALLOWED_ORIGINS` or use a wildcard pattern in your CORS config.
+
+### Step 3: Check Auth Token Propagation
+
+If the Network tab shows `401 Unauthorized` on admin endpoints:
+
+1. Open DevTools → **Application** → **Local Storage**
+2. Confirm `token` key exists and has a valid JWT value
+3. In the Network tab, click the failing request → **Headers** → check `Authorization: Bearer <token>` is present in the request headers
+4. If the token exists in localStorage but not in the request header, clear localStorage and log in again
+
+### Step 4: Check MongoDB Atlas Network Access
+
+Render/Railway servers have dynamic IPs. If API calls return `500` errors:
+
+1. Go to **MongoDB Atlas** → **Network Access**
+2. Add `0.0.0.0/0` to allow connections from any IP (or add the specific hosting provider's IP range)
+3. Wait 1-2 minutes for the change to propagate
+
+### Step 5: Verify Backend is Running
+
+1. Visit your backend URL directly: `https://your-backend.onrender.com`
+2. You should see: `"DPO System API Running..."`
+3. If you get a timeout or error:
+   - **Render free tier**: servers spin down after 15 min of inactivity. The first request takes 30-60 seconds to cold-start
+   - Check Render/Railway logs for startup errors (DB connection failures, missing env vars)
+
+### Step 6: Vercel Redeployment After Env Changes
+
+Vercel `VITE_*` variables are **build-time only**. After changing them:
+
+1. Go to **Vercel Dashboard** → your project → **Deployments**
+2. Click the `...` menu on the latest deployment → **Redeploy**
+3. Or push a new commit to `Branch-ni-Kurl!` to trigger a fresh build
+
+### Step 7: Preview Deployment CORS
+
+Every PR or branch push creates a unique Vercel preview URL. To make API calls work from preview deployments:
+
+1. Add the preview URL to `ALLOWED_ORIGINS` on the server, **or**
+2. Use a wildcard approach in server CORS (not recommended for production)
+
+### Quick Diagnostic Commands
+
+```bash
+# Test if backend is reachable from your machine
+curl https://your-backend.onrender.com
+
+# Test a protected endpoint (replace <TOKEN> with a valid JWT)
+curl -H "Authorization: Bearer <TOKEN>" https://your-backend.onrender.com/api/requests/all
+
+# Check CORS headers
+curl -I -X OPTIONS \
+  -H "Origin: https://your-app.vercel.app" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: Authorization" \
+  https://your-backend.onrender.com/api/auth/users
+```

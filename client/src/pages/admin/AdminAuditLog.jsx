@@ -127,16 +127,21 @@ export default function AdminAuditLog() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("");
+  const [error, setError] = useState("");
 
   const load = async (p = page, action = actionFilter) => {
     setLoading(true);
+    setError("");
     try {
       const res = await getAuditLogs({ page: p, limit: PAGE_SIZE, action: action || undefined });
       setLogs(res.logs || res);
       if (res.total) setTotalPages(Math.ceil(res.total / PAGE_SIZE));
       else if (res.totalPages) setTotalPages(res.totalPages);
     } catch (err) {
-      console.error(err);
+      const msg = err.response?.data?.message || err.message || "Failed to load audit logs";
+      const status = err.response?.status;
+      setError(`${msg}${status ? ` (HTTP ${status})` : ""}`);
+      console.error("Audit log load error:", err);
     } finally {
       setLoading(false);
     }
@@ -204,6 +209,16 @@ export default function AdminAuditLog() {
           <RefreshCw size={14} color="var(--text-secondary)" />
         </button>
       </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div style={{
+          marginBottom: 16, padding: "12px 16px", borderRadius: "var(--radius-md)",
+          background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", fontSize: 13,
+        }}>
+          {error}
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>

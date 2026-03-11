@@ -69,14 +69,19 @@ export default function AdminReports() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("30d"); // "7d" | "30d" | "90d" | "all"
+  const [error, setError] = useState("");
 
   const load = async () => {
     setLoading(true);
+    setError("");
     try {
       const data = await getAllRequests();
       setRequests(data);
     } catch (err) {
-      console.error(err);
+      const msg = err.response?.data?.message || err.message || "Failed to load reports data";
+      const status = err.response?.status;
+      setError(`${msg}${status ? ` (HTTP ${status})` : ""}`);
+      console.error("Reports load error:", err);
     } finally {
       setLoading(false);
     }
@@ -176,6 +181,15 @@ export default function AdminReports() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div style={{
+          marginBottom: 16, padding: "12px 16px", borderRadius: "var(--radius-md)",
+          background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", fontSize: 13,
+        }}>
+          {error}
+        </div>
+      )}
 
       {loading && (
         <div className="responsive-grid-4" style={{ gap: 14, marginBottom: 24 }}>

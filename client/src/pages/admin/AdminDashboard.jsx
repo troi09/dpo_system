@@ -76,21 +76,35 @@ export default function AdminDashboard() {
   const [requests, setRequests] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const load = async () => {
+      const errors = [];
+
+      // Fetch independently so one failure doesn't block the other
       try {
-        const [reqData, auditData] = await Promise.all([
-          getAllRequests(),
-          getRecentAuditLogs(6),
-        ]);
+        const reqData = await getAllRequests();
         setRequests(reqData);
+      } catch (err) {
+        const msg = err.response?.data?.message || err.message || "Failed to load requests";
+        const status = err.response?.status;
+        errors.push(`Requests: ${msg}${status ? ` (HTTP ${status})` : ""}`);
+        console.error("Dashboard requests error:", err);
+      }
+
+      try {
+        const auditData = await getRecentAuditLogs(6);
         setAuditLogs(auditData);
       } catch (err) {
-        console.error("Dashboard load error:", err);
-      } finally {
-        setLoading(false);
+        const msg = err.response?.data?.message || err.message || "Failed to load audit logs";
+        const status = err.response?.status;
+        errors.push(`Audit logs: ${msg}${status ? ` (HTTP ${status})` : ""}`);
+        console.error("Dashboard audit error:", err);
       }
+
+      if (errors.length) setError(errors.join(" | "));
+      setLoading(false);
     };
     load();
   }, []);
@@ -150,6 +164,15 @@ export default function AdminDashboard() {
 
   return (
     <div className="dashboard-page">
+      {/* ── Error Banner ── */}
+      {error && (
+        <div style={{
+          marginBottom: 16, padding: "12px 16px", borderRadius: "var(--radius-md)",
+          background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", fontSize: 13,
+        }}>
+          {error}
+        </div>
+      )}
       {/* ── Summary Cards ── */}
       <div className="responsive-grid-4" style={{ marginBottom: 24 }}>
         {summaryCards.map((card, i) => (
