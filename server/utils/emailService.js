@@ -1,38 +1,92 @@
-const nodemailer = require("nodemailer");
+const SibApiV3Sdk = require("sib-api-v3-sdk");
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // STARTTLS — upgrades to TLS after connect
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-});
+const EMAIL_FAILURE_MESSAGE = "Failed to send verification email. Please try again later.";
 
-/**
- * Send a generic email. Returns a promise.
- */
-const sendMail = ({ to, subject, html }) =>
-  transporter.sendMail({
-    from: `"RTU DPO Portal" <${process.env.SMTP_USER}>`,
-    to,
-    subject,
-    html,
-  });
+class EmailDeliveryError extends Error {
+  constructor(message, statusCode, details) {
+    super(message || EMAIL_FAILURE_MESSAGE);
+    this.name = "EmailDeliveryError";
+    this.isEmailError = true;
+    this.statusCode = statusCode || 500;
+    this.publicMessage = EMAIL_FAILURE_MESSAGE;
+    this.details = details || null;
+  }
+}
+
+const getBrevoClient = () => {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    throw new EmailDeliveryError("Missing BREVO_API_KEY", 500);
+  }
+
+  const defaultClient = SibApiV3Sdk.ApiClient.instance;
+  defaultClient.authentications["api-key"].apiKey = apiKey;
+  return new SibApiV3Sdk.TransactionalEmailsApi();
+};
+
+const getSender = () => {
+  const email = process.env.BREVO_SENDER_EMAIL;
+  const name = process.env.BREVO_SENDER_NAME || "RTU DPO Portal";
+
+  if (!email) {
+    throw new EmailDeliveryError("Missing BREVO_SENDER_EMAIL", 500);
+  }
+
+  return { email, name };
+};
+
+const normalizeRecipients = (to) => {
+  if (!to) return [];
+
+  if (Array.isArray(to)) {
+    return to
+      .filter(Boolean)
+      .map((email) => ({ email: String(email).trim() }))
+      .filter((recipient) => recipient.email.length > 0);
+  }
+
+  return [{ email: String(to).trim() }].filter((recipient) => recipient.email.length > 0);
+};
+
+const sendBrevoEmail = async ({ to, subject, htmlContent }) => {
+  try {
+    const client = getBrevoClient();
+    const recipients = normalizeRecipients(to);
+    if (!recipients.length) {
+      throw new EmailDeliveryError("Recipient email is required", 400);
+    }
+
+    const payload = new SibApiV3Sdk.SendSmtpEmail();
+    payload.sender = getSender();
+    payload.to = recipients;
+    payload.subject = subject;
+    payload.htmlContent = htmlContent;
+
+    return await client.sendTransacEmail(payload);
+  } catch (error) {
+    if (error?.isEmailError) {
+      throw error;
+    }
+
+    const statusCode = error?.status || error?.response?.status || error?.response?.statusCode || 500;
+    const details = error?.response?.body || error?.response?.data || error?.message || "Unknown Brevo error";
+    const brevoMessage = typeof details === "string" ? details : JSON.stringify(details);
+
+    console.error(`[Brevo] Email send failed (${statusCode}): ${brevoMessage}`);
+
+    throw new EmailDeliveryError(`Brevo API request failed (${statusCode})`, statusCode, details);
+  }
+};
 
 /**
  * Send a 6-digit OTP for login verification or password reset.
  */
 exports.sendOtpEmail = (email, otp, purpose = "login") => {
   const label = purpose === "reset" ? "Password Reset" : "Login Verification";
-  return sendMail({
+  return sendBrevoEmail({
     to: email,
     subject: `RTU DPO Portal – Your ${label} OTP`,
-    html: `
+    htmlContent: `
       <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0f2d6b;padding:24px 32px">
           <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
@@ -52,10 +106,10 @@ exports.sendOtpEmail = (email, otp, purpose = "login") => {
  * Send a password-reset link.
  */
 exports.sendPasswordResetEmail = (email, resetUrl) =>
-  sendMail({
+  sendBrevoEmail({
     to: email,
     subject: "RTU DPO Portal – Password Reset Request",
-    html: `
+    htmlContent: `
       <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0f2d6b;padding:24px 32px">
           <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
@@ -88,10 +142,10 @@ exports.sendStatusUpdateEmail = (email, name, requestType, newStatus, remarks) =
     ? `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-top:16px"><strong>Remarks:</strong><br>${remarks}</div>`
     : "";
 
-  return sendMail({
+  return sendBrevoEmail({
     to: email,
     subject: `RTU DPO Portal – Your ${requestType.toUpperCase()} Request has been updated`,
-    html: `
+    htmlContent: `
       <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0f2d6b;padding:24px 32px">
           <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
@@ -111,10 +165,10 @@ exports.sendStatusUpdateEmail = (email, name, requestType, newStatus, remarks) =
  * Send a welcome / account-created email with a temporary password.
  */
 exports.sendWelcomeEmail = (email, name, tempPassword) =>
-  sendMail({
+  sendBrevoEmail({
     to: email,
     subject: "RTU DPO Portal – Your Account Has Been Created",
-    html: `
+    htmlContent: `
       <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0f2d6b;padding:24px 32px">
           <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
@@ -131,10 +185,10 @@ exports.sendWelcomeEmail = (email, name, tempPassword) =>
  * Send an email verification link.
  */
 exports.sendVerificationEmail = (email, name, verifyUrl) =>
-  sendMail({
+  sendBrevoEmail({
     to: email,
     subject: "RTU DPO Portal – Verify Your Email",
-    html: `
+    htmlContent: `
       <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0f2d6b;padding:24px 32px">
           <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
@@ -152,10 +206,10 @@ exports.sendVerificationEmail = (email, name, verifyUrl) =>
  * Send a welcome email with a verification/activation link (admin-created user, no password set).
  */
 exports.sendWelcomeVerificationEmail = (email, name, activateUrl) =>
-  sendMail({
+  sendBrevoEmail({
     to: email,
     subject: "RTU DPO Portal – Welcome! Activate Your Account",
-    html: `
+    htmlContent: `
       <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0f2d6b;padding:24px 32px">
           <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
@@ -173,10 +227,10 @@ exports.sendWelcomeVerificationEmail = (email, name, activateUrl) =>
  * Send a verification OTP email for new account registration.
  */
 exports.sendVerificationOtpEmail = (email, name, otp) =>
-  sendMail({
+  sendBrevoEmail({
     to: email,
     subject: "RTU DPO Portal \u2013 Verify Your Email",
-    html: `
+    htmlContent: `
       <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0f2d6b;padding:24px 32px">
           <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
@@ -196,10 +250,10 @@ exports.sendVerificationOtpEmail = (email, name, otp) =>
  * Send a login OTP email for device/IP verification.
  */
 exports.sendLoginOtpEmail = (email, otp) =>
-  sendMail({
+  sendBrevoEmail({
     to: email,
     subject: "RTU DPO Portal – Login Verification OTP",
-    html: `
+    htmlContent: `
       <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0f2d6b;padding:24px 32px">
           <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
@@ -212,3 +266,6 @@ exports.sendLoginOtpEmail = (email, otp) =>
         </div>
       </div>`,
   });
+exports.sendBrevoEmail = sendBrevoEmail;
+exports.EmailDeliveryError = EmailDeliveryError;
+

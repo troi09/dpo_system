@@ -223,7 +223,9 @@ exports.updateRequestStatus = async (req, res) => {
     // Notify student by email
     User.findById(updated.userId).then((owner) => {
       if (owner?.email) {
-        sendStatusUpdateEmail(owner.email, owner.name, updated.type, status, remarks || "").catch(() => {});
+        sendStatusUpdateEmail(owner.email, owner.name, updated.type, status, remarks || "").catch((emailErr) => {
+          console.error("Request status notification email failed:", emailErr.message);
+        });
       }
     }).catch(() => {});
 
@@ -473,7 +475,9 @@ exports.adminPhase3Action = async (req, res) => {
     // Notify student
     User.findById(r.userId).then((owner) => {
       if (owner?.email) {
-        sendStatusUpdateEmail(owner.email, owner.name, r.type, r.status, r.remarks).catch(() => {});
+        sendStatusUpdateEmail(owner.email, owner.name, r.type, r.status, r.remarks).catch((emailErr) => {
+          console.error("Agreement status notification email failed:", emailErr.message);
+        });
       }
     }).catch(() => {});
 

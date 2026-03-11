@@ -24,15 +24,21 @@ const getClientIp = (req) => {
 };
 
 const OTP_TRUST_WINDOW_MS = 72 * 60 * 60 * 1000; // 72 hours
+const EMAIL_ERROR_MESSAGE = "Failed to send verification email. Please try again later.";
+
+const buildErrorMessage = (error) => {
+  if (error?.isEmailError) {
+    return error.publicMessage || EMAIL_ERROR_MESSAGE;
+  }
+  return error?.message || "Internal server error";
+};
 
 const sendVerificationOtpToUser = async (user) => {
   const otp = generateOtp();
   user.otp = await bcrypt.hash(otp, 10);
   user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();
-  sendVerificationOtpEmail(user.email, user.name, otp).catch((err) => {
-    console.error("Verification OTP email failed:", err.message);
-  });
+  await sendVerificationOtpEmail(user.email, user.name, otp);
 };
 
 // REGISTER
@@ -70,15 +76,13 @@ exports.register = async (req, res) => {
       otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 min
     });
 
-    sendVerificationOtpEmail(user.email, user.name, otp).catch((err) => {
-      console.error("Registration verification OTP email error:", err.message);
-    });
+    await sendVerificationOtpEmail(user.email, user.name, otp);
 
     logAudit({ userId: user._id, action: "account_created", details: { role: user.role, method: "self_register" } });
 
     res.status(201).json({ requireVerification: true, email: user.email, message: "Account created! Please check your email for the verification OTP." });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -132,7 +136,7 @@ exports.verifyEmail = async (req, res) => {
 
     res.json({ message: "Email verified successfully! You can now log in." });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -157,13 +161,11 @@ exports.resendVerificationOtp = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    sendVerificationOtpEmail(user.email, user.name, otp).catch((err) => {
-      console.error("Resend verification OTP email error:", err.message);
-    });
+    await sendVerificationOtpEmail(user.email, user.name, otp);
 
     res.json({ message: "A new verification OTP has been sent to your email." });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -197,7 +199,7 @@ exports.activateAccount = async (req, res) => {
 
     res.json({ message: "Account activated! You can now log in." });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -265,9 +267,7 @@ exports.login = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
 
-    sendLoginOtpEmail(user.email, otp).catch((err) => {
-      console.error("Login OTP email failed:", err.message);
-    });
+    await sendLoginOtpEmail(user.email, otp);
 
     logAudit({ userId: user._id, action: "login_otp_sent", details: { ip: clientIp }, ipAddress: clientIp });
 
@@ -276,7 +276,7 @@ exports.login = async (req, res) => {
       message: "A verification code has been sent to your email.",
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -340,7 +340,7 @@ exports.verifyLoginOtp = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -358,7 +358,7 @@ exports.refreshToken = async (req, res) => {
 
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -406,7 +406,7 @@ exports.updateProfile = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -427,14 +427,12 @@ exports.forgotPassword = async (req, res) => {
     user.resetTokenExpiry = null;
     await user.save();
 
-    await sendOtpEmail(user.email, otp, "reset").catch((err) => {
-      console.error("Forgot password OTP email error:", err.message);
-    });
+    await sendOtpEmail(user.email, otp, "reset");
     logAudit({ userId: user._id, action: "password_reset_requested", details: { email: user.email } });
 
     res.status(200).json({ message: "If that account exists, an OTP has been sent." });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -463,7 +461,7 @@ exports.verifyResetOtp = async (req, res) => {
 
     res.json({ resetToken, message: "OTP verified" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -496,7 +494,7 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: "Password reset successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -508,7 +506,7 @@ exports.getAllUsers = async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -540,9 +538,7 @@ exports.adminCreateUser = async (req, res) => {
     });
 
     await sendVerificationOtpToUser(user);
-    sendWelcomeEmail(user.email, user.name, password).catch((err) => {
-      console.error("Welcome email error:", err.message);
-    });
+    await sendWelcomeEmail(user.email, user.name, password);
 
     logAudit({
       userId: req.user.id,
@@ -557,7 +553,7 @@ exports.adminCreateUser = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -583,7 +579,7 @@ exports.toggleUserActive = async (req, res) => {
 
     res.json({ message: `User ${user.isActive ? "activated" : "deactivated"}`, isActive: user.isActive });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -598,9 +594,7 @@ exports.adminTriggerPasswordReset = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendOtpEmail(user.email, otp, "reset").catch((err) => {
-      console.error("Admin trigger password reset OTP email error:", err.message);
-    });
+    await sendOtpEmail(user.email, otp, "reset");
     logAudit({
       userId: req.user.id,
       action: "password_reset_triggered_by_admin",
@@ -611,6 +605,6 @@ exports.adminTriggerPasswordReset = async (req, res) => {
 
     res.json({ message: `Password reset OTP sent to ${user.email}` });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: buildErrorMessage(error) });
   }
 };

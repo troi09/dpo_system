@@ -17,9 +17,10 @@ MONGO_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/dpo_system
 # JWT — change this to a long random secret in production
 JWT_SECRET=your_strong_secret_here
 
-# Google SMTP (use an App Password, not your account password)
-SMTP_USER=your.address@gmail.com
-SMTP_PASS=your_16_char_app_password
+# Brevo Transactional Email
+BREVO_API_KEY=your_brevo_v3_api_key
+BREVO_SENDER_EMAIL=no-reply@yourdomain.com
+BREVO_SENDER_NAME=RTU Data Protection Office
 
 # Client origin (for CORS and email links)
 CLIENT_URL=http://localhost:5173
@@ -31,7 +32,7 @@ ALLOWED_ORIGINS=http://localhost:5173,https://your-app.vercel.app
 FRONTEND_URL=http://localhost:5173
 ```
 
-> **Getting a Gmail App Password**: Google Account → Security → 2-Step Verification → App Passwords. Generate one for "Mail" and paste it as `SMTP_PASS`. Do NOT use your normal Google password.
+> **Brevo setup**: In your Brevo dashboard, create a v3 API key and verify your sender email/domain. Use that key in `BREVO_API_KEY`.
 
 ### Client (`client/.env`)
 
@@ -48,7 +49,7 @@ VITE_API_BASE_URL=http://localhost:3000
 ### Server
 
 ```
-nodemailer   — Google SMTP email delivery
+@getbrevo/brevo — Brevo transactional email delivery
 node-cron    — 5-year automatic archiving job
 ```
 
@@ -329,7 +330,7 @@ The `client/vercel.json` rewrites all routes to `index.html` for SPA routing. Se
 
 ### Server (Render / Railway / similar)
 
-Set all server env vars (`MONGO_URI`, `JWT_SECRET`, `SMTP_USER`, `SMTP_PASS`, `CLIENT_URL`, `FRONTEND_URL`).
+Set all server env vars (`MONGO_URI`, `JWT_SECRET`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`, `CLIENT_URL`, `FRONTEND_URL`).
 
 **FRONTEND_URL** must point to your deployed client URL (e.g., `https://your-app.vercel.app`) — this is used to generate verification and activation email links.
 
@@ -376,14 +377,15 @@ Set all server env vars (`MONGO_URI`, `JWT_SECRET`, `SMTP_USER`, `SMTP_PASS`, `C
 2. Set server env in host (Render/Railway/etc):
 - `MONGO_URI`
 - `JWT_SECRET`
-- `SMTP_USER`
-- `SMTP_PASS`
+- `BREVO_API_KEY`
+- `BREVO_SENDER_EMAIL`
+- `BREVO_SENDER_NAME`
 - `FRONTEND_URL=https://<your-vercel-domain>`
 - `ALLOWED_ORIGINS=https://<your-vercel-domain>`
 
 3. Confirm email delivery:
-- Gmail app password is valid.
-- SMTP sender is allowed and not blocked by provider limits.
+- Brevo API key is valid and has transactional email permissions.
+- Brevo sender email/domain is verified.
 
 4. Verify end-to-end scenarios after deploy:
 - Public registration -> OTP verification -> login.
@@ -734,6 +736,9 @@ If admin pages show empty data, 0-count metrics, or "Failed to load" errors **on
 | `ALLOWED_ORIGINS` | `https://your-app.vercel.app` (exact URL, no trailing `/`) | Mismatch with actual Vercel URL, or missing preview deploy URLs |
 | `FRONTEND_URL` | `https://your-app.vercel.app` | Still set to `http://localhost:5173` |
 | `CLIENT_URL` | `https://your-app.vercel.app` | Still set to `http://localhost:5173` |
+| `BREVO_API_KEY` | Your Brevo v3 API key | Missing key or using an expired key |
+| `BREVO_SENDER_EMAIL` | Verified Brevo sender email | Sender not verified in Brevo |
+| `BREVO_SENDER_NAME` | `RTU Data Protection Office` (or your sender display name) | Empty value or unexpected sender branding |
 | `MONGO_URI` | Your MongoDB Atlas connection string | Whitelist `0.0.0.0/0` in Atlas Network Access for Render/Railway |
 | `JWT_SECRET` | A strong random string | Using a weak or empty value |
 
