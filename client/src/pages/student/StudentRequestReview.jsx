@@ -89,7 +89,7 @@ export default function StudentRequestReview() {
           </div>
         </div>
 
-        <div className="review-section">
+        <div className="review-section review-section--stepper">
           <RequestStepper status={reqData.status} />
         </div>
 

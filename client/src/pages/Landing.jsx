@@ -1,4 +1,4 @@
-import { useState, useContext, useCallback, useRef } from "react";
+import { useState, useContext, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -83,7 +83,7 @@ function ForgotPasswordFlow({ onCancel }) {
       </h2>
       {step === "email" && (
         <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
             Enter your registered email and we&apos;ll send you an OTP.
           </p>
           {error && <div className="landing-error">{error}</div>}
@@ -99,9 +99,9 @@ function ForgotPasswordFlow({ onCancel }) {
       )}
       {step === "otp" && (
         <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
-            A 6-digit OTP was sent to <strong>{email}</strong>. It expires in 10 minutes.
-          </p>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
+                  A 6-digit OTP was sent to <strong>{email}</strong>. It expires in 10 minutes.
+                </p>
           {error && <div className="landing-error">{error}</div>}
           <div className="landing-field-group">
             <label className="landing-label">OTP Code</label>
@@ -234,6 +234,20 @@ const Landing = () => {
 
   const isLogin = mode === "login";
 
+  useEffect(() => {
+    // Lock page scroll while on the landing/auth route for app-like immersion.
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
   return (
     <div className="landing" onMouseMove={handleMouseMove}>
       <div
@@ -268,7 +282,7 @@ const Landing = () => {
             >
               <form onSubmit={handleVerifyLoginOtp} className="landing-card">
                 <h2 className="landing-title">Verify Your Identity</h2>
-                <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
                   A 6-digit OTP was sent to <strong>{pendingEmail}</strong>. Enter it below to continue.
                 </p>
                 {error && <div className="landing-error">{error}</div>}

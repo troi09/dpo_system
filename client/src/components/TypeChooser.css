@@ -4,6 +4,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  gap: 12px;
 }
 
 /* ── Centered heading for main request type selection ── */
@@ -24,15 +25,20 @@
   flex-wrap: wrap;
 }
 
+.type-chooser-grid--wide {
+  width: 100%;
+  max-width: 920px;
+}
+
 .type-chooser-card-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   width: 200px;
-  height: 200px;
-  padding: 24px;
+  min-height: 200px;
+  padding: 24px 20px;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -40,6 +46,7 @@
   font-family: inherit;
   box-shadow: var(--shadow-sm);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  text-align: center;
 }
 
 .type-chooser-card-btn:hover {
@@ -58,6 +65,13 @@
   color: var(--text-primary);
   text-align: center;
   line-height: 1.35;
+}
+
+.type-chooser-card-subtext {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  max-width: 170px;
 }
 
 /* ── Existing sub-chooser card (NDA types, etc.) ── */
@@ -144,4 +158,16 @@
 
 .type-chooser-option:hover .type-chooser-arrow {
   color: var(--primary);
+}
+
+@media (max-width: 500px) {
+  .type-chooser-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .type-chooser-card-btn {
+    width: 100%;
+    max-width: 260px;
+  }
 }
