@@ -4,153 +4,17 @@ Simplicity first: make every chnage as simple as possible. impact minimal code.
 No laziness: Find root causes. No temporary fixes. Senior developer standards.
 Minimal impact: changes hould only touch what's necessary. avoid introducing bugs.
 
-Login page
--add forgot pass
+Notes
+-Both cater the changes and the requirements to be able to not just run on the local, but also on vercel as a deployed websystem
+-Check the whole system if there are requiements need to be changed or replace for being able to run in vercel (include .env files, since its in gitignore and the changes would need be maually added)
+-At the end of this, Make a read me or any explnation that makes me instructions or guides for me to implement, to do, to replace, to install depndencies, or any requirement at all after implementing the changes
 
-integrate email SMTP through google
--for OTP and for logging in and also be able to forgot password through the email
--notification function also for Users-with this implementation, make the creation of account require an email
+in the login page Make the logo and titles of DPO adn RTU larger by around 20%
+also in the login page, when viewed in phone size, make the background image fill the background, since when in phne view theres a big gap on the bottom, the background doest fill the entire screen. Also lock the login screen so it is not scrollable
+when the user creates a request and picks the NDA option, make the option up next (school org activities, and conduct research) the same buttons layout and buttons as the initial pciking of NDA and Agreeement, and below the logo and titel of the form, a brief explnation of what si the purpose of both (for what it is)
+in the request review page, make  the page form centered and make it wider to fit the progress bar tracking 
 
-remove the overall implementation of the DPO Security & Audit Agent AI, and the chatbot. its not necessary
-
-Dashboard page
--limit to 4 most recent request (less clutter)
--overall view for the admin
--add activity log/audit trail
--in the dashboard of admin add statistics, charts or graphs that can be utilized and give more info to the DPO staffs on the current state in the websystem (be intelligent on what to graph, its up to you on whats the thing/data to graph in the dashboard)
-
-Request page
--add check box to set if the requestee is outside of the philippines, then change the requirement of notarized authorization letter to consular notarized authorization
-
-In viewing the specific/ongoing requests
--in the page add a timeline function, for visualization like a Stepper / Step Indicator through the pipeline of the process and the current phase/status of the request, make it like horizontal
-
-Reports and Analytics page
--Also add the graphs, statistics, and charts here on whatever you also placed in the Dashboard. But ofcourse more indepth and more functional and explain the a quick summary on what they mean
-
-Add Manage Users Page (for admin)
--admin can handle forgot pass
--manage the user and create also(for all roles)
-
-Add an Archive fuction for the request forms and their documents 
--(Adhere to Laws regulations of Archving legal documents retaining of 5yrs before going to the archive)
-
-Add a audit trail/activity log
--for the admin view only
--for admins to be able to knonw whats ahppening and implmenting this adheres to security purposes
-
-Overall UI
--Make it professional and sleek looking
--Fill the page/centerizization of page contents
--make it cohesive and a uniform theme going ongoing
--make smart animations throughout the whole websystem
--dont use normal intext emoji's, replace it with proper icons (you can take from external sources to make it more beautiful)
--when implmeneting the graphs and charts statistics be smart on placing it in the page and be mindful of spacing and the overll contents
--avoid overstacking, or overflowing of contents
--be aware of the contents
--dont overdo it
-
-Here is a detailed, cohesive, and intelligent set of instructions designed specifically for an agentic AI (like GitHub Copilot Workspace, Devin, or Cursor). It is structured logically, breaking down the requirements into architectural, backend, frontend, and UI/UX directives to ensure the AI understands the dependencies and business logic of your DPO System.
-
-You can copy and paste this entire block into your AI agent's prompt interface.
-
----
-
-# System Prompt: Comprehensive Feature Implementation for RTU DPO Automation System
-
-**Context:**
-You are an expert full-stack MERN developer tasked with upgrading the "Secure Document Automation System for the RTU Data Protection Office (DPO)". The system strictly enforces role-based access control (Admin vs. Student/Staff) and adheres to data privacy compliance. Your goal is to implement the following features, architectural changes, and UI/UX overhauls.
-
-**Global Technical Directives:**
-
-* **No Placeholders:** Write production-ready logic.
-* **Dependencies:** If new libraries are needed (e.g., `nodemailer` for SMTP, `recharts` or `chart.js` for analytics, `lucide-react` or `react-icons` for icons), install them automatically and ensure they are added to the respective `package.json`.
-* **Security First:** Ensure all new backend routes are protected by the existing authentication middleware and role-checking guards.
-
-Please execute the following updates systematically:
-
-### Phase 1: Feature Deletion & Cleanup
-
-* **Remove AI Integrations:** The DPO Security & Audit Agent AI and the Chatbot are no longer required.
-* **Actionable Steps:** * Delete all files, components, controllers, and routes associated with the AI functionalities (specifically `AITriageChat.jsx`, `aiService.js`, `agentController.js`, `agentRoutes.js`, and `.github/copilot-instructions.md`).
-* Remove their imports and usage from `server.js` and frontend layout/routing files. Clean up the codebase to ensure no broken links or orphaned code remains.
-
-
-
-### Phase 2: Database & Backend Enhancements
-
-* **Google SMTP Integration:**
-* Implement an email service utility using `nodemailer` configured for Google SMTP.
-* Implement an OTP generation and validation flow for user login verification.
-* Implement a secure "Forgot Password" flow utilizing expiring token-based or OTP-based links sent via email.
-* Create a notification utility to send users email updates when the status of their request changes.
-
-
-* **User Model Updates:**
-* Modify the `User` schema to make `email` a strictly required field for account creation across all roles.
-* Add fields to handle OTP codes, OTP expiry, and password reset tokens.
-
-
-* **Audit Trail System:**
-* Utilize or expand the existing `AuditLog` model to track sensitive system events (e.g., User Logins, Password Changes, Document Approvals, Request Submissions, Account Creations).
-* Ensure this backend log captures the `userId`, `action`, `timestamp`, and `details`. Restrict API access to these logs strictly to users with the `admin` role.
-
-
-* **Archiving Logic (Legal Compliance):**
-* Implement a background cron job (using `node-cron`) or a database aggregation query that enforces a 5-year document retention policy.
-* Logic: Any completed/approved request and its associated documents that have passed the 5-year mark from their creation date must be automatically flagged as `isArchived: true` and moved out of the active data queries into the Archive view.
-
-
-
-### Phase 3: Frontend Implementation (Page by Page)
-
-* **Login & Authentication Flow:**
-* Add a sleek "Forgot Password?" link on the Login page.
-* Create the corresponding UI components for the user to input their email, receive an OTP/Link, and securely set a new password.
-* Integrate the OTP verification step into the standard login flow.
-
-
-* **Admin Dashboard Page:**
-* **Clutter Reduction:** Limit the "Recent Requests" or "Pending Documents" list to show only the 4 most recent entries. Add a "View All" link directing to the full requests page.
-* **Data Visualization:** Introduce a clean, modern analytics section at the top of the dashboard using a charting library.
-* *Graph 1:* A Donut Chart showing the distribution of "Current Request Statuses" (Pending, Approved, Archived).
-* *Graph 2:* A Bar Chart showing "Document Types Generated" (e.g., NDA vs. General Agreement) for the current month.
-
-
-* **Audit Preview:** Add a small widget displaying the 5 most recent activities from the Audit Trail.
-
-
-* **Reports & Analytics Page:**
-* Replicate the graphs from the Dashboard but expand them to be interactive (e.g., filterable by date ranges, months, or academic terms).
-* **AI/Smart Summaries:** Below or next to each graph, write a dynamic, programmatic text summary that explains the data (e.g., "Pending requests have increased by 15% this week, indicating a backlog in NDA approvals.").
-
-
-* **Specific/Ongoing Request View:**
-* Implement a horizontal "Stepper" or "Step Indicator" component at the top of the request details page.
-* Phases should visually map to: `Submitted` -> `Under Review` -> `Awaiting Signature` -> `Approved/Completed`. Highlight the current active step with a distinct primary color.
-
-
-* **Student Request Page (Form Updates):**
-* Add a prominent checkbox state: "Is the requestee located outside of the Philippines?".
-* *Dynamic Validation:* If checked, dynamically update the UI requirements and form validations to ask for a "Consular Notarized Authorization" instead of the standard "Notarized Authorization Letter".
-
-
-* **Manage Users Page (Admin Only):**
-* Create a dedicated Administration page for User Management.
-* Features required: A data table listing all users, a form to create new users (assigning roles: Admin, Staff, Student), a mechanism to deactivate users, and a manual "Trigger Password Reset" button that sends a recovery email to the selected user.
-
-
-* **Archives Page:**
-* Create a secure view accessible only by Admins displaying all requests and documents that have triggered the 5-year archiving rule. Add search and filter functionalities.
-
-
-
-### Phase 4: Global UI/UX & Styling Standards
-
-* **Professional & Sleek Theme:** Adopt a modern, cohesive, enterprise-grade design system (e.g., matching the RTU DPO branding—deep blues, crisp whites, and accessible grays).
-* **Layout & Centering:** Ensure all page contents are properly centered with maximum widths (e.g., `max-w-7xl mx-auto`) to prevent UI elements from stretching too far on ultra-wide monitors. Prevent content overflow and overstacking on smaller screens.
-* **Iconography:** Strictly prohibit the use of native text-based emojis (❌ 📄 📊). Replace them entirely with professional vector icons using libraries like `lucide-react`.
-* **Smart Animations:** Introduce subtle, tasteful animations. Use libraries like `framer-motion` or standard CSS transitions for page route loading (fade-ins), hover effects on buttons/cards, and smooth expansion of the Stepper components.
-* **Chart Placement:** Ensure graphs on the Dashboard and Analytics pages are placed in structured grid layouts (e.g., CSS Grid) so they are visually balanced, responsive, and do not crowd the tabular data. Provide ample padding (`p-6` or `p-8`) inside cards.
-
-At the end of this, Make a read me or any explnation that makes me instructions or guides for me to implement, to do, to replace, to install depndencies, or any requirement at all after implementing the changes
+general bug. when the websystem is deployed to vercel already same code and all. When we load in the dashbaord the datas are empty, the responsive grid at the top have no data (like total request, pending, etc. are 0), the data charts and graphs are empty (although the data of these charts and graph are available in the reports and analytics page, just the daashabord are mising data)
+similar to other issue. Audit logs are not avaiable and not retreieving in vercel deployment.
+same also with the users management tab, tehre are no users loaded in and gives the error of Failed to load users
+all of these error and bugs happens in the vercel deployment mode, but local it all works flawlessly

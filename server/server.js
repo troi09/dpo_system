@@ -39,7 +39,7 @@ const corsOptions = {
 };
 
 // Handle preflight for all routes explicitly (required by some edge runtimes)
-app.options("*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 
