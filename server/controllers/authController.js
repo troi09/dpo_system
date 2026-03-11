@@ -30,7 +30,9 @@ const sendVerificationOtpToUser = async (user) => {
   user.otp = await bcrypt.hash(otp, 10);
   user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();
-  await sendVerificationOtpEmail(user.email, user.name, otp);
+  sendVerificationOtpEmail(user.email, user.name, otp).catch((err) => {
+    console.error("Verification OTP email failed:", err.message);
+  });
 };
 
 // REGISTER
@@ -263,12 +265,9 @@ exports.login = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
 
-    try {
-      await sendLoginOtpEmail(user.email, otp);
-    } catch (emailErr) {
-      console.error("Failed to send login OTP email:", emailErr.message);
-      return res.status(500).json({ message: "Failed to send verification email. Please try again later." });
-    }
+    sendLoginOtpEmail(user.email, otp).catch((err) => {
+      console.error("Login OTP email failed:", err.message);
+    });
 
     logAudit({ userId: user._id, action: "login_otp_sent", details: { ip: clientIp }, ipAddress: clientIp });
 
