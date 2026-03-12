@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
+import { AuthContext } from "../../context/AuthContext";
 
 import {
   getRequestById,
@@ -52,6 +53,7 @@ const getRequestFolder = (predocs = []) => {
 // ─────────────────────────────────────────────────────────────────────────────
 function NdaReviewPanel({ reqData }) {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [remarks, setRemarks] = useState(reqData.remarks || "");
   const [approving, setApproving] = useState(false);
   const adminSigRef = useRef(null);
@@ -116,6 +118,7 @@ function NdaReviewPanel({ reqData }) {
           userId: reqData.userId,
           studentSigDataUrl: sigImages.studentSig,
           adminSigDataUrl: sigImages.adminSig || adminSigDataUrl,
+          approverName: user?.name || "",
           verificationUrl,
           qrDataUrl,
         };
@@ -282,6 +285,7 @@ function NdaReviewPanel({ reqData }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function AgreementReviewPanel({ reqData }) {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [remarks, setRemarks] = useState(reqData.remarks || "");
   const [signingLink, setSigningLink] = useState(() => {
     // Reconstruct signing link from persisted token if it exists and hasn't been fully used
@@ -352,6 +356,7 @@ function AgreementReviewPanel({ reqData }) {
         authorizerSigUrl: authorizerSig,
         repSigUrl: repSig,
         adminSigDataUrl,
+        approverName: user?.name || "",
         verificationUrl,
         qrDataUrl,
       };
