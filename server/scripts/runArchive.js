@@ -1,35 +1,40 @@
 require('dotenv').config();
 const connectDB = require('../config/db');
+const mongoose = require('mongoose');
+const Request = require('../models/Request');
 
 (async () => {
   try {
     await connectDB();
+    const archiveTimestamp = new Date();
 
-    const fiveYearsAgo = new Date();
-    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+    const filter = {
+      $or: [
+        { isArchived: false },
+        { isArchived: { $exists: false } },
+      ],
+    };
 
-    const Request = require('../models/Request');
-
-    const result = await Request.updateMany(
-      {
-        isArchived: false,
-        status: { $in: ['nda_approved', 'agr_approved'] },
-        createdAt: { $lte: fiveYearsAgo },
+    const result = await Request.updateMany(filter, {
+      $set: {
+        isArchived: true,
+        archivedAt: archiveTimestamp,
       },
-      { $set: { isArchived: true, archivedAt: new Date() } }
-    );
+    });
 
-    console.log(`[runArchive] Archived ${result.modifiedCount} requests.`);
+    console.log(`[runArchive] Archive timestamp: ${archiveTimestamp.toISOString()}`);
+    console.log(`[runArchive] Matched ${result.matchedCount || 0} requests.`);
+    console.log(`[runArchive] Archived ${result.modifiedCount || 0} requests.`);
+    process.exitCode = 0;
   } catch (err) {
     console.error('[runArchive] Error:', err);
+    process.exitCode = 1;
   } finally {
-    // Close mongoose connection if open
     try {
-      const mongoose = require('mongoose');
       await mongoose.connection.close();
     } catch (e) {
       // ignore
     }
-    process.exit(0);
+    process.exit();
   }
 })();

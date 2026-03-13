@@ -9,8 +9,41 @@ const logAudit = (data) => {
   AuditLog.create(data).catch(() => {});
 };
 
-const generateVerification = () =>
-  crypto.randomBytes(8).toString("hex").toUpperCase();
+const SERIAL_SUFFIX_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+const getSerialDatePart = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = pad2(date.getMonth() + 1);
+  const day = pad2(date.getDate());
+  return `${year}-${month}-${day}`;
+};
+
+const generateSerialSuffix = () => {
+  let suffix = "";
+  for (let i = 0; i < 4; i += 1) {
+    const idx = crypto.randomInt(0, SERIAL_SUFFIX_CHARS.length);
+    suffix += SERIAL_SUFFIX_CHARS[idx];
+  }
+  return suffix;
+};
+
+const buildSerialNo = (type) => {
+  const prefix = type === "nda" ? "NDA" : "DPO";
+  return `${prefix}-${getSerialDatePart()}-${generateSerialSuffix()}`;
+};
+
+const generateUniqueSerialNo = async (type) => {
+  const maxAttempts = 12;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const serialNo = buildSerialNo(type);
+    const exists = await Request.exists({ serialNo });
+    if (!exists) return serialNo;
+  }
+
+  throw new Error("Failed to generate a unique serial number");
+};
 
 const generateSigningTokenValue = () =>
   crypto.randomBytes(20).toString("hex");
@@ -200,7 +233,7 @@ exports.updateRequestStatus = async (req, res) => {
     const updatePayload = { status, remarks: remarks || "" };
 
     if (status === "nda_approved" && !existing.serialNo) {
-      updatePayload.serialNo = generateVerification();
+      updatePayload.serialNo = await generateUniqueSerialNo("nda");
     }
 
     // Store admin signature for NDA approvals
@@ -452,7 +485,7 @@ exports.adminPhase3Action = async (req, res) => {
 
     if (action === "approve") {
       r.status = "agr_approved";
-      if (!r.serialNo) r.serialNo = generateVerification();
+      if (!r.serialNo) r.serialNo = await generateUniqueSerialNo("agreement");
       r.remarks = "";
     } else {
       // rep_revision_requested: generate new signing token

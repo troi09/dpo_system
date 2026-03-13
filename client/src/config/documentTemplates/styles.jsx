@@ -24,13 +24,13 @@ export const s = StyleSheet.create({
 
   footerWrap: { position: "absolute", bottom: 40, left: 40, right: 40 },
   footerHr: { borderBottomWidth: 1, borderBottomColor: "#bbb", marginBottom: 8 },
-  footerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  footerRow: { flexDirection: "column", alignItems: "flex-start" },
   footerLeft: { flex: 1, paddingRight: 10 },
   footerTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", textAlign: "left", marginBottom: 4 },
   footerNote: { fontSize: 8, textAlign: "left", color: "#888" },
-  footerQrWrap: { alignItems: "center", width: 90 },
+  footerQrWrap: { alignItems: "flex-start", width: 90, marginTop: 8, paddingLeft: 8 },
   footerQr: { width: 70, height: 70 },
-  footerQrLabel: { fontSize: 7, color: "#888", marginTop: 4, textAlign: "center" },
+  footerQrLabel: { fontSize: 7, color: "#888", marginTop: 4, textAlign: "left" },
 });
 
 export const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-US") : "N/A");

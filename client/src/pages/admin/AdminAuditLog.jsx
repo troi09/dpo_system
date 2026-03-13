@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
+import { Activity, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { getAuditLogs } from "../../services/auditService";
 
 const ACTION_COLORS = {
@@ -128,6 +128,10 @@ export default function AdminAuditLog() {
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("");
   const [error, setError] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth >= 768;
+  });
 
   const load = async (p = page, action = actionFilter) => {
     setLoading(true);
@@ -235,21 +239,51 @@ export default function AdminAuditLog() {
             }}
           />
         </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {ACTION_TYPES.map((a) => (
-            <button
-              key={a.value || "all"}
-              onClick={() => handleActionFilter(a.value)}
-              style={{
-                padding: "8px 12px", borderRadius: "var(--radius-md)", fontWeight: 600, fontSize: 11,
-                border: "1px solid var(--border-strong)", fontFamily: "inherit", cursor: "pointer",
-                background: actionFilter === a.value ? "var(--primary)" : "var(--surface)",
-                color: actionFilter === a.value ? "#fff" : "var(--text-secondary)",
-              }}
-            >
-              {a.label}
-            </button>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 220 }}>
+          <button
+            onClick={() => setFiltersOpen((prev) => !prev)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              width: "100%",
+              padding: "9px 12px",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border-strong)",
+              background: "var(--surface)",
+              color: "var(--text-secondary)",
+              fontSize: 12,
+              fontWeight: 700,
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+              <SlidersHorizontal size={14} />
+              Filter Options
+            </span>
+            {filtersOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          {filtersOpen ? (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {ACTION_TYPES.map((a) => (
+                <button
+                  key={a.value || "all"}
+                  onClick={() => handleActionFilter(a.value)}
+                  style={{
+                    padding: "8px 12px", borderRadius: "var(--radius-md)", fontWeight: 600, fontSize: 11,
+                    border: "1px solid var(--border-strong)", fontFamily: "inherit", cursor: "pointer",
+                    background: actionFilter === a.value ? "var(--primary)" : "var(--surface)",
+                    color: actionFilter === a.value ? "#fff" : "var(--text-secondary)",
+                  }}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
 

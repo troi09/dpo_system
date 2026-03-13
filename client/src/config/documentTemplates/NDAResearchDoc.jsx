@@ -35,6 +35,7 @@ export default function NDAResearchDoc({ request }) {
         <Header title="NON-DISCLOSURE AGREEMENT" subtitle="Conduct of Research" />
 
         <MetaRow label="Date Approved" value={formatDate(request.updatedAt)} />
+        <MetaRow label="Control #" value={request.serialNo || "N/A"} />
         <MetaRow label="Request ID" value={request._id} />
 
         <SectionTitle>Student Information</SectionTitle>

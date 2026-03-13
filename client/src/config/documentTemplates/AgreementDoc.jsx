@@ -40,7 +40,14 @@ const styles = StyleSheet.create({
     lineHeight: 1.25,
     marginTop: 6,
   },
-  afterParagraph: { marginTop: 18, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", width: "100%" },
+  afterParagraph: {
+    marginTop: 18,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    width: "85%",
+    alignSelf: "center",
+  },
   rightColumn: { alignItems: "flex-end" },
   sigBlock: { width: 220, alignItems: "flex-start", marginBottom: 14 },
   sigImage: { width: 150, height: 50, objectFit: "contain", borderBottomWidth: 1, borderBottomColor: "#333" },
@@ -89,7 +96,7 @@ export default function AgreementDoc({ request }) {
           </View>
           <View style={[styles.headerBlock, styles.headerRight]}>
             <Text style={styles.headerRightLine}>Effectivity {formatDate(request.updatedAt)}</Text>
-            <Text style={styles.headerRightLine}>Control # DPO-2025-10-15-592</Text>
+            <Text style={styles.headerRightLine}>Control # {request.serialNo || "N/A"}</Text>
           </View>
         </View>
 

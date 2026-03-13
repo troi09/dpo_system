@@ -92,6 +92,16 @@ export default function AdminDashboard() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isCompact, setIsCompact] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 768;
+  });
+
+  useEffect(() => {
+    const onResize = () => setIsCompact(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -327,18 +337,22 @@ export default function AdminDashboard() {
             background: "var(--surface)", border: "1px solid var(--border)",
             borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
           }}
+          className="dashboard-chart-card"
         >
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
             Request Status Distribution
           </div>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Current active requests by status</div>
           {statusData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
+            <div className="dashboard-chart-canvas">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart margin={{ top: 8, right: 12, bottom: isCompact ? 32 : 8, left: 12 }}>
                 <Pie
                   data={statusData}
-                  cx="50%" cy="50%"
-                  innerRadius={55} outerRadius={85}
+                  cx={isCompact ? "50%" : "36%"}
+                  cy={isCompact ? "45%" : "50%"}
+                  innerRadius={isCompact ? 45 : 55}
+                  outerRadius={isCompact ? 68 : 85}
                   paddingAngle={3}
                   dataKey="value"
                 >
@@ -347,11 +361,19 @@ export default function AdminDashboard() {
                   ))}
                 </Pie>
                 <Tooltip formatter={(value, name) => [value, name]} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  layout={isCompact ? "horizontal" : "vertical"}
+                  align={isCompact ? "center" : "right"}
+                  verticalAlign={isCompact ? "bottom" : "middle"}
+                  wrapperStyle={{ fontSize: 12, paddingLeft: isCompact ? 0 : 24 }}
+                />
               </PieChart>
             </ResponsiveContainer>
+            </div>
           ) : (
-            <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 13 }}>
+            <div className="dashboard-chart-canvas" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 13 }}>
               No data available
             </div>
           )}
@@ -364,12 +386,14 @@ export default function AdminDashboard() {
             background: "var(--surface)", border: "1px solid var(--border)",
             borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
           }}
+          className="dashboard-chart-card"
         >
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
             Document Types — This Month
           </div>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>NDA vs Agreement requests submitted</div>
-          <ResponsiveContainer width="100%" height={200}>
+          <div className="dashboard-chart-canvas">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={typeData} barSize={40}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
@@ -378,6 +402,7 @@ export default function AdminDashboard() {
               <Bar dataKey="count" name="Requests" fill="var(--primary)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </motion.div>
       </div>
 
@@ -389,10 +414,12 @@ export default function AdminDashboard() {
           borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
           marginBottom: 24,
         }}
+        className="dashboard-chart-card"
       >
         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Monthly Trend</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Request volume over the last 6 months</div>
-        <ResponsiveContainer width="100%" height={200}>
+        <div className="dashboard-chart-canvas">
+        <ResponsiveContainer width="100%" height="100%">
           <LineChart data={trendData}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
@@ -404,6 +431,7 @@ export default function AdminDashboard() {
             <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} name="Pending" />
           </LineChart>
         </ResponsiveContainer>
+        </div>
       </motion.div>
 
       {/* ── BOTTOM: Recent Audit Logs ── */}
