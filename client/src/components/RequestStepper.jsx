@@ -1,10 +1,10 @@
 import { Check } from "lucide-react";
 
 const STEPS = [
-  { label: "Submitted", statuses: ["pending", "submitted"] },
-  { label: "Under Review", statuses: ["revision_requested", "rep_revision_requested"] },
-  { label: "Awaiting Signature", statuses: ["awaiting_signature", "pending_approval"] },
-  { label: "Approved / Completed", statuses: ["approved", "completed", "declined"] },
+  { label: "Submitted", statuses: ["nda_pending", "agr_pending_1"] },
+  { label: "Under Review", statuses: ["revision_requested", "agr_rep_revision_requested"] },
+  { label: "Awaiting Signature", statuses: ["agr_awaiting_rep_signature", "agr_pending_2"] },
+  { label: "Approved / Completed", statuses: ["nda_approved", "agr_approved", "agr_rep_declined"] },
 ];
 
 function getActiveStep(status) {
@@ -16,7 +16,7 @@ function getActiveStep(status) {
 
 export default function RequestStepper({ status }) {
   const active = getActiveStep(status);
-  const isDeclined = status === "declined";
+  const isDeclined = status === "agr_rep_declined";
 
   return (
     <div style={{ width: "100%", padding: "8px 0" }}>

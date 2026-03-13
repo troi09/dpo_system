@@ -6,16 +6,15 @@ import { getRequestById } from "../../services/requestService";
 
 const prettyStatus = (s) => {
   const map = {
-    pending: "Pending",
-    approved: "Approved/Completed",
-    revision_required: "Revision Required",
-    revision_requested: "Revision Requested",
-    submitted: "Submitted",
-    awaiting_signature: "Awaiting Representative Signature",
-    pending_approval: "Pending Final Admin Review",
-    completed: "Approved/Completed",
-    declined: "Declined by Representative",
-    rep_revision_requested: "Representative Revision Requested",
+    nda_pending:                "Pending Approval",
+    nda_approved:               "Approved",
+    revision_requested:         "Revision Requested",
+    agr_pending_1:              "Initial Pending Approval",
+    agr_awaiting_rep_signature: "Awaiting Representative Signature",
+    agr_pending_2:              "Pending Final Admin Review",
+    agr_approved:               "Approved",
+    agr_rep_declined:           "Declined by Representative",
+    agr_rep_revision_requested: "Representative Revision Requested",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
@@ -60,7 +59,7 @@ export default function StudentRequestReview() {
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` — ${reqData.formData.ndaTypeLabel}` : ""}`;
 
-  const isApproved = reqData.status === "approved" || reqData.status === "completed";
+  const isApproved = reqData.status === "nda_approved" || reqData.status === "agr_approved";
   const isAgreement = reqData.type === "agreement";
 
   return (
@@ -143,7 +142,7 @@ export default function StudentRequestReview() {
         </div>
 
         {/* Agreement-specific status banners */}
-        {isAgreement && reqData.status === "awaiting_signature" && (
+        {isAgreement && reqData.status === "agr_awaiting_rep_signature" && (
           <div className="info-banner info-banner--info">
             <strong>Awaiting Representative</strong>
             <p>
@@ -153,7 +152,7 @@ export default function StudentRequestReview() {
           </div>
         )}
 
-        {isAgreement && reqData.status === "pending_approval" && (
+        {isAgreement && reqData.status === "agr_pending_2" && (
           <div className="info-banner info-banner--success">
             <strong>Representative Signed</strong>
             <p>
@@ -162,14 +161,14 @@ export default function StudentRequestReview() {
           </div>
         )}
 
-        {isAgreement && reqData.status === "declined" && (
+        {isAgreement && reqData.status === "agr_rep_declined" && (
           <div className="info-banner info-banner--danger">
             <strong>Representative Declined</strong>
             <p>The representative declined to sign this agreement.</p>
           </div>
         )}
 
-        {isAgreement && reqData.status === "rep_revision_requested" && (
+        {isAgreement && reqData.status === "agr_rep_revision_requested" && (
           <div className="info-banner info-banner--warning">
             <strong>Representative Revision Requested</strong>
             <p>

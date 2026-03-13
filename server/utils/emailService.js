@@ -127,15 +127,15 @@ exports.sendPasswordResetEmail = (email, resetUrl) =>
  */
 exports.sendStatusUpdateEmail = (email, name, requestType, newStatus, remarks) => {
   const statusLabels = {
-    pending: "Pending Review",
-    approved: "Approved",
+    nda_pending: "Pending Review",
+    nda_approved: "Approved",
     revision_requested: "Revision Requested",
-    submitted: "Submitted",
-    awaiting_signature: "Awaiting Representative Signature",
-    pending_approval: "Pending Final Approval",
-    completed: "Completed",
-    declined: "Declined by Representative",
-    rep_revision_requested: "Representative Revision Requested",
+    agr_pending_1: "Submitted",
+    agr_awaiting_rep_signature: "Awaiting Representative Signature",
+    agr_pending_2: "Pending Final Approval",
+    agr_approved: "Completed",
+    agr_rep_declined: "Declined by Representative",
+    agr_rep_revision_requested: "Representative Revision Requested",
   };
   const label = statusLabels[newStatus] || newStatus;
   const remarksBlock = remarks

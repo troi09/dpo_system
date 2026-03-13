@@ -71,7 +71,7 @@ export default function RepSigningPage() {
   }
 
   // Guard: wrong status
-  const signingStatuses = ["awaiting_signature", "rep_revision_requested"];
+  const signingStatuses = ["agr_awaiting_rep_signature", "agr_rep_revision_requested"];
   if (!signingStatuses.includes(reqData.status)) {
     return (
       <div className="rep-signing-outer">
@@ -83,7 +83,7 @@ export default function RepSigningPage() {
     );
   }
 
-  const isRevision = reqData.status === "rep_revision_requested";
+  const isRevision = reqData.status === "agr_rep_revision_requested";
   const student = reqData.userId || {};
   const fd = reqData.formData || {};
 
@@ -170,9 +170,9 @@ export default function RepSigningPage() {
           <div className="rep-signing-summary-row">
             <strong>Representative Named:</strong> {fd.repName || "—"}
           </div>
-          {fd.details && (
+          {fd.repEmail && (
             <div className="rep-signing-summary-row">
-              <strong>Details:</strong> {fd.details}
+              <strong>Email of Representative:</strong> {fd.repEmail}
             </div>
           )}
         </div>

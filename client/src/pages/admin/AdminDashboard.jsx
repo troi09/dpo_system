@@ -14,39 +14,54 @@ import { getAllRequests } from "../../services/requestService";
 import { getRecentAuditLogs } from "../../services/auditService";
 
 const STATUS_LABEL = {
-  pending: "Pending",
-  approved: "Approved/Completed",
-  revision_requested: "Revision Requested",
-  submitted: "Submitted",
-  awaiting_signature: "Awaiting Signature",
-  pending_approval: "Pending Approval",
-  completed: "Approved/Completed",
-  declined: "Declined",
-  rep_revision_requested: "Rep Revision",
+  nda_pending:                "Pending Approval",
+  nda_approved:               "Approved",
+  revision_requested:         "Revision Requested",
+  agr_pending_1:              "Initial Pending Approval",
+  agr_awaiting_rep_signature: "Awaiting Rep. Approval",
+  agr_pending_2:              "Final Pending Approval",
+  agr_approved:               "Approved",
+  agr_rep_declined:           "Rep. Declined",
+  agr_rep_revision_requested: "Rep. Revision Requested",
 };
 
-const STATUS_COLORS = {
-  pending: "#f59e0b",
-  submitted: "#3b82f6",
-  approved: "#10b981",
-  completed: "#10b981",
-  revision_requested: "#ef4444",
-  rep_revision_requested: "#f97316",
-  awaiting_signature: "#6366f1",
-  pending_approval: "#8b5cf6",
-  declined: "#ef4444",
+const CHART_LABELS = {
+  chart_approved:             "Approved",
+  chart_final_pending:        "Final Pending Approval",
+  chart_revision:             "Revision Requested",
+  agr_pending_1:              "Initial Pending Approval",
+  agr_awaiting_rep_signature: "Awaiting Rep. Approval",
+  agr_rep_declined:           "Rep. Declined",
 };
 
-const DONUT_COLORS = ["#f59e0b", "#10b981", "#64748b", "#3b82f6", "#ef4444", "#6366f1", "#f97316", "#8b5cf6"];
+const CHART_COLORS = {
+  chart_approved:             "#059669",
+  chart_final_pending:        "#ca8a04",
+  chart_revision:             "#dc2626",
+  agr_pending_1:              "#ea580c",
+  agr_awaiting_rep_signature: "#2563eb",
+  agr_rep_declined:           "#7c3aed",
+};
+
+const normalizeForChart = (s) => {
+  if (s === "nda_approved" || s === "agr_approved") return "chart_approved";
+  if (s === "nda_pending" || s === "agr_pending_2") return "chart_final_pending";
+  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "chart_revision";
+  return s;
+};
+
+const DONUT_COLORS = ["#059669", "#ea580c", "#7c3aed", "#ca8a04", "#2563eb", "#dc2626", "#64748b", "#3b82f6"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const prettyStatus = (s) => STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
 const statusPillClass = (s) => {
-  if (s === "pending" || s === "submitted") return "status-pill status-pill--pending";
-  if (s === "approved" || s === "completed") return "status-pill status-pill--approved";
-  if (["revision_requested", "rep_revision_requested", "declined"].includes(s)) return "status-pill status-pill--revision";
-  if (["awaiting_signature", "pending_approval"].includes(s)) return "status-pill status-pill--info";
+  if (s === "nda_approved" || s === "agr_approved") return "status-pill status-pill--green";
+  if (s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
+  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
+  if (s === "agr_pending_1") return "status-pill status-pill--orange";
+  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agr_rep_declined") return "status-pill status-pill--violet";
   return "status-pill";
 };
 
@@ -115,9 +130,16 @@ export default function AdminDashboard() {
   const statusData = useMemo(() => {
     const counts = {};
     requests.forEach((r) => {
-      if (!r.isArchived) counts[r.status] = (counts[r.status] || 0) + 1;
+      if (!r.isArchived) {
+        const key = normalizeForChart(r.status);
+        counts[key] = (counts[key] || 0) + 1;
+      }
     });
-    return Object.entries(counts).map(([id, value]) => ({ id, name: prettyStatus(id), value }));
+    return Object.entries(counts).map(([id, value]) => ({
+      id,
+      name: CHART_LABELS[id] || id,
+      value,
+    }));
   }, [requests]);
 
   const typeData = useMemo(() => {
@@ -144,15 +166,15 @@ export default function AdminDashboard() {
       return {
         month: MONTH_NAMES[d.getMonth()],
         total: inMonth.length,
-        approved: inMonth.filter((r) => ["approved", "completed"].includes(r.status)).length,
-        pending: inMonth.filter((r) => ["pending", "submitted"].includes(r.status)).length,
+        approved: inMonth.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length,
+        pending: inMonth.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2"].includes(r.status)).length,
       };
     });
   }, [requests]);
 
   const totalActive = requests.filter((r) => !r.isArchived).length;
-  const totalPending = requests.filter((r) => ["pending", "submitted"].includes(r.status)).length;
-  const totalApproved = requests.filter((r) => ["approved", "completed"].includes(r.status)).length;
+  const totalPending = requests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2", "agr_awaiting_rep_signature"].includes(r.status)).length;
+  const totalApproved = requests.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length;
   const totalArchived = requests.filter((r) => r.isArchived).length;
 
   const summaryCards = [
@@ -321,7 +343,7 @@ export default function AdminDashboard() {
                   dataKey="value"
                 >
                   {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value, name) => [value, name]} />

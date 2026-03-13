@@ -51,7 +51,7 @@ app.use("/api/requests", requestRoutes);
 app.use("/api/audit", auditRoutes);
 
 // ── 5-year retention cron job (runs daily at 02:00) ──────────────────────────
-// Flags approved/completed requests older than 5 years as isArchived=true
+// Flags nda_approved/agr_approved requests older than 5 years as isArchived=true
 cron.schedule("0 2 * * *", async () => {
   try {
     const fiveYearsAgo = new Date();
@@ -61,7 +61,7 @@ cron.schedule("0 2 * * *", async () => {
     const result = await Request.updateMany(
       {
         isArchived: false,
-        status: { $in: ["approved", "completed"] },
+        status: { $in: ["nda_approved", "agr_approved"] },
         createdAt: { $lte: fiveYearsAgo },
       },
       { $set: { isArchived: true, archivedAt: new Date() } }

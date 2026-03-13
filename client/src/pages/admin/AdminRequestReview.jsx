@@ -24,16 +24,15 @@ import SignaturePad from "../../components/SignaturePad";
 
 const prettyStatus = (s) => {
   const map = {
-    pending: "Pending",
-    approved: "Approved/Completed",
-    revision_required: "Revision Required",
-    revision_requested: "Revision Requested",
-    submitted: "Submitted",
-    awaiting_signature: "Awaiting Representative Signature",
-    pending_approval: "Pending Final Admin Review",
-    completed: "Approved/Completed",
-    declined: "Declined by Representative",
-    rep_revision_requested: "Representative Revision Requested",
+    nda_pending:                "Pending Approval",
+    nda_approved:               "Approved",
+    revision_requested:         "Revision Requested",
+    agr_pending_1:              "Initial Pending Approval",
+    agr_awaiting_rep_signature: "Awaiting Representative Signature",
+    agr_pending_2:              "Pending Final Admin Review",
+    agr_approved:               "Approved",
+    agr_rep_declined:           "Declined by Representative",
+    agr_rep_revision_requested: "Representative Revision Requested",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
@@ -63,13 +62,13 @@ function NdaReviewPanel({ reqData }) {
     return null;
   }, [reqData]);
 
-  const isPending = reqData?.status === "pending";
-  const isRevision = reqData?.status === "revision_required" || reqData?.status === "revision_requested";
-  const isApproved = reqData?.status === "approved";
+  const isPending = reqData?.status === "nda_pending";
+  const isRevision = reqData?.status === "revision_requested";
+  const isApproved = reqData?.status === "nda_approved";
 
 
   const handleUpdate = async (status) => {
-    if (status === "approved") {
+    if (status === "nda_approved") {
       if (!adminSigRef.current || adminSigRef.current.isEmpty()) {
         alert("Please draw your e-signature before approving.");
         return;
@@ -77,7 +76,7 @@ function NdaReviewPanel({ reqData }) {
     }
     setApproving(true);
     try {
-      if (status === "approved") {
+      if (status === "nda_approved") {
         const adminSigDataUrl = adminSigRef.current.getDataUrl();
 
         // Upload admin signature to Firebase
@@ -261,7 +260,7 @@ function NdaReviewPanel({ reqData }) {
       {isPending && (
         <div className="review-actions">
           <button
-            onClick={() => handleUpdate("approved")}
+            onClick={() => handleUpdate("nda_approved")}
             disabled={approving}
             className="review-btn-primary"
           >
@@ -486,7 +485,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* Remarks display */}
-      {(status === "revision_requested" || status === "rep_revision_requested") &&
+      {(status === "revision_requested" || status === "agr_rep_revision_requested") &&
         reqData.remarks && (
           <div className="review-section">
             <h4 className="review-section-title">Remarks</h4>
@@ -495,7 +494,7 @@ function AgreementReviewPanel({ reqData }) {
         )}
 
       {/* Final approved document */}
-      {status === "completed" && (
+      {status === "agr_approved" && (
         <div className="review-section">
           <h4 className="review-section-title">Approved Agreement</h4>
           <div className="review-info-box">
@@ -511,7 +510,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* Rep rejected */}
-      {status === "declined" && (
+      {status === "agr_rep_declined" && (
         <div className="info-banner info-banner--danger">
           <strong>Representative Declined</strong>
           <p>The representative declined to sign. This request lifecycle has ended.</p>
@@ -541,7 +540,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Phase 1 actions ── */}
-      {status === "submitted" && !signingLink && (
+      {status === "agr_pending_1" && !signingLink && (
         <>
           <div className="review-section">
             <h4 className="review-section-title">Remarks (for student revision)</h4>
@@ -569,7 +568,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Phase 2: waiting on rep ── */}
-      {status === "awaiting_signature" && !signingLink && (
+      {status === "agr_awaiting_rep_signature" && !signingLink && (
         <div className="info-banner info-banner--info">
           <strong>Waiting for Representative</strong>
           <p>
@@ -580,7 +579,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Phase 3 actions ── */}
-      {status === "pending_approval" && (
+      {status === "agr_pending_2" && (
         <>
           <div className="review-section">
             <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
@@ -624,7 +623,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Rep revision requested ── */}
-      {status === "rep_revision_requested" && !signingLink && (
+      {status === "agr_rep_revision_requested" && !signingLink && (
         <div className="info-banner info-banner--warning">
           <strong>Representative Revision Pending</strong>
           <p>

@@ -8,29 +8,44 @@ import {
 import { TrendingUp, TrendingDown, Minus, RefreshCw } from "lucide-react";
 import { getAllRequests } from "../../services/requestService";
 
-const STATUS_COLORS = {
-  pending: "#f59e0b",
-  submitted: "#3b82f6",
-  approved: "#10b981",
-  completed: "#10b981",
-  revision_requested: "#ef4444",
-  rep_revision_requested: "#f97316",
-  awaiting_signature: "#6366f1",
-  pending_approval: "#8b5cf6",
-  declined: "#dc2626",
+const CHART_LABELS = {
+  chart_approved:             "Approved",
+  chart_final_pending:        "Final Pending Approval",
+  chart_revision:             "Revision Requested",
+  agr_pending_1:              "Initial Pending Approval",
+  agr_awaiting_rep_signature: "Awaiting Rep. Approval",
+  agr_rep_declined:           "Rep. Declined",
 };
 
-const DONUT_COLORS = [
-  "#f59e0b", "#10b981", "#3b82f6", "#ef4444",
-  "#6366f1", "#f97316", "#8b5cf6", "#64748b"
-];
+const CHART_COLORS = {
+  chart_approved:             "#059669",
+  chart_final_pending:        "#ca8a04",
+  chart_revision:             "#dc2626",
+  agr_pending_1:              "#ea580c",
+  agr_awaiting_rep_signature: "#2563eb",
+  agr_rep_declined:           "#7c3aed",
+};
+
+const normalizeForChart = (s) => {
+  if (s === "nda_approved" || s === "agr_approved") return "chart_approved";
+  if (s === "nda_pending" || s === "agr_pending_2") return "chart_final_pending";
+  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "chart_revision";
+  return s;
+};
+
+const DONUT_COLORS = ["#059669", "#ea580c", "#7c3aed", "#ca8a04", "#2563eb", "#dc2626", "#64748b", "#3b82f6"];
 
 const prettyStatus = (s) => {
   const map = {
-    pending: "Pending", approved: "Approved/Completed", revision_requested: "Revision Requested",
-    submitted: "Submitted", awaiting_signature: "Awaiting Signature",
-    pending_approval: "Pending Approval", completed: "Approved/Completed",
-    declined: "Declined", rep_revision_requested: "Rep Revision",
+    nda_pending:                "Pending Approval",
+    nda_approved:               "Approved",
+    revision_requested:         "Revision Requested",
+    agr_pending_1:              "Initial Pending Approval",
+    agr_awaiting_rep_signature: "Awaiting Rep. Approval",
+    agr_pending_2:              "Final Pending Approval",
+    agr_approved:               "Approved",
+    agr_rep_declined:           "Rep. Declined",
+    agr_rep_revision_requested: "Rep. Revision Requested",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
@@ -42,11 +57,11 @@ function buildSummary(requests, filter) {
   if (!requests.length) return "No requests found for the selected period.";
 
   const total = requests.length;
-  const pending = requests.filter((r) => ["pending", "submitted"].includes(r.status)).length;
-  const approved = requests.filter((r) => ["approved", "completed"].includes(r.status)).length;
+  const pending = requests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2", "agr_awaiting_rep_signature"].includes(r.status)).length;
+  const approved = requests.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length;
   const ndaCount = requests.filter((r) => r.type === "nda").length;
   const agreementCount = requests.filter((r) => r.type === "agreement").length;
-  const revisions = requests.filter((r) => ["revision_requested", "rep_revision_requested"].includes(r.status)).length;
+  const revisions = requests.filter((r) => ["revision_requested", "agr_rep_revision_requested"].includes(r.status)).length;
 
   const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
   const ndaPct = total > 0 ? Math.round((ndaCount / total) * 100) : 0;
@@ -99,8 +114,15 @@ export default function AdminReports() {
 
   const statusData = useMemo(() => {
     const counts = {};
-    filteredRequests.forEach((r) => { counts[r.status] = (counts[r.status] || 0) + 1; });
-    return Object.entries(counts).map(([id, value]) => ({ id, name: prettyStatus(id), value }));
+    filteredRequests.forEach((r) => {
+      const key = normalizeForChart(r.status);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.entries(counts).map(([id, value]) => ({
+      id,
+      name: CHART_LABELS[id] || id,
+      value,
+    }));
   }, [filteredRequests]);
 
   const typeData = useMemo(() => [
@@ -122,8 +144,8 @@ export default function AdminReports() {
       return {
         month: MONTH_NAMES[d.getMonth()],
         total: inMonth.length,
-        approved: inMonth.filter((r) => ["approved", "completed"].includes(r.status)).length,
-        pending: inMonth.filter((r) => ["pending", "submitted"].includes(r.status)).length,
+        approved: inMonth.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length,
+        pending: inMonth.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2"].includes(r.status)).length,
       };
     });
   }, [requests]);
@@ -131,9 +153,9 @@ export default function AdminReports() {
   const summary = useMemo(() => buildSummary(filteredRequests, filter), [filteredRequests, filter]);
 
   const total = filteredRequests.length;
-  const approved = filteredRequests.filter((r) => ["approved", "completed"].includes(r.status)).length;
-  const pending = filteredRequests.filter((r) => ["pending", "submitted"].includes(r.status)).length;
-  const revisions = filteredRequests.filter((r) => ["revision_requested", "rep_revision_requested"].includes(r.status)).length;
+  const approved = filteredRequests.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length;
+  const pending = filteredRequests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2", "agr_awaiting_rep_signature"].includes(r.status)).length;
+  const revisions = filteredRequests.filter((r) => ["revision_requested", "agr_rep_revision_requested"].includes(r.status)).length;
 
   const filterOptions = [
     { label: "Last 7 Days", value: "7d" },
@@ -267,7 +289,7 @@ export default function AdminReports() {
                   <PieChart>
                     <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value">
                       {statusData.map((entry, index) => (
-                        <Cell key={index} fill={STATUS_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
+                        <Cell key={index} fill={CHART_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(v, n) => [v, n]} />

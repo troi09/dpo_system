@@ -13,7 +13,7 @@ const connectDB = require('../config/db');
     const result = await Request.updateMany(
       {
         isArchived: false,
-        status: { $in: ['approved', 'completed'] },
+        status: { $in: ['nda_approved', 'agr_approved'] },
         createdAt: { $lte: fiveYearsAgo },
       },
       { $set: { isArchived: true, archivedAt: new Date() } }

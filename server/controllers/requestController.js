@@ -30,7 +30,7 @@ exports.createRequest = async (req, res) => {
     }
 
     // Agreements use the multi-phase lifecycle
-    const initialStatus = type === "agreement" ? "submitted" : "pending";
+    const initialStatus = type === "agreement" ? "agr_pending_1" : "nda_pending";
 
     const createPayload = {
       userId: req.user.id,
@@ -95,8 +95,8 @@ exports.resubmitRequest = async (req, res) => {
 
     r.formData = formData && typeof formData === "object" ? formData : r.formData;
     r.predocs = Array.isArray(predocs) ? predocs : [];
-    // Agreements go back to submitted, NDAs go back to pending
-    r.status = r.type === "agreement" ? "submitted" : "pending";
+    // Agreements go back to agr_pending_1, NDAs go back to nda_pending
+    r.status = r.type === "agreement" ? "agr_pending_1" : "nda_pending";
     r.remarks = "";
     r.postdocs = { url: "", path: "", issuedAt: "", verificationUrl: "" };
 
@@ -168,13 +168,13 @@ exports.getRequestById = async (req, res) => {
   }
 };
 
-// NDA status update (pending → approved | revision_requested); also handles Agreement phase1 → revision_requested
+// NDA status update (nda_pending → nda_approved | revision_requested); also handles Agreement phase1 → revision_requested
 exports.updateRequestStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, remarks, adminSigUrl, adminSigPath } = req.body;
 
-    const allowedStatuses = ["approved", "revision_requested"];
+    const allowedStatuses = ["nda_approved", "revision_requested"];
     if (!status || !allowedStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
@@ -186,25 +186,25 @@ exports.updateRequestStatus = async (req, res) => {
     const existing = await Request.findById(id).select("type status serialNo");
     if (!existing) return res.status(404).json({ message: "Request not found" });
 
-    // Agreements can only use this endpoint from phase1 (submitted), not other phases
-    if (existing.type === "agreement" && existing.status !== "submitted") {
+    // Agreements can only use this endpoint from phase1 (agr_pending_1), not other phases
+    if (existing.type === "agreement" && existing.status !== "agr_pending_1") {
       return res.status(400).json({ message: "Use agreement-specific endpoints for agreement requests" });
     }
 
-    // Allow NDA (pending) and Agreement phase1 (submitted)
-    const allowedCurrentStatuses = ["pending", "submitted"];
+    // Allow NDA (nda_pending) and Agreement phase1 (agr_pending_1)
+    const allowedCurrentStatuses = ["nda_pending", "agr_pending_1"];
     if (!allowedCurrentStatuses.includes(existing.status)) {
       return res.status(400).json({ message: "Only pending requests can be updated here" });
     }
 
     const updatePayload = { status, remarks: remarks || "" };
 
-    if (status === "approved" && !existing.serialNo) {
+    if (status === "nda_approved" && !existing.serialNo) {
       updatePayload.serialNo = generateVerification();
     }
 
     // Store admin signature for NDA approvals
-    if (status === "approved" && existing.type === "nda" && adminSigUrl) {
+    if (status === "nda_approved" && existing.type === "nda" && adminSigUrl) {
       updatePayload.adminSigUrl = adminSigUrl;
       updatePayload.adminSigPath = adminSigPath || "";
     }
@@ -214,7 +214,7 @@ exports.updateRequestStatus = async (req, res) => {
 
     logAudit({
       userId: req.user.id,
-      action: status === "approved" ? "request_approved" : "request_revision_required",
+      action: status === "nda_approved" ? "request_approved" : "request_revision_required",
       resourceType: "request",
       resourceId: String(id),
       details: { newStatus: status, type: existing.type },
@@ -246,7 +246,7 @@ exports.saveApprovedDocument = async (req, res) => {
     const r = await Request.findById(id);
     if (!r) return res.status(404).json({ message: "Request not found" });
 
-    const validFinalStatuses = ["approved", "completed"];
+    const validFinalStatuses = ["nda_approved", "agr_approved"];
     if (!validFinalStatuses.includes(r.status)) {
       return res.status(400).json({ message: "Request is not in a final approved state" });
     }
@@ -267,8 +267,8 @@ exports.saveApprovedDocument = async (req, res) => {
 
 // ─── Agreement Phase Endpoints ────────────────────────────────────────────────
 
-// Admin: phase1_pending (or revision_required for agreement) → phase2_pending
-// Also used for rep_revision_required → generate new token
+// Admin: agr_pending_1 (or revision_requested for agreement) → agr_awaiting_rep_signature
+// Also used for agr_rep_revision_requested → generate new token
 exports.generateSigningLink = async (req, res) => {
   try {
     const { id } = req.params;
@@ -284,7 +284,7 @@ exports.generateSigningLink = async (req, res) => {
       return res.status(400).json({ message: "Only agreement requests use signing links" });
     }
 
-    const allowedFromStatuses = ["submitted", "revision_requested"];
+    const allowedFromStatuses = ["agr_pending_1", "revision_requested"];
     if (!allowedFromStatuses.includes(r.status)) {
       return res.status(400).json({
         message: `Cannot generate signing link from status: ${r.status}`,
@@ -293,7 +293,7 @@ exports.generateSigningLink = async (req, res) => {
 
     r.signingToken = generateSigningTokenValue();
     r.signingTokenUsed = false;
-    r.status = "awaiting_signature";
+    r.status = "agr_awaiting_rep_signature";
     r.remarks = "";
 
     await r.save();
@@ -350,7 +350,7 @@ exports.repSubmit = async (req, res) => {
       return res.status(400).json({ message: "This signing link has already been used" });
     }
 
-    const allowedStatuses = ["awaiting_signature", "rep_revision_requested"];
+    const allowedStatuses = ["agr_awaiting_rep_signature", "agr_rep_revision_requested"];
     if (!allowedStatuses.includes(r.status)) {
       return res.status(400).json({ message: "This request is not awaiting representative signature" });
     }
@@ -372,7 +372,7 @@ exports.repSubmit = async (req, res) => {
     r.repSigUrl = repSigUrl;
     r.repSigPath = repSigPath || "";
     r.signingTokenUsed = true;
-    r.status = "pending_approval";
+    r.status = "agr_pending_2";
     r.remarks = "";
 
     await r.save();
@@ -404,13 +404,13 @@ exports.repReject = async (req, res) => {
       return res.status(400).json({ message: "This signing link has already been used" });
     }
 
-    const allowedStatuses = ["awaiting_signature", "rep_revision_requested"];
+    const allowedStatuses = ["agr_awaiting_rep_signature", "agr_rep_revision_requested"];
     if (!allowedStatuses.includes(r.status)) {
       return res.status(400).json({ message: "This request is not awaiting representative signature" });
     }
 
     r.signingTokenUsed = true;
-    r.status = "declined";
+    r.status = "agr_rep_declined";
 
     await r.save();
 
@@ -426,7 +426,7 @@ exports.repReject = async (req, res) => {
   }
 };
 
-// Admin: pending_approval → completed (generates serialNo) or rep_revision_requested (new token)
+// Admin: agr_pending_2 → agr_approved (generates serialNo) or agr_rep_revision_requested (new token)
 exports.adminPhase3Action = async (req, res) => {
   try {
     const { id } = req.params;
@@ -446,19 +446,19 @@ exports.adminPhase3Action = async (req, res) => {
     if (r.type !== "agreement") {
       return res.status(400).json({ message: "Only agreement requests use this endpoint" });
     }
-    if (r.status !== "pending_approval") {
+    if (r.status !== "agr_pending_2") {
       return res.status(400).json({ message: `Cannot perform phase3 action from status: ${r.status}` });
     }
 
     if (action === "approve") {
-      r.status = "completed";
+      r.status = "agr_approved";
       if (!r.serialNo) r.serialNo = generateVerification();
       r.remarks = "";
     } else {
       // rep_revision_requested: generate new signing token
       r.signingToken = generateSigningTokenValue();
       r.signingTokenUsed = false;
-      r.status = "rep_revision_requested";
+      r.status = "agr_rep_revision_requested";
       r.remarks = remarks || "";
     }
 
@@ -541,8 +541,8 @@ exports.verifyRequestCode = async (req, res) => {
     if (!r) return res.status(404).json({ valid: false, message: "Not found" });
 
     const isValid =
-      (r.type === "nda" && r.status === "approved") ||
-      (r.type === "agreement" && r.status === "completed");
+      (r.type === "nda" && r.status === "nda_approved") ||
+      (r.type === "agreement" && r.status === "agr_approved");
 
     return res.json({
       valid: isValid,

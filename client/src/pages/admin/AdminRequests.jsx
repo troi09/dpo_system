@@ -4,40 +4,41 @@ import { getAllRequests } from "../../services/requestService";
 
 const FILTERS = [
   { key: "all", label: "All" },
+  { key: "approved", label: "Approved" },
   { key: "pending", label: "Pending" },
-  { key: "approved", label: "Approved/Completed" },
-  { key: "revision_requested", label: "Revision Requested" },
+  { key: "revision", label: "Revision Requested" },
+  { key: "rep", label: "Rep. Statuses" },
 ];
 
 const statusClass = (s) => {
-  if (s === "pending" || s === "submitted") return "status-pill status-pill--pending";
-  if (s === "approved" || s === "completed") return "status-pill status-pill--approved";
-  if (s === "revision_required" || s === "revision_requested" || s === "rep_revision_requested")
-    return "status-pill status-pill--revision";
-  if (s === "awaiting_signature" || s === "pending_approval") return "status-pill status-pill--info";
-  if (s === "declined") return "status-pill status-pill--revision";
+  if (s === "nda_approved" || s === "agr_approved") return "status-pill status-pill--green";
+  if (s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
+  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
+  if (s === "agr_pending_1") return "status-pill status-pill--orange";
+  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agr_rep_declined") return "status-pill status-pill--violet";
   return "status-pill";
 };
 
 const filterClass = (s) => {
-  if (s === "pending") return "status-filter status-filter--pending";
   if (s === "approved") return "status-filter status-filter--approved";
-  if (s === "revision_requested") return "status-filter status-filter--revision";
+  if (s === "pending") return "status-filter status-filter--pending";
+  if (s === "revision") return "status-filter status-filter--revision";
+  if (s === "rep") return "status-filter status-filter--rep";
   return "status-filter status-filter--all";
 };
 
 const prettyStatus = (s) => {
   const map = {
-    pending: "Pending",
-    approved: "Approved/Completed",
-    revision_required: "Revision Required",
-    revision_requested: "Revision Requested",
-    submitted: "Submitted",
-    awaiting_signature: "Awaiting Signature",
-    pending_approval: "Pending Approval",
-    completed: "Approved/Completed",
-    declined: "Declined",
-    rep_revision_requested: "Rep Revision Requested",
+    nda_pending:                "Pending Approval",
+    nda_approved:               "Approved",
+    revision_requested:         "Revision Requested",
+    agr_pending_1:              "Initial Pending Approval",
+    agr_awaiting_rep_signature: "Awaiting Rep. Approval",
+    agr_pending_2:              "Final Pending Approval",
+    agr_approved:               "Approved",
+    agr_rep_declined:           "Rep. Declined",
+    agr_rep_revision_requested: "Rep. Revision Requested",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
@@ -66,8 +67,11 @@ export default function AdminRequests() {
 
   const filtered = useMemo(() => {
     if (activeFilter.key === "all") return requests;
-    if (activeFilter.key === "approved") return requests.filter((r) => r.status === "approved" || r.status === "completed");
-    return requests.filter((r) => r.status === activeFilter.key);
+    if (activeFilter.key === "approved") return requests.filter((r) => r.status === "nda_approved" || r.status === "agr_approved");
+    if (activeFilter.key === "pending") return requests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2"].includes(r.status));
+    if (activeFilter.key === "revision") return requests.filter((r) => ["revision_requested", "agr_rep_revision_requested"].includes(r.status));
+    if (activeFilter.key === "rep") return requests.filter((r) => ["agr_rep_declined", "agr_awaiting_rep_signature"].includes(r.status));
+    return requests;
   }, [requests, activeFilter]);
 
   const cycleFilter = () => {

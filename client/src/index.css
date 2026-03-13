@@ -329,6 +329,43 @@ h1, h2, h3, .landing-brand-title, .landing-brand-subtitle, .landing-title, .type
 }
 .status-pill--warning::before { background: var(--s-warning-dot); }
 
+/* ── New per-status color classes ── */
+.status-pill--green {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status-pill--green::before { background: #059669; }
+
+.status-pill--orange {
+  background: #ffedd5;
+  color: #9a3412;
+}
+.status-pill--orange::before { background: #ea580c; }
+
+.status-pill--violet {
+  background: #ede9fe;
+  color: #4c1d95;
+}
+.status-pill--violet::before { background: #7c3aed; }
+
+.status-pill--yellow {
+  background: #fef9c3;
+  color: #713f12;
+}
+.status-pill--yellow::before { background: #ca8a04; }
+
+.status-pill--blue {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+.status-pill--blue::before { background: #2563eb; }
+
+.status-pill--red {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.status-pill--red::before { background: #dc2626; }
+
 /* ─────────────────────────────────────────────
    Filter Pills
 ───────────────────────────────────────────── */
@@ -378,21 +415,27 @@ h1, h2, h3, .landing-brand-title, .landing-brand-subtitle, .landing-title, .type
 }
 
 .status-filter--pending {
-  background: var(--s-pending-bg);
-  color: var(--s-pending-text);
-  border-color: var(--s-pending-bg);
+  background: #fef9c3;
+  color: #713f12;
+  border-color: #fef9c3;
 }
 
 .status-filter--approved {
-  background: var(--s-approved-bg);
-  color: var(--s-approved-text);
-  border-color: var(--s-approved-bg);
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #d1fae5;
 }
 
 .status-filter--revision {
-  background: var(--s-revision-bg);
-  color: var(--s-revision-text);
-  border-color: var(--s-revision-bg);
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fee2e2;
+}
+
+.status-filter--rep {
+  background: #dbeafe;
+  color: #1e3a8a;
+  border-color: #dbeafe;
 }
 
 .responsive-grid-4 {

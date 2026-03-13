@@ -109,28 +109,45 @@ export default function StudentNDARequest({ ndaType }) {
         </div>
 
         <div className="request-form-body">
-          <div className="request-section">
-            <div className="request-section-title">Data</div>
-            {cfg.fields.map((f) => (
-              <div key={f.name} className="request-field">
-                <label className="request-label">{f.label}</label>
-                {f.kind === "textarea" ? (
-                  <textarea
-                    value={formData[f.name] || ""}
-                    onChange={(e) => onChangeField(f.name, e.target.value)}
-                    rows={f.rows || 4}
-                    className="request-textarea"
-                  />
-                ) : (
-                  <input
-                    value={formData[f.name] || ""}
-                    onChange={(e) => onChangeField(f.name, e.target.value)}
-                    required={f.required}
-                    className="request-input"
-                  />
-                )}
-              </div>
-            ))}
+          <div className="request-left-col">
+            <div className="request-section">
+              <div className="request-section-title">Data</div>
+              {cfg.fields.map((f) => (
+                <div key={f.name} className="request-field">
+                  <label className="request-label">{f.label}</label>
+                  {f.kind === "textarea" ? (
+                    <textarea
+                      value={formData[f.name] || ""}
+                      onChange={(e) => onChangeField(f.name, e.target.value)}
+                      rows={f.rows || 4}
+                      className="request-textarea"
+                    />
+                  ) : (
+                    <input
+                      value={formData[f.name] || ""}
+                      onChange={(e) => onChangeField(f.name, e.target.value)}
+                      required={f.required}
+                      className="request-input"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="request-section">
+              <div className="request-section-title">Your E-Signature *</div>
+              <p className="request-sig-hint">
+                Draw your signature below. It will be embedded in the NDA document.
+              </p>
+              <SignaturePad ref={sigPadRef} height={150} />
+              <button
+                type="button"
+                className="request-sig-clear"
+                onClick={() => sigPadRef.current?.clear()}
+              >
+                Clear Signature
+              </button>
+            </div>
           </div>
 
           <div className="request-section">
@@ -164,21 +181,6 @@ export default function StudentNDARequest({ ndaType }) {
                 </label>
               </div>
             ))}
-          </div>
-
-          <div className="request-section">
-            <div className="request-section-title">Your E-Signature *</div>
-            <p className="request-sig-hint">
-              Draw your signature below. It will be embedded in the NDA document.
-            </p>
-            <SignaturePad ref={sigPadRef} height={150} />
-            <button
-              type="button"
-              className="request-sig-clear"
-              onClick={() => sigPadRef.current?.clear()}
-            >
-              Clear Signature
-            </button>
           </div>
         </div>
 

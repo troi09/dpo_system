@@ -1,37 +1,53 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getMyRequests } from "../../services/requestService";
 
 const STATUS_LABEL = {
-  pending: "Pending",
-  approved: "Approved/Completed",
-  revision_required: "Revision Required",
-  revision_requested: "Revision Requested",
-  submitted: "Submitted",
-  awaiting_signature: "Awaiting Signature",
-  pending_approval: "Pending Approval",
-  completed: "Approved/Completed",
-  declined: "Declined",
-  rep_revision_requested: "Rep Revision Requested",
+  nda_pending:                "Pending Approval",
+  nda_approved:               "Approved",
+  revision_requested:         "Revision Requested",
+  agr_pending_1:              "Initial Pending Approval",
+  agr_awaiting_rep_signature: "Awaiting Rep. Approval",
+  agr_pending_2:              "Final Pending Approval",
+  agr_approved:               "Approved",
+  agr_rep_declined:           "Rep. Declined",
+  agr_rep_revision_requested: "Rep. Revision Requested",
 };
+
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "approved", label: "Approved" },
+  { key: "pending", label: "Pending" },
+  { key: "revision", label: "Revision Requested" },
+  { key: "rep", label: "Rep. Statuses" },
+];
 
 const prettyStatus = (s) =>
   STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
 const statusClass = (s) => {
-  if (s === "pending" || s === "submitted") return "status-pill status-pill--pending";
-  if (s === "approved" || s === "completed") return "status-pill status-pill--approved";
-  if (s === "revision_required" || s === "revision_requested" || s === "rep_revision_requested")
-    return "status-pill status-pill--revision";
-  if (s === "awaiting_signature" || s === "pending_approval") return "status-pill status-pill--info";
-  if (s === "declined") return "status-pill status-pill--revision";
+  if (s === "nda_approved" || s === "agr_approved") return "status-pill status-pill--green";
+  if (s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
+  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
+  if (s === "agr_pending_1") return "status-pill status-pill--orange";
+  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agr_rep_declined") return "status-pill status-pill--violet";
   return "status-pill";
+};
+
+const filterClass = (s) => {
+  if (s === "approved") return "status-filter status-filter--approved";
+  if (s === "pending") return "status-filter status-filter--pending";
+  if (s === "revision") return "status-filter status-filter--revision";
+  if (s === "rep") return "status-filter status-filter--rep";
+  return "status-filter status-filter--all";
 };
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterIndex, setFilterIndex] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -47,6 +63,19 @@ const StudentDashboard = () => {
     load();
   }, []);
 
+  const activeFilter = FILTERS[filterIndex];
+
+  const filtered = useMemo(() => {
+    if (activeFilter.key === "all") return requests;
+    if (activeFilter.key === "approved") return requests.filter((r) => r.status === "nda_approved" || r.status === "agr_approved");
+    if (activeFilter.key === "pending") return requests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2"].includes(r.status));
+    if (activeFilter.key === "revision") return requests.filter((r) => ["revision_requested", "agr_rep_revision_requested"].includes(r.status));
+    if (activeFilter.key === "rep") return requests.filter((r) => ["agr_rep_declined", "agr_awaiting_rep_signature"].includes(r.status));
+    return requests;
+  }, [requests, activeFilter]);
+
+  const cycleFilter = () => setFilterIndex((i) => (i + 1) % FILTERS.length);
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-card">
@@ -57,6 +86,9 @@ const StudentDashboard = () => {
               <th colSpan={4}>
                 <div className="dashboard-table-title-wrap">
                   <span className="dashboard-table-title">My Requests</span>
+                  <button className={filterClass(activeFilter.key)} onClick={cycleFilter}>
+                    {activeFilter.label}
+                  </button>
                 </div>
               </th>
             </tr>
@@ -78,21 +110,27 @@ const StudentDashboard = () => {
                   <td><span className="skeleton-block skeleton-btn" /></td>
                 </tr>
               ))
-            ) : requests.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={4}>
                   <div className="dashboard-empty">
                     <span className="dashboard-empty-icon">📄</span>
-                    <p className="dashboard-empty-title">No requests yet</p>
-                    <p className="dashboard-empty-text">Submit your first NDA or Agreement request to get started.</p>
-                    <Link to="/student/new-request" className="dashboard-empty-cta">
-                      Create Request
-                    </Link>
+                    <p className="dashboard-empty-title">{requests.length === 0 ? "No requests yet" : "No requests found"}</p>
+                    <p className="dashboard-empty-text">
+                      {requests.length === 0
+                        ? "Submit your first NDA or Agreement request to get started."
+                        : "No requests match the current filter."}
+                    </p>
+                    {requests.length === 0 && (
+                      <Link to="/student/new-request" className="dashboard-empty-cta">
+                        Create Request
+                      </Link>
+                    )}
                   </div>
                 </td>
               </tr>
             ) : (
-              requests.map((r) => (
+              filtered.map((r) => (
                 <tr key={r._id}>
                   <td>
                     {r.type === "nda"
