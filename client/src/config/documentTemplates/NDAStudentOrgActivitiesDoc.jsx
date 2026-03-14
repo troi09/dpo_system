@@ -120,7 +120,7 @@ export default function NDAStudentOrgActivitiesDoc({ request }) {
           titled:
         </Text>
         <Text style={styles.paragraphNoIndent}>
-          "{fd.title || "________________"}"
+          "{fd.projectTitle || "________________"}"
         </Text>
         <Text style={styles.paragraph}>
           We guarantee our commitment to strictly adhere to the Data Privacy Act of 2012, as well as any current and

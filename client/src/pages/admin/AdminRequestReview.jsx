@@ -54,7 +54,7 @@ function NdaReviewPanel({ reqData }) {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [remarks, setRemarks] = useState(reqData.remarks || "");
-  const [approving, setApproving] = useState(false);
+  const [activeAction, setActiveAction] = useState(null); // "approve" | "revision" | null
   const adminSigRef = useRef(null);
 
   const cfg = useMemo(() => {
@@ -74,7 +74,13 @@ function NdaReviewPanel({ reqData }) {
         return;
       }
     }
-    setApproving(true);
+    if (status === "revision_requested") {
+      if (!remarks.trim()) {
+        alert("Please enter remarks before requesting a revision.");
+        return;
+      }
+    }
+    setActiveAction(status === "nda_approved" ? "approve" : "revision");
     try {
       if (status === "nda_approved") {
         const adminSigDataUrl = adminSigRef.current.getDataUrl();
@@ -143,7 +149,7 @@ function NdaReviewPanel({ reqData }) {
     } catch (err) {
       alert(err.response?.data?.message || err.message || "Failed to update request");
     } finally {
-      setApproving(false);
+      setActiveAction(null);
     }
   };
 
@@ -192,19 +198,6 @@ function NdaReviewPanel({ reqData }) {
         )}
       </div>
 
-      {isPending && (
-        <div className="review-section">
-          <h4 className="review-section-title">Remarks</h4>
-          <textarea
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-            rows={4}
-            className="review-textarea"
-            placeholder="Optional remarks..."
-          />
-        </div>
-      )}
-
       {isRevision && (
         <div className="review-section">
           <h4 className="review-section-title">Remarks</h4>
@@ -217,15 +210,15 @@ function NdaReviewPanel({ reqData }) {
       {isApproved && (
         <div className="review-section">
           <h4 className="review-section-title">Approved Request Form</h4>
-          <div className="review-info-box">
-            {reqData.postdocs?.url ? (
-              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-link">
-                View Document →
-              </a>
-            ) : (
+          {reqData.postdocs?.url ? (
+            <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-file-link">
+              📎 Approved NDA Document
+            </a>
+          ) : (
+            <div className="review-info-box">
               <span className="review-info-box--muted">No approved document uploaded.</span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -258,20 +251,33 @@ function NdaReviewPanel({ reqData }) {
       )}
 
       {isPending && (
+        <div className="review-section">
+          <h4 className="review-section-title">Remarks</h4>
+          <textarea
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            rows={4}
+            className="review-textarea"
+            placeholder=""
+          />
+        </div>
+      )}
+
+      {isPending && (
         <div className="review-actions">
           <button
             onClick={() => handleUpdate("nda_approved")}
-            disabled={approving}
+            disabled={!!activeAction}
             className="review-btn-primary"
           >
-            {approving ? "Generating..." : "Approve"}
+            {activeAction === "approve" ? "Generating..." : "Approve"}
           </button>
           <button
             onClick={() => handleUpdate("revision_requested")}
-            disabled={approving}
+            disabled={!!activeAction}
             className="review-btn-secondary"
           >
-            Request Revision
+            {activeAction === "revision" ? "Submitting..." : "Request Revision"}
           </button>
         </div>
       )}
@@ -294,7 +300,9 @@ function AgreementReviewPanel({ reqData }) {
     return "";
   });
   const [generating, setGenerating] = useState(false);
+  const [phase1Revising, setPhase1Revising] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [phase3Revising, setPhase3Revising] = useState(false);
   const adminSigRef = useRef(null);
 
   const { status } = reqData;
@@ -315,6 +323,11 @@ function AgreementReviewPanel({ reqData }) {
   };
 
   const handlePhase1Revision = async () => {
+    if (!remarks.trim()) {
+      alert("Please enter remarks before requesting a revision.");
+      return;
+    }
+    setPhase1Revising(true);
     try {
       await updateRequestStatus(reqData._id, { status: "revision_requested", remarks });
       alert("Revision requested from student.");
@@ -322,6 +335,8 @@ function AgreementReviewPanel({ reqData }) {
       else navigate("/admin");
     } catch (err) {
       alert(err.response?.data?.message || "Failed");
+    } finally {
+      setPhase1Revising(false);
     }
   };
 
@@ -375,12 +390,12 @@ function AgreementReviewPanel({ reqData }) {
       await deleteStorageFile(reqData.repSigPath);
 
       alert("Agreement fully approved and document generated!");
-      setApproving(false);
       if (window.history.length > 1) navigate(-1);
       else navigate("/admin");
     } catch (err) {
-      setApproving(false);
       alert(err.response?.data?.message || err.message || "Failed to approve");
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -389,6 +404,7 @@ function AgreementReviewPanel({ reqData }) {
       alert("Please enter remarks explaining what the representative needs to revise.");
       return;
     }
+    setPhase3Revising(true);
     try {
       const res = await adminPhase3Action(reqData._id, { action: "rep_revision_requested", remarks });
       const newLink = `${window.location.origin}/sign/${res.request.signingToken}`;
@@ -396,6 +412,8 @@ function AgreementReviewPanel({ reqData }) {
       alert("Representative revision requested. A new signing link has been generated — copy it and send to the representative.");
     } catch (err) {
       alert(err.response?.data?.message || "Failed");
+    } finally {
+      setPhase3Revising(false);
     }
   };
 
@@ -453,21 +471,20 @@ function AgreementReviewPanel({ reqData }) {
             <span className="review-field-label">Name</span>
             <div className="review-info-box">{reqData.repInfo.name}</div>
           </div>
-          {reqData.repInfo.govIdDoc?.url && (
-            <div className="review-field">
-              <span className="review-field-label">Government ID</span>
-              <div className="review-info-box">
-                <a
-                  href={reqData.repInfo.govIdDoc.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="review-link"
-                >
-                  {reqData.repInfo.govIdDoc.origName || "View ID"} →
-                </a>
-              </div>
-            </div>
-          )}
+        </div>
+      )}
+
+      {reqData.repInfo?.govIdDoc?.url && (
+        <div className="review-section">
+          <h4 className="review-section-title">Representative Attachments</h4>
+          <a
+            href={reqData.repInfo.govIdDoc.url}
+            target="_blank"
+            rel="noreferrer"
+            className="review-file-link"
+          >
+            📎 Government-Issued ID
+          </a>
         </div>
       )}
 
@@ -497,15 +514,15 @@ function AgreementReviewPanel({ reqData }) {
       {status === "agr_approved" && (
         <div className="review-section">
           <h4 className="review-section-title">Approved Agreement</h4>
-          <div className="review-info-box">
-            {reqData.postdocs?.url ? (
-              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-link">
-                View Final Document →
-              </a>
-            ) : (
+          {reqData.postdocs?.url ? (
+            <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-file-link">
+              📎 Approved Agreement Document
+            </a>
+          ) : (
+            <div className="review-info-box">
               <span className="review-info-box--muted">No document uploaded yet.</span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -517,7 +534,109 @@ function AgreementReviewPanel({ reqData }) {
         </div>
       )}
 
-      {/* Generated signing link */}
+      {/* ── Phase 1 actions ── */}
+      {status === "agr_pending_1" && !signingLink && (
+        <>
+          <div className="review-section">
+            <h4 className="review-section-title">Remarks</h4>
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              rows={3}
+              className="review-textarea"
+              placeholder=""
+            />
+          </div>
+          <div className="review-actions">
+            <button
+              onClick={handlePhase1Approve}
+              disabled={generating || phase1Revising}
+              className="review-btn-primary"
+            >
+              {generating ? "Generating link..." : "Approve & Generate Signing Link"}
+            </button>
+            <button
+              onClick={handlePhase1Revision}
+              disabled={generating || phase1Revising}
+              className="review-btn-secondary"
+            >
+              {phase1Revising ? "Submitting..." : "Request Revision from Student"}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Phase 2: waiting on rep ── */}
+      {status === "agr_awaiting_rep_signature" && !signingLink && (
+        <div className="info-banner info-banner--info">
+          <strong>Waiting for Representative</strong>
+          <p>
+            The signing link has been generated. Share it with the representative.
+            This page will update once they submit or decline.
+          </p>
+        </div>
+      )}
+
+      {/* ── Phase 3 actions ── */}
+      {status === "agr_pending_2" && !signingLink && (
+        <>
+          <div className="review-section">
+            <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
+            <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
+              Draw your signature below to sign off on the final approval.
+            </p>
+            <SignaturePad ref={adminSigRef} height={150} />
+            <button
+              type="button"
+              className="review-btn-clear"
+              onClick={() => adminSigRef.current?.clear()}
+            >
+              Clear Signature
+            </button>
+          </div>
+
+          <div className="review-section">
+            <h4 className="review-section-title">Remarks</h4>
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              rows={3}
+              className="review-textarea"
+              placeholder=""
+            />
+          </div>
+
+          <div className="review-actions">
+            <button
+              onClick={handlePhase3Approve}
+              disabled={approving || phase3Revising}
+              className="review-btn-primary"
+            >
+              {approving ? "Generating final document..." : "Final Approve & Sign"}
+            </button>
+            <button
+              onClick={handlePhase3RepRevision}
+              disabled={approving || phase3Revising}
+              className="review-btn-secondary"
+            >
+              {phase3Revising ? "Submitting..." : "Request Rep Revision"}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Rep revision requested ── */}
+      {status === "agr_rep_revision_requested" && !signingLink && (
+        <div className="info-banner info-banner--warning">
+          <strong>Representative Revision Pending</strong>
+          <p>
+            A new signing link has been generated. Send it to the representative so they can
+            resubmit.
+          </p>
+        </div>
+      )}
+
+      {/* Generated signing link — replaces action buttons when present */}
       {signingLink && (
         <div className="signing-link-box">
           <p className="signing-link-title">Signing Link Generated</p>
@@ -536,100 +655,6 @@ function AgreementReviewPanel({ reqData }) {
               Copy
             </button>
           </div>
-        </div>
-      )}
-
-      {/* ── Phase 1 actions ── */}
-      {status === "agr_pending_1" && !signingLink && (
-        <>
-          <div className="review-section">
-            <h4 className="review-section-title">Remarks (for student revision)</h4>
-            <textarea
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              rows={3}
-              className="review-textarea"
-              placeholder="Required only if requesting student revision..."
-            />
-          </div>
-          <div className="review-actions">
-            <button
-              onClick={handlePhase1Approve}
-              disabled={generating}
-              className="review-btn-primary"
-            >
-              {generating ? "Generating link..." : "Approve & Generate Signing Link"}
-            </button>
-            <button onClick={handlePhase1Revision} className="review-btn-secondary">
-              Request Revision from Student
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* ── Phase 2: waiting on rep ── */}
-      {status === "agr_awaiting_rep_signature" && !signingLink && (
-        <div className="info-banner info-banner--info">
-          <strong>Waiting for Representative</strong>
-          <p>
-            The signing link has been generated. Share it with the representative.
-            This page will update once they submit or decline.
-          </p>
-        </div>
-      )}
-
-      {/* ── Phase 3 actions ── */}
-      {status === "agr_pending_2" && (
-        <>
-          <div className="review-section">
-            <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
-            <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
-              Draw your signature below to sign off on the final approval.
-            </p>
-            <SignaturePad ref={adminSigRef} height={150} />
-            <button
-              type="button"
-              className="review-btn-clear"
-              onClick={() => adminSigRef.current?.clear()}
-            >
-              Clear Signature
-            </button>
-          </div>
-
-          <div className="review-section">
-            <h4 className="review-section-title">Remarks (for rep revision)</h4>
-            <textarea
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              rows={3}
-              className="review-textarea"
-              placeholder="Required only if requesting representative revision..."
-            />
-          </div>
-
-          <div className="review-actions">
-            <button
-              onClick={handlePhase3Approve}
-              disabled={approving}
-              className="review-btn-primary"
-            >
-              {approving ? "Generating final document..." : "Final Approve & Sign"}
-            </button>
-            <button onClick={handlePhase3RepRevision} className="review-btn-secondary">
-              Request Rep Revision
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* ── Rep revision requested ── */}
-      {status === "agr_rep_revision_requested" && !signingLink && (
-        <div className="info-banner info-banner--warning">
-          <strong>Representative Revision Pending</strong>
-          <p>
-            A new signing link has been generated. Send it to the representative so they can
-            resubmit.
-          </p>
         </div>
       )}
     </>
@@ -686,7 +711,7 @@ export default function AdminRequestReview() {
               <b>Status:</b> {prettyStatus(reqData.status)}
             </span>
             <span className="review-meta-row">
-              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}
+              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
             </span>
           </div>
         </div>

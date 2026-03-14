@@ -253,7 +253,7 @@ const Landing = () => {
       <div
         ref={bgRef}
         className="landing-parallax-bg"
-        style={{ backgroundImage: "url('/RTU-Background.jpg')" }}
+        style={{ backgroundImage: "url('/RTU-Background.png')" }}
       />
       <div className="landing-overlay" />
       <div className="landing-wrapper">

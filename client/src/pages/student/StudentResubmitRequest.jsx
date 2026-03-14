@@ -22,6 +22,7 @@ export default function StudentResubmitRequest() {
   const [reqData, setReqData] = useState(null);
   const [formData, setFormData] = useState({});
   const [files, setFiles] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
   const sigPadRef = useRef(null);
 
   useEffect(() => {
@@ -103,54 +104,61 @@ export default function StudentResubmitRequest() {
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    const studentName = user?.name || "Unknown Student";
-    const resubFolder = `resub${getDateRequestFolder()}`;
-    const resubPath = `${initialFolder}/${resubFolder}`;
+    setSubmitting(true);
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const studentName = user?.name || "Unknown Student";
+      const resubFolder = `resub${getDateRequestFolder()}`;
+      const resubPath = `${initialFolder}/${resubFolder}`;
 
-    const uploaded = await uploadRequirements(selectedFiles, reqData.type, studentName, resubPath);
+      const uploaded = await uploadRequirements(selectedFiles, reqData.type, studentName, resubPath);
 
-    let uploadIndex = 0;
-    const predocs = files
-      .map((f, i) => {
-        if (!f) return null;
-        const meta = uploaded[uploadIndex++];
-        return { ...meta, requirementLabel: cfg.fileSlots[i]?.label || `File ${i + 1}` };
-      })
-      .filter(Boolean);
+      let uploadIndex = 0;
+      const predocs = files
+        .map((f, i) => {
+          if (!f) return null;
+          const meta = uploaded[uploadIndex++];
+          return { ...meta, requirementLabel: cfg.fileSlots[i]?.label || `File ${i + 1}` };
+        })
+        .filter(Boolean);
 
-    const payload = { formData, predocs };
+      const payload = { formData, predocs };
 
-    if (reqData.type === "agreement") {
-      const sigDataUrl = sigPadRef.current.getDataUrl();
-      const { url: authorizerSigUrl, path: authorizerSigPath } = await uploadSignatureImage(
-        sigDataUrl,
-        "agreement",
-        studentName,
-        resubPath,
-        "authorizer_sig.png"
-      );
-      payload.authorizerSigUrl = authorizerSigUrl;
-      payload.authorizerSigPath = authorizerSigPath;
+      if (reqData.type === "agreement") {
+        const sigDataUrl = sigPadRef.current.getDataUrl();
+        const { url: authorizerSigUrl, path: authorizerSigPath } = await uploadSignatureImage(
+          sigDataUrl,
+          "agreement",
+          studentName,
+          resubPath,
+          "authorizer_sig.png"
+        );
+        payload.authorizerSigUrl = authorizerSigUrl;
+        payload.authorizerSigPath = authorizerSigPath;
+      }
+
+      if (reqData.type === "nda") {
+        const sigDataUrl = sigPadRef.current.getDataUrl();
+        const { url: studentSigUrl, path: studentSigPath } = await uploadSignatureImage(
+          sigDataUrl,
+          "nda",
+          studentName,
+          resubPath,
+          "student_sig.png"
+        );
+        payload.studentSigUrl = studentSigUrl;
+        payload.studentSigPath = studentSigPath;
+      }
+
+      await resubmitRequest(id, payload);
+
+      alert("Resubmitted successfully!");
+      navigate("/student");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to resubmit. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-
-    if (reqData.type === "nda") {
-      const sigDataUrl = sigPadRef.current.getDataUrl();
-      const { url: studentSigUrl, path: studentSigPath } = await uploadSignatureImage(
-        sigDataUrl,
-        "nda",
-        studentName,
-        resubPath,
-        "student_sig.png"
-      );
-      payload.studentSigUrl = studentSigUrl;
-      payload.studentSigPath = studentSigPath;
-    }
-
-    await resubmitRequest(id, payload);
-
-    alert("Resubmitted successfully!");
-    navigate("/student");
   };
 
   if (!reqData) return null;
@@ -204,52 +212,68 @@ export default function StudentResubmitRequest() {
           <div />
         </div>
 
-        {/* Admin Remarks */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <span className="request-section-title">Remarks from Admin</span>
-          <div style={{
-            padding: "12px 14px",
-            background: "var(--s-warning-bg)",
-            border: "1px solid var(--s-warning-dot)",
-            borderRadius: "var(--radius-md)",
-            fontSize: "13px",
-            color: "var(--s-warning-text)",
-          }}>
-            {reqData.remarks || (
-              <span style={{ opacity: 0.7 }}>No remarks provided.</span>
-            )}
-          </div>
-        </div>
-
         <div className="request-form-body">
-          {/* Data Form (editable) */}
-          <div className="request-section">
-            <div className="request-section-title">Data Form</div>
-            {cfg.fields.map((f) => (
-              <div key={f.name} className="request-field">
-                <label className="request-label">{f.label}</label>
-                {f.kind === "textarea" ? (
-                  <textarea
-                    value={formData[f.name] || ""}
-                    onChange={(e) => onChangeField(f.name, e.target.value)}
-                    rows={f.rows || 4}
-                    className="request-textarea"
-                  />
-                ) : (
-                  <input
-                    value={formData[f.name] || ""}
-                    onChange={(e) => onChangeField(f.name, e.target.value)}
-                    required={f.required}
-                    className="request-input"
-                  />
-                )}
-              </div>
-            ))}
+          <div className="request-left-col">
+            {/* Data Form (editable) */}
+            <div className="request-section">
+              <div className="request-section-title">Data Form</div>
+              {cfg.fields.map((f) => (
+                <div key={f.name} className="request-field">
+                  <label className="request-label">{f.label}</label>
+                  {f.kind === "textarea" ? (
+                    <textarea
+                      value={formData[f.name] || ""}
+                      onChange={(e) => onChangeField(f.name, e.target.value)}
+                      rows={f.rows || 4}
+                      className="request-textarea"
+                    />
+                  ) : (
+                    <input
+                      value={formData[f.name] || ""}
+                      onChange={(e) => onChangeField(f.name, e.target.value)}
+                      required={f.required}
+                      className="request-input"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* E-Signature */}
+            <div className="request-section">
+              <div className="request-section-title">Your E-Signature *</div>
+              <p className="request-sig-hint">
+                Please draw your signature again for this resubmission.
+              </p>
+              <SignaturePad ref={sigPadRef} height={250} />
+              <button
+                type="button"
+                className="request-sig-clear"
+                onClick={() => sigPadRef.current?.clear()}
+              >
+                Clear Signature
+              </button>
+            </div>
           </div>
 
           <div className="request-section">
+            {/* Admin Remarks */}
+            <div className="request-section-title">Remarks from Admin</div>
+            <div style={{
+              padding: "12px 14px",
+              background: "var(--s-warning-bg)",
+              border: "1px solid var(--s-warning-dot)",
+              borderRadius: "var(--radius-md)",
+              fontSize: "13px",
+              color: "var(--s-warning-text)",
+            }}>
+              {reqData.remarks || (
+                <span style={{ opacity: 0.7 }}>No remarks provided.</span>
+              )}
+            </div>
+
             {/* Previously Submitted Files */}
-            <div className="request-section-title">Previously Submitted Files</div>
+            <div className="request-section-title" style={{ marginTop: "16px" }}>Previously Submitted Files</div>
             {reqData.predocs?.length ? (
               reqData.predocs.map((f, idx) => (
                 <div key={idx} className="request-file-row">
@@ -293,7 +317,7 @@ export default function StudentResubmitRequest() {
                   </div>
                 </div>
                 <label className="request-file-action">
-                  Upload
+                  {file ? "Change File" : "Upload File"}
                   <input
                     type="file"
                     accept="application/pdf,image/*"
@@ -309,52 +333,12 @@ export default function StudentResubmitRequest() {
                 </label>
               </div>
             ))}
-
-            {/* E-signature for agreement resubmit */}
-            {reqData.type === "agreement" && (
-              <>
-                <div className="request-section-title" style={{ marginTop: "16px" }}>
-                  Your E-Signature *
-                </div>
-                <p className="request-sig-hint">
-                  Please draw your signature again for this resubmission.
-                </p>
-                <SignaturePad ref={sigPadRef} height={150} />
-                <button
-                  type="button"
-                  className="request-sig-clear"
-                  onClick={() => sigPadRef.current?.clear()}
-                >
-                  Clear Signature
-                </button>
-              </>
-            )}
-
-            {/* E-signature for NDA resubmit */}
-            {reqData.type === "nda" && (
-              <>
-                <div className="request-section-title" style={{ marginTop: "16px" }}>
-                  Your E-Signature *
-                </div>
-                <p className="request-sig-hint">
-                  Please draw your signature again for this resubmission.
-                </p>
-                <SignaturePad ref={sigPadRef} height={150} />
-                <button
-                  type="button"
-                  className="request-sig-clear"
-                  onClick={() => sigPadRef.current?.clear()}
-                >
-                  Clear Signature
-                </button>
-              </>
-            )}
           </div>
         </div>
 
         <div className="request-form-actions">
-          <button type="submit" className="request-form-submit">
-            Resubmit
+          <button type="submit" className="request-form-submit" disabled={submitting}>
+            {submitting ? "Submitting..." : "Resubmit"}
           </button>
         </div>
       </form>

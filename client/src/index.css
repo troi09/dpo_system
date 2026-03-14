@@ -491,7 +491,7 @@ h1, h2, h3, .landing-brand-title, .landing-brand-subtitle, .landing-title, .type
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 1120px;
+  max-width: 620px;
 }
 
 .review-back-btn {
@@ -706,10 +706,15 @@ h1, h2, h3, .landing-brand-title, .landing-brand-subtitle, .landing-title, .type
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.review-btn-secondary:hover {
+.review-btn-secondary:hover:not(:disabled) {
   background: var(--surface-2);
   border-color: var(--primary);
   color: var(--primary);
+}
+
+.review-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .review-btn-clear {
@@ -726,8 +731,13 @@ h1, h2, h3, .landing-brand-title, .landing-brand-subtitle, .landing-title, .type
   transition: background 0.15s ease;
 }
 
-.review-btn-clear:hover {
+.review-btn-clear:hover:not(:disabled) {
   background: var(--surface-2);
+}
+
+.review-btn-clear:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Signing link box */

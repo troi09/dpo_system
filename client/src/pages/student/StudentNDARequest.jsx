@@ -139,7 +139,7 @@ export default function StudentNDARequest({ ndaType }) {
               <p className="request-sig-hint">
                 Draw your signature below. It will be embedded in the NDA document.
               </p>
-              <SignaturePad ref={sigPadRef} height={150} />
+              <SignaturePad ref={sigPadRef} height={250} />
               <button
                 type="button"
                 className="request-sig-clear"
@@ -165,7 +165,7 @@ export default function StudentNDARequest({ ndaType }) {
                 </div>
 
                 <label className="request-file-action">
-                  Upload File
+                  {file ? "Change File" : "Upload File"}
                   <input
                     type="file"
                     accept="application/pdf,image/*"
