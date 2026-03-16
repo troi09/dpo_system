@@ -53,13 +53,6 @@ export default function VerifyDocument() {
 
           <span className="verify-meta-label">Issued</span>
           <span className="verify-meta-value">{data.issuedAt || "N/A"}</span>
-
-          {data.studentName && (
-            <>
-              <span className="verify-meta-label">Student</span>
-              <span className="verify-meta-value">{data.studentName}</span>
-            </>
-          )}
         </div>
       </div>
     </div>

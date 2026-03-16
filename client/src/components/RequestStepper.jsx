@@ -6,7 +6,7 @@ const NDA_STEPS = ["Submitted", "Admin Reviewal", "Approved"];
 const AGREEMENT_STEPS = [
   "Submitted",
   "Initial Admin Reviewal",
-  "Awaiting Rep. Approval",
+  "Awaiting Representative Approval",
   "Final Admin Reviewal",
   "Approved",
 ];

@@ -10,21 +10,21 @@ const STATUS_LABEL = {
   nda_revision_requested:      "Revision Requested",
   agreement_submitted:                "Submitted",
   agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
-  agreement_awaiting_rep_approval:    "Awaiting Rep. Approval",
+  agreement_awaiting_rep_approval:    "Awaiting Representative Approval",
   agreement_final_admin_reviewal:     "Final Admin Reviewal",
   agreement_approved:                 "Approved",
-  agreement_rep_declined:             "Rep. Declined",
-  agreement_rep_revision_requested:   "Rep. Revision Requested",
+  agreement_rep_declined:             "Representative Declined",
+  agreement_rep_revision_requested:   "Representative Revision Requested",
 
   // Legacy fallback labels
   nda_pending:                "Admin Reviewal",
   revision_requested:         "Revision Requested",
   agr_pending_1:              "Initial Admin Reviewal",
-  agr_awaiting_rep_signature: "Awaiting Rep. Approval",
+  agr_awaiting_rep_signature: "Awaiting Representative Approval",
   agr_pending_2:              "Final Admin Reviewal",
   agr_approved:               "Approved",
-  agr_rep_declined:           "Rep. Declined",
-  agr_rep_revision_requested: "Rep. Revision Requested",
+  agr_rep_declined:           "Representative Declined",
+  agr_rep_revision_requested: "Representative Revision Requested",
 };
 
 const STATUS_FILTER_OPTIONS = [
@@ -33,7 +33,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: "admin_reviewal", label: "Admin Reviewal" },
   { value: "revision_requested", label: "Revision Requested" },
   { value: "initial_admin_reviewal", label: "Initial Admin Reviewal" },
-  { value: "awaiting_rep_approval", label: "Awaiting Rep. Approval" },
+  { value: "awaiting_rep_approval", label: "Awaiting Representative Approval" },
   { value: "final_admin_reviewal", label: "Final Admin Reviewal" },
   { value: "approved", label: "Approved" },
 ];

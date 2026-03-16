@@ -109,7 +109,7 @@ app.use((err, req, res, next) => {
 });
 
 // ── 5-year retention cron job (runs daily at 02:00) ──────────────────────────
-// Flags final approved requests older than 5 years as isArchived=true
+// Flags ANY request older than 5 years as isArchived=true, regardless of status
 cron.schedule("0 2 * * *", async () => {
   try {
     const fiveYearsAgo = new Date();
@@ -119,7 +119,6 @@ cron.schedule("0 2 * * *", async () => {
     const result = await Request.updateMany(
       {
         isArchived: false,
-        status: { $in: ["nda_approved", "agreement_approved"] },
         createdAt: { $lte: fiveYearsAgo },
       },
       { $set: { isArchived: true, archivedAt: new Date() } }

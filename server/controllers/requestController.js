@@ -58,7 +58,7 @@ const generateSerialSuffix = () => {
 };
 
 const buildSerialNo = (type) => {
-  const prefix = type === "nda" ? "NDA" : "DPO";
+  const prefix = type === "nda" ? "NDA" : "DATA";
   return `${prefix}-${getSerialDatePart()}-${generateSerialSuffix()}`;
 };
 
@@ -107,17 +107,36 @@ exports.createRequest = async (req, res) => {
     const isStaffProxy = req.user.role === "staff";
 
     if (isStaffProxy) {
-      const requiredProxyFields = ["fullName", "email", "idNumber", "departmentOrOrganization"];
+      // Support both structured name fields and legacy fullName
+      const hasStructuredName = proxyRequestee &&
+        String(proxyRequestee.firstName || "").trim() &&
+        String(proxyRequestee.lastName || "").trim();
+      const hasLegacyName = proxyRequestee && String(proxyRequestee.fullName || "").trim();
+
+      const requiredNonNameFields = ["email", "idNumber", "departmentOrOrganization"];
       if (!proxyRequestee || typeof proxyRequestee !== "object") {
         return res.status(400).json({ message: "Proxy requestee details are required for staff submissions" });
       }
 
-      for (const field of requiredProxyFields) {
+      if (!hasStructuredName && !hasLegacyName) {
+        return res.status(400).json({ message: "Proxy requestee first name and last name are required" });
+      }
+
+      for (const field of requiredNonNameFields) {
         if (!String(proxyRequestee[field] || "").trim()) {
           return res.status(400).json({ message: `Proxy requestee ${field} is required` });
         }
       }
     }
+
+    // Compute proxy requestee full name from structured or legacy fields
+    const buildProxyFullName = (pr) => {
+      const fn = String(pr.firstName || "").trim();
+      const mi = String(pr.middleInitial || "").trim();
+      const ln = String(pr.lastName || "").trim();
+      if (fn && ln) return `${fn}${mi ? " " + mi + "." : ""} ${ln}`;
+      return String(pr.fullName || "").trim();
+    };
 
     const createPayload = {
       userId: req.user.id,
@@ -129,7 +148,10 @@ exports.createRequest = async (req, res) => {
         ? {
             isProxy: true,
             staffUserId: req.user.id,
-            fullName: String(proxyRequestee.fullName || "").trim(),
+            firstName: String(proxyRequestee.firstName || "").trim(),
+            middleInitial: String(proxyRequestee.middleInitial || "").trim(),
+            lastName: String(proxyRequestee.lastName || "").trim(),
+            fullName: buildProxyFullName(proxyRequestee),
             email: String(proxyRequestee.email || "").trim(),
             idNumber: String(proxyRequestee.idNumber || "").trim(),
             departmentOrOrganization: String(proxyRequestee.departmentOrOrganization || "").trim(),
@@ -137,6 +159,9 @@ exports.createRequest = async (req, res) => {
         : {
             isProxy: false,
             staffUserId: null,
+            firstName: "",
+            middleInitial: "",
+            lastName: "",
             fullName: "",
             email: "",
             idNumber: "",
@@ -347,8 +372,8 @@ exports.getRequestById = async (req, res) => {
 
     if (!isPrivilegedViewer && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
-    // Strip signing token from non-admin responses for security
-    if (!isAdmin) {
+    // Strip signing token from non-privileged (student) responses for security
+    if (!isPrivilegedViewer) {
       const obj = r.toObject();
       delete obj.signingToken;
       return res.json(obj);
@@ -473,6 +498,16 @@ exports.saveApprovedDocument = async (req, res) => {
       verificationUrl: verificationUrl || "",
     };
 
+    // Volatile signatures: immediately nullify signature data after PDF is saved
+    r.studentSigUrl = "";
+    r.studentSigPath = "";
+    r.adminSigUrl = "";
+    r.adminSigPath = "";
+    r.authorizerSigUrl = "";
+    r.authorizerSigPath = "";
+    r.repSigUrl = "";
+    r.repSigPath = "";
+
     await r.save();
     return res.json({ message: "Approved document saved", request: r });
   } catch (err) {
@@ -499,7 +534,7 @@ exports.generateSigningLink = async (req, res) => {
       return res.status(400).json({ message: "Only agreement requests use signing links" });
     }
 
-    const allowedFromStatuses = ["agreement_initial_admin_reviewal", "agreement_rep_revision_requested"];
+    const allowedFromStatuses = ["agreement_initial_admin_reviewal", "agreement_rep_revision_requested", "agreement_awaiting_rep_approval"];
     if (!allowedFromStatuses.includes(r.status)) {
       return res.status(400).json({
         message: `Cannot generate signing link from status: ${r.status}`,
@@ -508,6 +543,7 @@ exports.generateSigningLink = async (req, res) => {
 
     r.signingToken = generateSigningTokenValue();
     r.signingTokenUsed = false;
+    r.signingTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7-day TTL
     r.status = "agreement_awaiting_rep_approval";
     r.remarks = "";
 
@@ -524,6 +560,7 @@ exports.generateSigningLink = async (req, res) => {
     return res.json({
       message: "Signing link generated",
       signingToken: r.signingToken,
+      signingTokenExpiresAt: r.signingTokenExpiresAt,
       request: r,
     });
   } catch (err) {
@@ -540,10 +577,15 @@ exports.getBySigningToken = async (req, res) => {
 
     const r = await Request.findOne({ signingToken: token })
       .populate("userId", "name email")
-      .select("_id formData status signingTokenUsed authorizerSigUrl authorizerSigPath remarks repInfo updatedAt type")
+      .select("_id formData status signingTokenUsed signingTokenExpiresAt authorizerSigUrl authorizerSigPath remarks repInfo updatedAt type")
       .lean();
 
     if (!r) return res.status(404).json({ message: "Invalid signing link" });
+
+    // Check for link expiry
+    if (r.signingTokenExpiresAt && new Date(r.signingTokenExpiresAt) < new Date()) {
+      return res.status(410).json({ message: "This signing link has expired. Please request a new one." });
+    }
 
     return res.json(r);
   } catch (err) {
@@ -564,6 +606,11 @@ exports.repSubmit = async (req, res) => {
 
     if (r.signingTokenUsed) {
       return res.status(400).json({ message: "This signing link has already been used" });
+    }
+
+    // Check for link expiry
+    if (r.signingTokenExpiresAt && new Date(r.signingTokenExpiresAt) < new Date()) {
+      return res.status(410).json({ message: "This signing link has expired. Please request a new one." });
     }
 
     const allowedStatuses = ["agreement_awaiting_rep_approval", "agreement_rep_revision_requested"];
@@ -767,7 +814,6 @@ exports.verifyRequestCode = async (req, res) => {
       type: r.type,
       requestId: r._id,
       issuedAt: r.postdocs?.issuedAt || "",
-      studentName: r.proxyRequestee?.isProxy ? (r.proxyRequestee.fullName || "") : (r.userId?.name || ""),
     });
   } catch (err) {
     return res.status(500).json({ valid: false, message: err.message });

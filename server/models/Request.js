@@ -48,6 +48,11 @@ const requestSchema = new mongoose.Schema(
         ref: "User",
         default: null,
       },
+      // Structured name fields for proxy requestee
+      firstName: { type: String, default: "" },
+      middleInitial: { type: String, default: "" },
+      lastName: { type: String, default: "" },
+      // Legacy single fullName field kept for backward compatibility
       fullName: { type: String, default: "" },
       email: { type: String, default: "" },
       idNumber: { type: String, default: "" },
@@ -92,6 +97,11 @@ const requestSchema = new mongoose.Schema(
     signingTokenUsed: {
       type: Boolean,
       default: false,
+    },
+
+    signingTokenExpiresAt: {
+      type: Date,
+      default: null,
     },
 
     // Representative info (submitted on signing page)

@@ -22,7 +22,7 @@ const Navbar = () => {
 
   const initials = user?.name
     ? user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
-    : "?";
+    : (user?.firstName ? user.firstName[0].toUpperCase() : "?");
 
   return (
     <nav className="navbar">
@@ -67,7 +67,7 @@ const Navbar = () => {
             </NavLink>
             <NavLink to="/admin/requests" className={linkClass}>
               <ClipboardList size={16} className="nav-icon" />
-              Requests
+              Request Management
             </NavLink>
             {user?.role === "staff" && (
               <NavLink to="/admin/proxy-request" className={linkClass}>
@@ -77,7 +77,7 @@ const Navbar = () => {
             )}
             <NavLink to="/admin/reports" className={linkClass}>
               <BarChart2 size={16} className="nav-icon" />
-              Reports
+              Transactional Reports
             </NavLink>
             {user?.role === "admin" && (
               <NavLink to="/admin/users" className={linkClass}>

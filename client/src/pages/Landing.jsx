@@ -170,7 +170,7 @@ function ForgotPasswordFlow({ onCancel }) {
 
 const Landing = () => {
   const [mode, setMode] = useState("login"); // "login" | "register" | "forgot"
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ firstName: "", middleInitial: "", lastName: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -207,7 +207,7 @@ const Landing = () => {
 
   const onChange = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
   const resetForm = () => {
-    setForm({ name: "", email: "", password: "" });
+    setForm({ firstName: "", middleInitial: "", lastName: "", email: "", password: "" });
     setError("");
     setSuccess("");
     setOtpStep(false);
@@ -245,7 +245,9 @@ const Landing = () => {
         return;
       }
       const res = await axios.post(`${API_URL}/register`, {
-        name: form.name,
+        firstName: form.firstName,
+        middleInitial: form.middleInitial,
+        lastName: form.lastName,
         email: form.email,
         password: form.password,
       });
@@ -455,17 +457,43 @@ const Landing = () => {
                 {success && <div className="landing-success">{success}</div>}
 
                 {!isLogin && (
-                  <div className="landing-field-group">
-                    <label className="landing-label" htmlFor="landing-name">Full Name</label>
-                    <input
-                      id="landing-name"
-                      type="text"
-                      placeholder="Juan Dela Cruz"
-                      value={form.name}
-                      onChange={onChange("name")}
-                      required
-                      className="landing-field"
-                    />
+                  <div className="landing-name-grid">
+                    <div className="landing-field-group">
+                      <label className="landing-label" htmlFor="landing-firstname">First Name</label>
+                      <input
+                        id="landing-firstname"
+                        type="text"
+                        placeholder="Juan"
+                        value={form.firstName}
+                        onChange={onChange("firstName")}
+                        required
+                        className="landing-field"
+                      />
+                    </div>
+                    <div className="landing-field-group">
+                      <label className="landing-label" htmlFor="landing-mi">M.I.</label>
+                      <input
+                        id="landing-mi"
+                        type="text"
+                        placeholder="D."
+                        value={form.middleInitial}
+                        onChange={onChange("middleInitial")}
+                        maxLength={3}
+                        className="landing-field"
+                      />
+                    </div>
+                    <div className="landing-field-group">
+                      <label className="landing-label" htmlFor="landing-lastname">Last Name</label>
+                      <input
+                        id="landing-lastname"
+                        type="text"
+                        placeholder="Dela Cruz"
+                        value={form.lastName}
+                        onChange={onChange("lastName")}
+                        required
+                        className="landing-field"
+                      />
+                    </div>
                   </div>
                 )}
 
