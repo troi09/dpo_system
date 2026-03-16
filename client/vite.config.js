@@ -5,11 +5,29 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
+    target: 'es2019',
+    minify: 'terser',
+    cssMinify: true,
+    chunkSizeWarningLimit: 700,
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           const normalizedId = id.replace(/\\/g, '/');
+
+          if (normalizedId.includes('/react-dom/')) {
+            return 'react-dom';
+          }
+
+          if (normalizedId.includes('/react/')) {
+            return 'react';
+          }
 
           if (normalizedId.includes('react-pdf') || normalizedId.includes('pdfjs') || normalizedId.includes('@react-pdf')) {
             return 'pdf';
@@ -33,10 +51,6 @@ export default defineConfig({
 
           if (normalizedId.includes('lucide-react')) {
             return 'icons';
-          }
-
-          if (/node_modules\/(react|react-dom|scheduler)\//.test(normalizedId)) {
-            return 'react-core';
           }
 
           if (normalizedId.includes('/axios/')) {

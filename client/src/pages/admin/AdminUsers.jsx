@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserPlus, UserX, UserCheck, RefreshCw, KeyRound, Search } from "lucide-react";
 import {
@@ -37,7 +37,7 @@ export default function AdminUsers() {
 
   const [form, setForm] = useState({ name: "", email: "", role: "student", password: "" });
 
-  const load = async ({ withSpinner = false } = {}) => {
+  const load = useCallback(async ({ withSpinner = false } = {}) => {
     setLoading(true);
     if (withSpinner) setRefreshing(true);
     try {
@@ -49,9 +49,9 @@ export default function AdminUsers() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const showFlash = (type, msg) => {
     setFlash({ type, msg });
@@ -164,11 +164,14 @@ export default function AdminUsers() {
     }
   };
 
-  const filtered = users.filter(
-    (u) =>
-      u.name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const normalized = search.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(normalized) ||
+        u.email?.toLowerCase().includes(normalized)
+    );
+  }, [search, users]);
 
   return (
     <div className="page-shell">

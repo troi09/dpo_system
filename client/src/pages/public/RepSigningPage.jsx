@@ -188,7 +188,7 @@ export default function RepSigningPage() {
           <div className="rep-signing-auth-sig">
             <div className="rep-signing-auth-sig-label">Authorizer&apos;s Signature</div>
             <div className="rep-signing-auth-sig-box">
-              <img src={reqData.authorizerSigUrl} alt="Authorizer signature" />
+              <img src={reqData.authorizerSigUrl} alt="Authorizer signature" width="560" height="180" loading="lazy" decoding="async" />
             </div>
             <div className="rep-signing-auth-sig-name">{student.name}</div>
           </div>

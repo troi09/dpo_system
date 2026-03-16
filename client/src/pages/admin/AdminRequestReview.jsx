@@ -14,7 +14,6 @@ import {
   getSignatureImages,
 } from "../../services/requestService";
 
-import { generateApprovedPDF } from "../../config/documentTemplates";
 import {
   uploadApprovedForm,
   uploadApprovedQrImage,
@@ -140,6 +139,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           verificationUrl,
           qrDataUrl,
         };
+        const { generateApprovedPDF } = await import("../../config/documentTemplates");
         const pdfBlob = await generateApprovedPDF(docReq);
         const t = reqData.formData?.ndaType || "general";
         const uploaded = await uploadApprovedForm(
@@ -252,7 +252,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         <div className="review-section">
           <h4 className="review-section-title">Student E-Signature</h4>
           <div className="review-sig-wrap">
-            <img src={reqData.studentSigUrl} alt="Student signature" className="review-sig-img" />
+            <img src={reqData.studentSigUrl} alt="Student signature" className="review-sig-img" width="560" height="180" loading="lazy" decoding="async" />
             <span className="review-sig-name">{reqData.userId?.name}</span>
           </div>
         </div>
@@ -388,6 +388,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         qrDataUrl,
       };
 
+      const { generateApprovedPDF } = await import("../../config/documentTemplates");
       const pdfBlob = await generateApprovedPDF(docReq);
       const uploaded = await uploadApprovedForm(
         pdfBlob,
@@ -471,7 +472,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         <div className="review-section">
           <h4 className="review-section-title">Authorizer E-Signature</h4>
           <div className="review-sig-wrap">
-            <img src={reqData.authorizerSigUrl} alt="Authorizer signature" className="review-sig-img" />
+            <img src={reqData.authorizerSigUrl} alt="Authorizer signature" className="review-sig-img" width="560" height="180" loading="lazy" decoding="async" />
             <span className="review-sig-name">{reqData.userId?.name}</span>
           </div>
         </div>
@@ -507,7 +508,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         <div className="review-section">
           <h4 className="review-section-title">Representative E-Signature</h4>
           <div className="review-sig-wrap">
-            <img src={reqData.repSigUrl} alt="Representative signature" className="review-sig-img" />
+            <img src={reqData.repSigUrl} alt="Representative signature" className="review-sig-img" width="560" height="180" loading="lazy" decoding="async" />
             <span className="review-sig-name">
               {reqData.repInfo?.name || reqData.formData?.repName}
             </span>

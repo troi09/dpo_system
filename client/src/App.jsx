@@ -8,7 +8,7 @@ import Headbar from "./components/Headbar";
 import SessionWarningModal from "./components/SessionWarningModal";
 import RequireRole from "./guards/RequireRole";
 
-const Landing = lazy(() => import("./pages/Landing"));
+import Landing from "./pages/Landing";
 const VerifyDocument = lazy(() => import("./pages/VerifyDocument"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 const ActivateAccountPage = lazy(() => import("./pages/ActivateAccountPage"));
@@ -40,10 +40,28 @@ const StaffProxyNDAOrgActivities = lazy(() => import("./pages/admin/StaffProxyND
 const StaffProxyNDAResearch = lazy(() => import("./pages/admin/StaffProxyNDAResearch"));
 const StaffProxyAgreementRequest = lazy(() => import("./pages/admin/StaffProxyAgreementRequest"));
 
-function RouteFallback() {
+function GlobalLoader() {
   return (
-    <div className="route-transition-shell" style={{ padding: "16px", color: "var(--text-muted)" }}>
-      Loading...
+    <div
+      className="route-transition-shell"
+      style={{
+        minHeight: "160px",
+        display: "grid",
+        placeItems: "center",
+      }}
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div
+        style={{
+          width: "34px",
+          height: "34px",
+          borderRadius: "999px",
+          border: "3px solid rgba(15, 45, 107, 0.2)",
+          borderTopColor: "var(--primary)",
+          animation: "spin 0.8s linear infinite",
+        }}
+      />
     </div>
   );
 }
@@ -68,7 +86,7 @@ function AppLayout() {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
-              <Suspense fallback={<RouteFallback />}>
+              <Suspense fallback={<GlobalLoader />}>
                 <Outlet />
               </Suspense>
             </motion.div>
@@ -86,7 +104,7 @@ function App() {
 
   return (
     <Router>
-      <Suspense fallback={<RouteFallback />}>
+      <Suspense fallback={<GlobalLoader />}>
         <Routes>
           {/* Public routes (no auth, no layout) */}
           <Route path="/verify/:code" element={<VerifyDocument />} />

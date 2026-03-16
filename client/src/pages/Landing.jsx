@@ -306,7 +306,7 @@ const Landing = () => {
     setHasMounted(true);
 
     const preload = new Image();
-    preload.src = "/RTU-Background.jpg";
+    preload.src = "/RTU-Background.webp";
     preload.onload = () => setBgLoaded(true);
     preload.onerror = () => setBgLoaded(false);
   }, []);
@@ -329,14 +329,33 @@ const Landing = () => {
     <div className={`landing ${hasMounted ? "is-mounted" : ""}`} onMouseMove={handleMouseMove}>
       <div
         ref={bgRef}
-        className="landing-parallax-bg"
-        style={{ backgroundImage: "url('/RTU-Background.png')" }}
+        className={`landing-parallax-bg ${bgLoaded ? "is-loaded" : ""}`}
+        style={{ backgroundImage: "url('/RTU-Background.webp')" }}
+      />
+      <img
+        src="/RTU-Background.webp"
+        alt=""
+        width="1"
+        height="1"
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
+        aria-hidden="true"
+        style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
       />
       <div className="landing-overlay" />
       <div className="landing-wrapper">
         {/* ── Brand Header (on blue background) ── */}
         <div className="landing-brand">
-          <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
+          <img
+            src="/dpo-logo.webp"
+            alt="RTU DPO Logo"
+            className="landing-brand-logo"
+            width="104"
+            height="104"
+            loading="eager"
+            decoding="async"
+          />
           <div className="landing-brand-text">
             <div className="landing-brand-title">Data Protection Office</div>
             <div className="landing-brand-subtitle">Rizal Technological University</div>

@@ -47,5 +47,7 @@ const auditLogSchema = new mongoose.Schema(
 // Index for efficient querying by user and time window (used by Auditor Agent)
 auditLogSchema.index({ userId: 1, createdAt: -1 });
 auditLogSchema.index({ action: 1, createdAt: -1 });
+auditLogSchema.index({ createdAt: -1 });
+auditLogSchema.index({ resourceType: 1, createdAt: -1 });
 
 module.exports = mongoose.model("AuditLog", auditLogSchema);

@@ -215,22 +215,6 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
               )}
             </div>
 
-            <div className="request-section">
-              <div className="request-section-title">Your E-Signature *</div>
-              <p className="request-sig-hint">
-                Draw your signature below. It will be embedded in the agreement document.
-              </p>
-              <SignaturePad ref={sigPadRef} height={250} />
-              <button
-                type="button"
-                className="request-sig-clear"
-                onClick={() => sigPadRef.current?.clear()}
-              >
-                Clear Signature
-              </button>
-            </div>
-          </div>
-
           <div className="request-section">
             <div className="request-section-title">Requirements (Agreement)</div>
             {files.map((file, index) => (

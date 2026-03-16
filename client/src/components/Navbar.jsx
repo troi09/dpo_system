@@ -28,7 +28,15 @@ const Navbar = () => {
     <nav className="navbar">
       {/* Brand */}
       <div className="navbar-brand">
-        <img src="/dpo-logo.png" alt="DPO Logo" className="navbar-brand-logo" />
+        <img
+          src="/dpo-logo.webp"
+          alt="DPO Logo"
+          className="navbar-brand-logo"
+          width="40"
+          height="40"
+          loading="eager"
+          decoding="async"
+        />
         <span className="navbar-brand-name">DPO Portal</span>
       </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { getAuditLogs } from "../../services/auditService";
@@ -134,7 +134,7 @@ export default function AdminAuditLog() {
     return window.innerWidth >= 768;
   });
 
-  const load = async (p = page, action = actionFilter, withToast = false) => {
+  const load = useCallback(async (p = page, action = actionFilter, withToast = false) => {
     setLoading(true);
     if (withToast) setRefreshing(true);
     setError("");
@@ -152,25 +152,26 @@ export default function AdminAuditLog() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [actionFilter, page]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(page, actionFilter); }, [page, actionFilter]);
+  useEffect(() => { load(page, actionFilter); }, [actionFilter, load, page]);
 
   const handleActionFilter = (v) => {
     setActionFilter(v);
     setPage(1);
   };
 
-  const filtered = search
-    ? logs.filter(
-        (l) =>
-          l.action?.toLowerCase().includes(search.toLowerCase()) ||
-          (l.userId?.name || "").toLowerCase().includes(search.toLowerCase()) ||
-          (l.userId?.email || "").toLowerCase().includes(search.toLowerCase()) ||
-          (l.resourceType || "").toLowerCase().includes(search.toLowerCase())
-      )
-    : logs;
+  const filtered = useMemo(() => {
+    if (!search) return logs;
+    const normalized = search.toLowerCase();
+    return logs.filter(
+      (l) =>
+        l.action?.toLowerCase().includes(normalized) ||
+        (l.userId?.name || "").toLowerCase().includes(normalized) ||
+        (l.userId?.email || "").toLowerCase().includes(normalized) ||
+        (l.resourceType || "").toLowerCase().includes(normalized)
+    );
+  }, [logs, search]);
 
   const ACTION_TYPES = [
     { label: "All Actions", value: "" },

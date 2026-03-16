@@ -129,5 +129,7 @@ const requestSchema = new mongoose.Schema(
 requestSchema.index({ userId: 1, createdAt: -1 });
 requestSchema.index({ status: 1, createdAt: -1 });
 requestSchema.index({ isArchived: 1, createdAt: -1 });
+requestSchema.index({ isArchived: 1, status: 1, createdAt: -1 });
+requestSchema.index({ type: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Request", requestSchema);

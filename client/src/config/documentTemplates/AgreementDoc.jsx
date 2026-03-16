@@ -102,14 +102,14 @@ export default function AgreementDoc({ request }) {
         </View>
 
         <View style={styles.logoRow}>
-          <Image style={styles.logo} src="/rtu-logo.png" />
+          <Image style={styles.logo} src="/rtu-logo.webp" />
           <View style={styles.centerTextWrap}>
             <Text style={styles.centerLine}>Rizal Technological University</Text>
             <Text style={styles.centerLine}>Boni Avenue, City of Mandaluyong</Text>
             <Text style={styles.centerOffice}>UNIVERSITY DATA PROTECTION CENTER</Text>
             <Text style={styles.centerAgreement}>AGREEMENT</Text>
           </View>
-          <Image style={styles.logoDpo} src="/dpo-logo-full.png" />
+          <Image style={styles.logoDpo} src="/dpo-logo-full.webp" />
         </View>
 
         <Text style={styles.paragraph}>

@@ -107,11 +107,11 @@ export default function VerifyEmailPage() {
   if (status === "loading") {
     return (
       <div className="landing is-mounted">
-        <div className="landing-parallax-bg is-loaded" style={{ backgroundImage: "url('/RTU-Background.jpg')" }} />
+        <div className="landing-parallax-bg is-loaded" style={{ backgroundImage: "url('/RTU-Background.webp')" }} />
         <div className="landing-overlay" />
         <div className="landing-wrapper">
           <div className="landing-brand">
-            <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
+            <img src="/dpo-logo.webp" alt="RTU DPO Logo" className="landing-brand-logo" width="104" height="104" loading="eager" decoding="async" />
             <div className="landing-brand-text">
               <div className="landing-brand-title">Data Protection Office</div>
               <div className="landing-brand-subtitle">Rizal Technological University</div>
@@ -131,11 +131,11 @@ export default function VerifyEmailPage() {
   if (status === "success") {
     return (
       <div className="landing is-mounted">
-        <div className="landing-parallax-bg is-loaded" style={{ backgroundImage: "url('/RTU-Background.jpg')" }} />
+        <div className="landing-parallax-bg is-loaded" style={{ backgroundImage: "url('/RTU-Background.webp')" }} />
         <div className="landing-overlay" />
         <div className="landing-wrapper">
           <div className="landing-brand">
-            <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
+            <img src="/dpo-logo.webp" alt="RTU DPO Logo" className="landing-brand-logo" width="104" height="104" loading="eager" decoding="async" />
             <div className="landing-brand-text">
               <div className="landing-brand-title">Data Protection Office</div>
               <div className="landing-brand-subtitle">Rizal Technological University</div>
@@ -159,11 +159,11 @@ export default function VerifyEmailPage() {
   if (status === "error") {
     return (
       <div className="landing is-mounted">
-        <div className="landing-parallax-bg is-loaded" style={{ backgroundImage: "url('/RTU-Background.jpg')" }} />
+        <div className="landing-parallax-bg is-loaded" style={{ backgroundImage: "url('/RTU-Background.webp')" }} />
         <div className="landing-overlay" />
         <div className="landing-wrapper">
           <div className="landing-brand">
-            <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
+            <img src="/dpo-logo.webp" alt="RTU DPO Logo" className="landing-brand-logo" width="104" height="104" loading="eager" decoding="async" />
             <div className="landing-brand-text">
               <div className="landing-brand-title">Data Protection Office</div>
               <div className="landing-brand-subtitle">Rizal Technological University</div>
@@ -187,11 +187,11 @@ export default function VerifyEmailPage() {
   // OTP form
   return (
     <div className="landing is-mounted">
-      <div className="landing-parallax-bg is-loaded" style={{ backgroundImage: "url('/RTU-Background.jpg')" }} />
+      <div className="landing-parallax-bg is-loaded" style={{ backgroundImage: "url('/RTU-Background.webp')" }} />
       <div className="landing-overlay" />
       <div className="landing-wrapper">
         <div className="landing-brand">
-          <img src="/dpo-logo.png" alt="RTU DPO Logo" className="landing-brand-logo" />
+          <img src="/dpo-logo.webp" alt="RTU DPO Logo" className="landing-brand-logo" width="104" height="104" loading="eager" decoding="async" />
           <div className="landing-brand-text">
             <div className="landing-brand-title">Data Protection Office</div>
             <div className="landing-brand-subtitle">Rizal Technological University</div>
