@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { RefreshCw } from "lucide-react";
+import { AlertTriangle, Paperclip, RefreshCw } from "lucide-react";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { AuthContext } from "../../context/AuthContext";
@@ -13,6 +13,7 @@ import {
   adminPhase3Action,
   getSignatureImages,
 } from "../../services/requestService";
+import { confirmInPage, notify } from "../../utils/inPageFeedback";
 
 import {
   uploadApprovedForm,
@@ -85,17 +86,23 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   const handleUpdate = async (status) => {
     if (status === "nda_approved") {
       if (!isProxy && (!adminSigRef.current || adminSigRef.current.isEmpty())) {
-        alert("Please draw your e-signature before approving.");
+        notify("Please draw your e-signature before approving.", { type: "warning" });
         return;
       }
     }
-    if (status === "revision_requested") {
+    if (status === "nda_revision_requested" || status === "revision_requested") {
       if (!remarks.trim()) {
-        alert("Please enter remarks before requesting a revision.");
+        notify("Please enter remarks before requesting a revision.", { type: "warning" });
         return;
       }
     }
-    setActiveAction(status === "nda_approved" ? "approve" : "revision");
+    setActiveAction(
+      status === "nda_admin_reviewal"
+        ? "forward"
+        : status === "nda_approved"
+          ? "approve"
+          : "revision"
+    );
     try {
       if (status === "nda_approved") {
         // For F2F proxy requests, skip digital signatures (wet signature will be applied on print)
@@ -124,15 +131,16 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           const { generateApprovedPDF } = await import("../../config/documentTemplates");
           const pdfBlob = await generateApprovedPDF(docReq);
           const t = reqData.formData?.ndaType || "general";
+          const approvedFileName = `NDA_${t}_Approved_${Date.now()}.pdf`;
           const uploaded = await uploadApprovedForm(
             pdfBlob,
             reqData.type,
             studentName,
             requestFolder,
-            `NDA_${t}_Approved.pdf`
+            approvedFileName
           );
           await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
-          alert("Approved! The document is ready for printing and physical signature.");
+          notify("Approved! The document is ready for printing and physical signature.", { type: "success" });
         } else {
           const adminSigDataUrl = adminSigRef.current.getDataUrl();
 
@@ -180,25 +188,26 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           const { generateApprovedPDF } = await import("../../config/documentTemplates");
           const pdfBlob = await generateApprovedPDF(docReq);
           const t = reqData.formData?.ndaType || "general";
+          const approvedFileName = `NDA_${t}_Approved_${Date.now()}.pdf`;
           const uploaded = await uploadApprovedForm(
             pdfBlob,
             reqData.type,
             studentName,
             requestFolder,
-            `NDA_${t}_Approved.pdf`
+            approvedFileName
           );
 
           await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
 
-          alert("Approved and document generated!");
+          notify("Approved and document generated!", { type: "success" });
         }
       } else {
         await updateRequestStatus(reqData._id, { status, remarks });
-        alert(`Updated to ${status}`);
+        notify(`Updated to ${status}`, { type: "success" });
       }
       await onRequestUpdated?.({ withToast: true });
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to update request");
+      notify(err.response?.data?.message || err.message || "Failed to update request", { type: "error" });
     } finally {
       setActiveAction(null);
     }
@@ -238,7 +247,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {reqData.predocs.map((f, idx) => (
               <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
-                📎 {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
               </a>
             ))}
           </div>
@@ -276,7 +285,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           <h4 className="review-section-title">Approved Request Form</h4>
           {reqData.postdocs?.url ? (
             <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-file-link">
-              📎 Approved NDA Document
+              <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> Approved NDA Document
             </a>
           ) : (
             <div className="review-info-box">
@@ -325,10 +334,10 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         <div className="review-actions">
           <button
             onClick={() => handleUpdate("nda_admin_reviewal")}
-            disabled={approving}
+            disabled={!!activeAction}
             className="review-btn-primary"
           >
-            {approving ? "Updating..." : "Forward to Admin Reviewal"}
+            {activeAction === "forward" ? "Updating..." : "Forward to Admin Reviewal"}
           </button>
         </div>
       )}
@@ -344,7 +353,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           </button>
           <button
             onClick={() => handleUpdate("nda_revision_requested")}
-            disabled={approving}
+            disabled={!!activeAction}
             className="review-btn-secondary"
           >
             {activeAction === "revision" ? "Submitting..." : "Request Revision"}
@@ -394,16 +403,23 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       setSigningLink(link);
       setSigningLinkExpiry(res.signingTokenExpiresAt || null);
       await onRequestUpdated?.();
-      alert("Signing link generated! Copy it and send to the representative manually.");
+      notify("Signing link generated! Copy it and send to the representative manually.", { type: "success" });
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to generate signing link");
+      notify(err.response?.data?.message || err.message || "Failed to generate signing link", { type: "error" });
     } finally {
       setGenerating(false);
     }
   };
 
   const handleRegenerateLink = async () => {
-    if (!window.confirm("Regenerate the signing link? The old link will be invalidated.")) return;
+    const confirmed = await confirmInPage({
+      title: "Regenerate Signing Link",
+      message: "Regenerate the signing link? The old link will be invalidated.",
+      confirmText: "Regenerate",
+      cancelText: "Cancel",
+      tone: "warning",
+    });
+    if (!confirmed) return;
     setRegenerating(true);
     try {
       const res = await generateSigningLink(reqData._id);
@@ -411,9 +427,9 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       setSigningLink(link);
       setSigningLinkExpiry(res.signingTokenExpiresAt || null);
       await onRequestUpdated?.();
-      alert("New signing link generated! Copy it and send to the representative.");
+      notify("New signing link generated! Copy it and send to the representative.", { type: "success" });
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to regenerate signing link");
+      notify(err.response?.data?.message || err.message || "Failed to regenerate signing link", { type: "error" });
     } finally {
       setRegenerating(false);
     }
@@ -421,7 +437,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
 
   const handlePhase3Approve = async () => {
     if (!adminSigRef.current || adminSigRef.current.isEmpty()) {
-      alert("Please draw your e-signature before approving.");
+      notify("Please draw your e-signature before approving.", { type: "warning" });
       return;
     }
     setApproving(true);
@@ -456,12 +472,13 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
 
       const { generateApprovedPDF } = await import("../../config/documentTemplates");
       const pdfBlob = await generateApprovedPDF(docReq);
+      const approvedFileName = `Agreement_Approved_${Date.now()}.pdf`;
       const uploaded = await uploadApprovedForm(
         pdfBlob,
         "agreement",
         studentName,
         requestFolder,
-        "Agreement_Approved.pdf"
+        approvedFileName
       );
 
       await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
@@ -469,11 +486,11 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       await deleteStorageFile(reqData.authorizerSigPath);
       await deleteStorageFile(reqData.repSigPath);
 
-      alert("Agreement fully approved and document generated!");
+      notify("Agreement fully approved and document generated!", { type: "success" });
       await onRequestUpdated?.({ withToast: true });
       setApproving(false);
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Failed to approve");
+      notify(err.response?.data?.message || err.message || "Failed to approve", { type: "error" });
     } finally {
       setApproving(false);
     }
@@ -481,7 +498,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
 
   const handlePhase3RepRevision = async () => {
     if (!remarks.trim()) {
-      alert("Please enter remarks explaining what the representative needs to revise.");
+      notify("Please enter remarks explaining what the representative needs to revise.", { type: "warning" });
       return;
     }
     setPhase3Revising(true);
@@ -490,9 +507,9 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       const newLink = `${window.location.origin}/sign/${res.request.signingToken}`;
       setSigningLink(newLink);
       await onRequestUpdated?.({ withToast: true });
-      alert("Representative revision requested. A new signing link has been generated — copy it and send to the representative.");
+      notify("Representative revision requested. A new signing link has been generated. Copy it and send to the representative.", { type: "success" });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed");
+      notify(err.response?.data?.message || "Failed", { type: "error" });
     } finally {
       setPhase3Revising(false);
     }
@@ -522,7 +539,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {reqData.predocs.map((f, idx) => (
               <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
-                📎 {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
               </a>
             ))}
           </div>
@@ -564,7 +581,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
             rel="noreferrer"
             className="review-file-link"
           >
-            📎 Government-Issued ID
+            <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> Government-Issued ID
           </a>
         </div>
       )}
@@ -576,7 +593,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           <div className="review-sig-wrap">
             <img src={reqData.repSigUrl} alt="Representative signature" className="review-sig-img" width="560" height="180" loading="lazy" decoding="async" />
             <span className="review-sig-name">
-              {reqData.repInfo?.name || reqData.formData?.repName}
+              {reqData.repInfo?.name || [reqData.formData?.repFirstName, reqData.formData?.repMiddleInitial, reqData.formData?.repLastName].filter(Boolean).join(" ") || reqData.formData?.repName}
             </span>
           </div>
         </div>
@@ -597,7 +614,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           <h4 className="review-section-title">Approved Agreement</h4>
           {reqData.postdocs?.url ? (
             <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-file-link">
-              📎 Approved Agreement Document
+              <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> Approved Agreement Document
             </a>
           ) : (
             <div className="review-info-box">
@@ -628,7 +645,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
               className="signing-link-copy-btn"
               onClick={() => {
                 navigator.clipboard.writeText(signingLink);
-                alert("Copied!");
+                notify("Copied!", { type: "success" });
               }}
             >
               Copy
@@ -637,7 +654,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           {signingLinkExpiry && (
             <div style={{ marginTop: 6, fontSize: 12, color: new Date(signingLinkExpiry) < new Date() ? "#dc2626" : "var(--text-muted)" }}>
               {new Date(signingLinkExpiry) < new Date()
-                ? "⚠ This link has expired."
+                ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} strokeWidth={1.8} />This link has expired.</span>
                 : `Expires: ${new Date(signingLinkExpiry).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}`}
             </div>
           )}
@@ -648,7 +665,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
               className="review-btn-secondary"
               style={{ marginTop: 10 }}
             >
-              {regenerating ? "Regenerating…" : "🔄 Regenerate Link"}
+              {regenerating ? "Regenerating…" : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><RefreshCw size={14} strokeWidth={1.8} />Regenerate Link</span>}
             </button>
           )}
         </div>
@@ -661,10 +678,10 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
             onClick={async () => {
               try {
                 await updateRequestStatus(reqData._id, { status: "agreement_initial_admin_reviewal" });
-                alert("Request moved to Initial Admin Reviewal.");
+                notify("Request moved to Initial Admin Reviewal.", { type: "success" });
                 await onRequestUpdated?.({ withToast: true });
               } catch (err) {
-                alert(err.response?.data?.message || "Failed");
+                notify(err.response?.data?.message || "Failed", { type: "error" });
               }
             }}
             className="review-btn-primary"
@@ -800,7 +817,7 @@ export default function AdminRequestReview() {
         setTimeout(() => setNotice(""), 1800);
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to load request");
+      notify(err.response?.data?.message || "Failed to load request", { type: "error" });
       navigate("/admin/requests");
     } finally {
       setRefreshing(false);

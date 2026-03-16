@@ -98,6 +98,7 @@ export default function AdminDashboard() {
   // Date range filter for charts
   const [chartStartDate, setChartStartDate] = useState("");
   const [chartEndDate, setChartEndDate] = useState("");
+  const hasDateFilter = Boolean(chartStartDate || chartEndDate);
 
   useEffect(() => {
     const onResize = () => setIsCompact(window.innerWidth < 768);
@@ -178,11 +179,26 @@ export default function AdminDashboard() {
   }, [chartFilteredRequests]);
 
   const typeData = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const dataset = hasDateFilter
+      ? chartFilteredRequests
+      : requests.filter((r) => {
+          const created = new Date(r.createdAt);
+          return created >= monthStart && created <= monthEnd;
+        });
+
     return [
-      { name: "NDA", count: chartFilteredRequests.filter((r) => r.type === "nda").length },
-      { name: "Agreement", count: chartFilteredRequests.filter((r) => r.type === "agreement").length },
+      { name: "NDA", count: dataset.filter((r) => r.type === "nda").length },
+      { name: "Agreement", count: dataset.filter((r) => r.type === "agreement").length },
     ];
-  }, [chartFilteredRequests]);
+  }, [chartFilteredRequests, hasDateFilter, requests]);
+
+  const documentTypesTitle = useMemo(() => {
+    if (hasDateFilter) return "Document Types";
+    return `Document Types - Month of ${new Date().toLocaleString("en-US", { month: "long" })}`;
+  }, [hasDateFilter]);
 
   // Monthly trend (last 6 months)
   const trendData = useMemo(() => {
@@ -306,7 +322,77 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* ── TOP: Recent Requests ── */}
+      {/* ── TOP: Analytics Charts ── */}
+      <div className="responsive-grid-2 dashboard-section-gap">
+        {/* Donut Chart – Status Distribution */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+          className="admin-chart-card dashboard-chart-card"
+        >
+          <div className="dashboard-chart-title">
+            Request Status Distribution
+          </div>
+          <div className="dashboard-chart-subtitle">Current active requests by status</div>
+          {statusData.length > 0 ? (
+            <div className="dashboard-chart-canvas">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart margin={{ top: 8, right: 12, bottom: isCompact ? 32 : 8, left: 12 }}>
+                <Pie
+                  data={statusData}
+                  cx={isCompact ? "50%" : "36%"}
+                  cy={isCompact ? "45%" : "50%"}
+                  innerRadius={isCompact ? 45 : 55}
+                  outerRadius={isCompact ? 68 : 85}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value, name) => [value, name]} />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  layout={isCompact ? "horizontal" : "vertical"}
+                  align={isCompact ? "center" : "right"}
+                  verticalAlign={isCompact ? "bottom" : "middle"}
+                  wrapperStyle={{ fontSize: 12, paddingLeft: isCompact ? 0 : 24 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="dashboard-chart-canvas dashboard-chart-empty">
+              No data available
+            </div>
+          )}
+        </motion.div>
+
+        {/* Bar Chart – Document Types */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
+          className="admin-chart-card dashboard-chart-card"
+        >
+          <div className="dashboard-chart-title">
+            {documentTypesTitle}
+          </div>
+          <div className="dashboard-chart-subtitle">NDA vs Agreement requests submitted</div>
+          <div className="dashboard-chart-canvas">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={typeData} barSize={40}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip cursor={{ fill: "var(--primary-light)" }} />
+              <Bar dataKey="count" name="Requests" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ── MIDDLE: Recent Requests ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
         className="dashboard-card dashboard-section-gap"
@@ -387,76 +473,6 @@ export default function AdminDashboard() {
         </table>
         </div>
       </motion.div>
-
-      {/* ── MIDDLE: Analytics Charts ── */}
-      <div className="responsive-grid-2 dashboard-section-gap">
-        {/* Donut Chart – Status Distribution */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          className="admin-chart-card dashboard-chart-card"
-        >
-          <div className="dashboard-chart-title">
-            Request Status Distribution
-          </div>
-          <div className="dashboard-chart-subtitle">Current active requests by status</div>
-          {statusData.length > 0 ? (
-            <div className="dashboard-chart-canvas">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 8, right: 12, bottom: isCompact ? 32 : 8, left: 12 }}>
-                <Pie
-                  data={statusData}
-                  cx={isCompact ? "50%" : "36%"}
-                  cy={isCompact ? "45%" : "50%"}
-                  innerRadius={isCompact ? 45 : 55}
-                  outerRadius={isCompact ? 68 : 85}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [value, name]} />
-                <Legend
-                  iconType="circle"
-                  iconSize={8}
-                  layout={isCompact ? "horizontal" : "vertical"}
-                  align={isCompact ? "center" : "right"}
-                  verticalAlign={isCompact ? "bottom" : "middle"}
-                  wrapperStyle={{ fontSize: 12, paddingLeft: isCompact ? 0 : 24 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="dashboard-chart-canvas dashboard-chart-empty">
-              No data available
-            </div>
-          )}
-        </motion.div>
-
-        {/* Bar Chart – Document Types This Month */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
-          className="admin-chart-card dashboard-chart-card"
-        >
-          <div className="dashboard-chart-title">
-            Document Types — This Month
-          </div>
-          <div className="dashboard-chart-subtitle">NDA vs Agreement requests submitted</div>
-          <div className="dashboard-chart-canvas">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={typeData} barSize={40}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip cursor={{ fill: "var(--primary-light)" }} />
-              <Bar dataKey="count" name="Requests" fill="var(--primary)" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-          </div>
-        </motion.div>
-      </div>
 
       {/* Monthly Trend Line Chart */}
       <motion.div

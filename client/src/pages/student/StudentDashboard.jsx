@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { RefreshCw } from "lucide-react";
+import { FileText, RefreshCw } from "lucide-react";
 import { getMyRequests } from "../../services/requestService";
+import { notify } from "../../utils/inPageFeedback";
 
 const STATUS_LABEL = {
   nda_submitted:              "Submitted",
@@ -75,7 +76,7 @@ const StudentDashboard = () => {
       const data = await getMyRequests();
       setRequests(data);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to load requests");
+      notify(err.response?.data?.message || "Failed to load requests", { type: "error" });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -160,7 +161,7 @@ const StudentDashboard = () => {
               <tr>
                 <td colSpan={4}>
                   <div className="dashboard-empty">
-                    <span className="dashboard-empty-icon">📄</span>
+                    <span className="dashboard-empty-icon" aria-hidden="true"><FileText size={34} strokeWidth={1.6} /></span>
                     <p className="dashboard-empty-title">{requests.length === 0 ? "No requests yet" : "No requests found"}</p>
                     <p className="dashboard-empty-text">
                       {requests.length === 0

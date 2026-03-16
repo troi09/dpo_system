@@ -15,6 +15,7 @@ import {
 } from "../services/authService";
 import PasswordChecklist from "../components/PasswordChecklist";
 import { isStrongPassword, PASSWORD_POLICY_MESSAGE } from "../utils/passwordPolicy";
+import { notify } from "../utils/inPageFeedback";
 import "../components/Landing.css";
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth`;
@@ -97,7 +98,7 @@ function ForgotPasswordFlow({ onCancel }) {
     setLoading(true);
     try {
       await resetPassword(email.trim(), resetToken, newPassword);
-      alert("Password reset successfully! Please log in with your new password.");
+      notify("Password reset successfully! Please log in with your new password.", { type: "success" });
       onCancel();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reset password.");
@@ -182,6 +183,7 @@ const Landing = () => {
 
   // Parallax state
   const bgRef = useRef(null);
+  const passwordHintAnchorRef = useRef(null);
   const handleMouseMove = useCallback((e) => {
     if (!bgRef.current) return;
     const { clientX, clientY } = e;
@@ -510,7 +512,7 @@ const Landing = () => {
                   />
                 </div>
 
-                <div className="landing-field-group password-hint-anchor">
+                <div ref={passwordHintAnchorRef} className="landing-field-group password-hint-anchor">
                   <label className="landing-label" htmlFor="landing-password">Password</label>
                   <div className="landing-password-wrap">
                     <input
@@ -533,7 +535,7 @@ const Landing = () => {
                     </button>
                   </div>
                   {!isLogin && form.password && !isStrongPassword(form.password) ? (
-                    <PasswordChecklist password={form.password} popup side="left" />
+                    <PasswordChecklist password={form.password} popup side="left" anchorRef={passwordHintAnchorRef} />
                   ) : null}
                 </div>
 

@@ -4,6 +4,7 @@ import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { createRequest } from "../../services/requestService";
 import { uploadRequirements, uploadSignatureImage, getDateRequestFolder } from "../../services/firebaseStorageService";
 import SignaturePad from "../../components/SignaturePad";
+import { notify } from "../../utils/inPageFeedback";
 import "../../components/RequestForm.css";
 
 export default function StudentNDARequest({ ndaType, proxyMode = false, fallbackPath = "/student" }) {
@@ -34,7 +35,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
 
     for (const f of cfg.fields) {
       if (f.required && !String(formData[f.name] || "").trim()) {
-        alert(`${f.label} is required`);
+        notify(`${f.label} is required`, { type: "warning" });
         return;
       }
     }
@@ -42,7 +43,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
     if (proxyMode) {
       const hasName = String(proxyRequestee.firstName || "").trim() && String(proxyRequestee.lastName || "").trim();
       if (!hasName) {
-        alert("Requestee First Name and Last Name are required");
+        notify("Requestee First Name and Last Name are required", { type: "warning" });
         return;
       }
       const requiredNonNameFields = [
@@ -52,7 +53,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
       ];
       for (const [key, label] of requiredNonNameFields) {
         if (!String(proxyRequestee[key] || "").trim()) {
-          alert(`${label} is required`);
+          notify(`${label} is required`, { type: "warning" });
           return;
         }
       }
@@ -60,20 +61,20 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
 
     for (let i = 0; i < cfg.fileSlots.length; i++) {
       if (cfg.fileSlots[i].required && !files[i]) {
-        alert(`${cfg.fileSlots[i].label} is required`);
+        notify(`${cfg.fileSlots[i].label} is required`, { type: "warning" });
         return;
       }
     }
 
     const selectedFiles = files.filter(Boolean);
     if (selectedFiles.length === 0) {
-      alert("Please upload at least 1 file.");
+      notify("Please upload at least 1 file.", { type: "warning" });
       return;
     }
 
     if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
       if (!proxyMode) {
-        alert("Please draw your e-signature before submitting.");
+        notify("Please draw your e-signature before submitting.", { type: "warning" });
         return;
       }
     }
@@ -126,10 +127,10 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
         ...(proxyMode ? { proxyRequestee: { ...proxyRequestee, fullName: proxyFullName } } : {}),
       });
 
-      alert(proxyMode ? "Proxy NDA request submitted." : "Request submitted!");
+      notify(proxyMode ? "Proxy NDA request submitted." : "Request submitted!", { type: "success" });
       navigate(fallbackPath);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to submit request");
+      notify(err.response?.data?.message || "Failed to submit request", { type: "error" });
     } finally {
       setSubmitting(false);
     }

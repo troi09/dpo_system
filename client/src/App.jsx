@@ -6,6 +6,7 @@ import { AuthContext } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Headbar from "./components/Headbar";
 import SessionWarningModal from "./components/SessionWarningModal";
+import InPageFeedbackHost from "./components/InPageFeedbackHost";
 import RequireRole from "./guards/RequireRole";
 
 import Landing from "./pages/Landing";
@@ -103,9 +104,10 @@ function App() {
   const { user } = useContext(AuthContext);
 
   return (
-    <Router>
-      <Suspense fallback={<GlobalLoader />}>
-        <Routes>
+    <>
+      <Router>
+        <Suspense fallback={<GlobalLoader />}>
+          <Routes>
           {/* Public routes (no auth, no layout) */}
           <Route path="/verify/:code" element={<VerifyDocument />} />
           <Route path="/sign/:token" element={<RepSigningPage />} />
@@ -304,9 +306,11 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
-        </Routes>
-      </Suspense>
-    </Router>
+          </Routes>
+        </Suspense>
+      </Router>
+      <InPageFeedbackHost />
+    </>
   );
 }
 

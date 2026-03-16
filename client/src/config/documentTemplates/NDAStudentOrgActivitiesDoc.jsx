@@ -1,6 +1,6 @@
 import React from "react";
 import { Document, Page, View, Image, Text, StyleSheet } from "@react-pdf/renderer";
-import { formatDate } from "./styles";
+import { formatDate, getTemplateAssetUrl } from "./styles";
 
 const styles = StyleSheet.create({
   page: {
@@ -87,6 +87,8 @@ export default function NDAStudentOrgActivitiesDoc({ request }) {
   const toUpper = (value) => (value ? String(value).toUpperCase() : "");
   const studentNameUpper = toUpper(proxy.isProxy ? (proxy.fullName || "") : (student.name || ""));
   const hasAnySig = studentSigDataUrl || adminSigDataUrl;
+  const rtuLogoSrc = getTemplateAssetUrl("rtu-logo.png");
+  const dpoLogoSrc = getTemplateAssetUrl("dpo-logo-full.png");
 
   return (
     <Document>
@@ -103,14 +105,14 @@ export default function NDAStudentOrgActivitiesDoc({ request }) {
         </View>
 
         <View style={styles.logoRow}>
-          <Image style={styles.logo} src="/rtu-logo.webp" />
+          <Image style={styles.logo} src={rtuLogoSrc} />
           <View style={styles.centerTextWrap}>
             <Text style={styles.centerLine}>Rizal Technological University</Text>
             <Text style={styles.centerLine}>Boni Avenue, City of Mandaluyong</Text>
             <Text style={styles.centerOffice}>UNIVERSITY DATA PROTECTION CENTER</Text>
             <Text style={styles.centerAgreement}>NON-DISCLOSURE AGREEMENT</Text>
           </View>
-          <Image style={styles.logoDpo} src="/dpo-logo-full.webp" />
+          <Image style={styles.logoDpo} src={dpoLogoSrc} />
         </View>
 
         <Text style={styles.paragraph}>

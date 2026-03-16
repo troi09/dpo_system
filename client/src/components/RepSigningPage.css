@@ -184,6 +184,19 @@
   box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
 }
 
+.rep-signing-name-grid {
+  display: grid;
+  grid-template-columns: 1fr 0.34fr 1fr;
+  gap: 8px;
+}
+
+.rep-signing-name-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
 /* File upload row */
 .rep-signing-file-row {
   display: flex;
@@ -338,4 +351,10 @@
 .rep-signing-btn-decline:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .rep-signing-name-grid {
+    grid-template-columns: 1fr;
+  }
 }

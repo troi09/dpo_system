@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { RefreshCw } from "lucide-react";
+import { AlertTriangle, Paperclip, RefreshCw } from "lucide-react";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById } from "../../services/requestService";
+import { notify } from "../../utils/inPageFeedback";
 
 const prettyStatus = (s) => {
   const map = {
@@ -52,7 +53,7 @@ export default function StudentRequestReview() {
 
         setReqData(r);
       } catch (err) {
-        alert(err.response?.data?.message || "Failed to load request");
+        notify(err.response?.data?.message || "Failed to load request", { type: "error" });
         navigate("/student");
       } finally {
         if (withToast) setRefreshing(false);
@@ -160,7 +161,7 @@ export default function StudentRequestReview() {
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {reqData.predocs.map((f, idx) => (
                 <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
-                  📎 {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                  <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
                 </a>
               ))}
             </div>
@@ -198,7 +199,7 @@ export default function StudentRequestReview() {
               {reqData.signingTokenExpiresAt && (
                 <div style={{ marginTop: 6, fontSize: 12, color: new Date(reqData.signingTokenExpiresAt) < new Date() ? "#dc2626" : "var(--text-muted)" }}>
                   {new Date(reqData.signingTokenExpiresAt) < new Date()
-                    ? "⚠ This link has expired."
+                    ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} strokeWidth={1.8} />This link has expired.</span>
                     : `Expires: ${new Date(reqData.signingTokenExpiresAt).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}`}
                 </div>
               )}
@@ -237,7 +238,7 @@ export default function StudentRequestReview() {
             <h4 className="review-section-title">Approved Document</h4>
             {reqData.postdocs?.url ? (
               <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-file-link">
-                📎 Approved Document
+                <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> Approved Document
               </a>
             ) : (
               <div className="review-info-box">

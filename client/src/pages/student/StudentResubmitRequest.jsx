@@ -8,6 +8,7 @@ import {
   getDateRequestFolder,
 } from "../../services/firebaseStorageService";
 import SignaturePad from "../../components/SignaturePad";
+import { notify } from "../../utils/inPageFeedback";
 import "../../components/RequestForm.css";
 
 const getInitialFolderFromPath = (path = "") => {
@@ -32,7 +33,7 @@ export default function StudentResubmitRequest() {
         setReqData(r);
         setFormData(r.formData || {});
       } catch (err) {
-        alert(err.response?.data?.message || "Failed to load request");
+        notify(err.response?.data?.message || "Failed to load request", { type: "error" });
         navigate("/student");
       }
     };
@@ -59,40 +60,40 @@ export default function StudentResubmitRequest() {
     if (!reqData || !cfg) return;
 
     if (!["nda_revision_requested", "revision_requested"].includes(reqData.status)) {
-      alert("Only revision requested requests can be resubmitted.");
+      notify("Only revision requested requests can be resubmitted.", { type: "warning" });
       return;
     }
 
     for (const f of cfg.fields) {
       if (f.required && !String(formData[f.name] || "").trim()) {
-        alert(`${f.label} is required`);
+        notify(`${f.label} is required`, { type: "warning" });
         return;
       }
     }
 
     for (let i = 0; i < cfg.fileSlots.length; i++) {
       if (cfg.fileSlots[i].required && !files[i]) {
-        alert(`${cfg.fileSlots[i].label} is required`);
+        notify(`${cfg.fileSlots[i].label} is required`, { type: "warning" });
         return;
       }
     }
 
     const selectedFiles = files.filter(Boolean);
     if (selectedFiles.length === 0) {
-      alert("Please upload at least 1 file.");
+      notify("Please upload at least 1 file.", { type: "warning" });
       return;
     }
 
     if (reqData.type === "agreement") {
       if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
-        alert("Please draw your e-signature before resubmitting.");
+        notify("Please draw your e-signature before resubmitting.", { type: "warning" });
         return;
       }
     }
 
     if (reqData.type === "nda") {
       if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
-        alert("Please draw your e-signature before resubmitting.");
+        notify("Please draw your e-signature before resubmitting.", { type: "warning" });
         return;
       }
     }
@@ -100,7 +101,7 @@ export default function StudentResubmitRequest() {
     const basePath = reqData.predocs?.[0]?.path || "";
     const initialFolder = getInitialFolderFromPath(basePath);
     if (!initialFolder) {
-      alert("Missing original request folder. (No existing file path found)");
+      notify("Missing original request folder. (No existing file path found)", { type: "error" });
       return;
     }
 
@@ -152,10 +153,10 @@ export default function StudentResubmitRequest() {
 
       await resubmitRequest(id, payload);
 
-      alert("Resubmitted successfully!");
+      notify("Resubmitted successfully!", { type: "success" });
       navigate("/student");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to resubmit. Please try again.");
+      notify(err.response?.data?.message || "Failed to resubmit. Please try again.", { type: "error" });
     } finally {
       setSubmitting(false);
     }

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { getBySigningToken, repSubmit, repReject } from "../../services/requestService";
 import { uploadSignatureImage, uploadRepGovId, deleteStorageFile } from "../../services/firebaseStorageService";
 import SignaturePad from "../../components/SignaturePad";
+import { confirmInPage, notify } from "../../utils/inPageFeedback";
 import "../../components/RepSigningPage.css";
 
 export default function RepSigningPage() {
@@ -13,7 +14,9 @@ export default function RepSigningPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(""); // success message
 
-  const [repName, setRepName] = useState("");
+  const [repFirstName, setRepFirstName] = useState("");
+  const [repMiddleInitial, setRepMiddleInitial] = useState("");
+  const [repLastName, setRepLastName] = useState("");
   const [govIdFile, setGovIdFile] = useState(null);
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -33,6 +36,23 @@ export default function RepSigningPage() {
       }
     })();
   }, [token]);
+
+  const sanitizeNamePart = (value) => String(value || "").replace(/[^A-Za-z\s'.-]/g, "");
+
+  // Keep this hook before any conditional return to preserve hook order.
+  useEffect(() => {
+    if (!reqData) return;
+    const fd = reqData.formData || {};
+    const first = fd.repFirstName || "";
+    const middle = fd.repMiddleInitial || "";
+    const last = fd.repLastName || "";
+
+    if (first || middle || last) {
+      setRepFirstName(sanitizeNamePart(first));
+      setRepMiddleInitial(sanitizeNamePart(middle).replace(/\s+/g, "").slice(0, 1).toUpperCase());
+      setRepLastName(sanitizeNamePart(last));
+    }
+  }, [reqData]);
 
   if (loading) return (
     <div className="rep-signing-outer">
@@ -92,15 +112,37 @@ export default function RepSigningPage() {
   const isRevision = reqData.status === "agreement_rep_revision_requested" || reqData.status === "agr_rep_revision_requested";
   const student = reqData.userId || {};
   const fd = reqData.formData || {};
+  const requestedRepName = [fd.repFirstName, fd.repMiddleInitial, fd.repLastName]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim() || fd.repName || "—";
+  const normalizedMiddleInitial = sanitizeNamePart(repMiddleInitial).replace(/\./g, "").trim();
+  const representativeFullName = [
+    sanitizeNamePart(repFirstName).trim(),
+    normalizedMiddleInitial ? `${normalizedMiddleInitial[0].toUpperCase()}.` : "",
+    sanitizeNamePart(repLastName).trim(),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   const handleReject = async () => {
-    if (!window.confirm("Are you sure you want to decline this signing request? This action is final.")) return;
+    const confirmed = await confirmInPage({
+      title: "Decline Signing Request",
+      message: "Are you sure you want to decline this signing request? This action is final.",
+      confirmText: "Yes, Decline",
+      cancelText: "Keep Request",
+      tone: "warning",
+    });
+    if (!confirmed) return;
     setSubmitting(true);
     try {
       await repReject(token);
       setDone("You have declined the signing request. The requestor has been notified.");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to reject. Please try again.");
+      notify(err.response?.data?.message || "Failed to reject. Please try again.", { type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -109,10 +151,11 @@ export default function RepSigningPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!repName.trim()) { alert("Please enter your full name."); return; }
-    if (!govIdFile) { alert("Please upload your government-issued ID."); return; }
-    if (!sigPadRef.current || sigPadRef.current.isEmpty()) { alert("Please draw your signature."); return; }
-    if (!accepted) { alert("You must check 'I accept' to proceed."); return; }
+    if (!sanitizeNamePart(repFirstName).trim()) { notify("Please enter your first name.", { type: "warning" }); return; }
+    if (!sanitizeNamePart(repLastName).trim()) { notify("Please enter your last name.", { type: "warning" }); return; }
+    if (!govIdFile) { notify("Please upload your government-issued ID.", { type: "warning" }); return; }
+    if (!sigPadRef.current || sigPadRef.current.isEmpty()) { notify("Please draw your signature.", { type: "warning" }); return; }
+    if (!accepted) { notify("You must check 'I accept' to proceed.", { type: "warning" }); return; }
 
     setSubmitting(true);
     try {
@@ -137,7 +180,7 @@ export default function RepSigningPage() {
       );
 
       await repSubmit(token, {
-        repName: repName.trim(),
+        repName: representativeFullName,
         repGovIdDoc: govIdDoc,
         repSigUrl,
         repSigPath,
@@ -145,7 +188,7 @@ export default function RepSigningPage() {
 
       setDone("Your submission has been received. Thank you for signing the agreement.");
     } catch (err) {
-      alert(err.response?.data?.message || "Submission failed. Please try again.");
+      notify(err.response?.data?.message || "Submission failed. Please try again.", { type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -174,7 +217,7 @@ export default function RepSigningPage() {
             <strong>Requestor / Authorizer:</strong> {student.name || "—"}
           </div>
           <div className="rep-signing-summary-row">
-            <strong>Representative Named:</strong> {fd.repName || "—"}
+            <strong>Representative Named:</strong> {requestedRepName}
           </div>
           {fd.repEmail && (
             <div className="rep-signing-summary-row">
@@ -201,13 +244,31 @@ export default function RepSigningPage() {
           <h3 className="rep-signing-section-title">Your Information</h3>
 
           <div className="rep-signing-field">
-            <label className="rep-signing-label">Full Name *</label>
-            <input
-              className="rep-signing-input"
-              value={repName}
-              onChange={(e) => setRepName(e.target.value)}
-              placeholder="Enter your full legal name"
-            />
+            <label className="rep-signing-label">Representative Name *</label>
+            <div className="rep-signing-name-grid">
+              <input
+                className="rep-signing-input"
+                value={repFirstName}
+                onChange={(e) => setRepFirstName(sanitizeNamePart(e.target.value))}
+                placeholder="First Name"
+                required
+              />
+              <input
+                className="rep-signing-input"
+                value={repMiddleInitial}
+                onChange={(e) => setRepMiddleInitial(sanitizeNamePart(e.target.value).replace(/\s+/g, "").slice(0, 1).toUpperCase())}
+                placeholder="M.I."
+                maxLength={1}
+              />
+              <input
+                className="rep-signing-input"
+                value={repLastName}
+                onChange={(e) => setRepLastName(sanitizeNamePart(e.target.value))}
+                placeholder="Last Name"
+                required
+              />
+            </div>
+            <p className="rep-signing-name-note">Please ensure the name entered matches the name shown on your government-issued ID.</p>
           </div>
 
           <div className="rep-signing-field">

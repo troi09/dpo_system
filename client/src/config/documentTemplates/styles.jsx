@@ -36,6 +36,23 @@ export const s = StyleSheet.create({
 
 export const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "N/A");
 
+export const getTemplateAssetUrl = (assetFileName) => {
+  const clean = String(assetFileName || "").replace(/^\/+/, "");
+  if (!clean) return "";
+
+  const basePath = typeof import.meta !== "undefined" && import.meta.env?.BASE_URL
+    ? import.meta.env.BASE_URL
+    : "/";
+  const normalizedBase = `${basePath}`.endsWith("/") ? `${basePath}` : `${basePath}/`;
+  const relative = `${normalizedBase}${clean}`;
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return new URL(relative, window.location.origin).toString();
+  }
+
+  return `/${clean}`;
+};
+
 export const Header = ({ title, subtitle }) => (
   <View>
     <Text style={s.headerTitle}>{title}</Text>

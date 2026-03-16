@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TimerReset } from "lucide-react";
 
 export default function SessionWarningModal({ onExtend }) {
   const [secondsLeft, setSecondsLeft] = useState(120);
@@ -30,7 +31,9 @@ export default function SessionWarningModal({ onExtend }) {
         maxWidth: 400, width: "90%", textAlign: "center",
         boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
       }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>
+        <div style={{ marginBottom: 12, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <TimerReset size={36} color="#1d4ed8" strokeWidth={1.8} aria-hidden="true" />
+        </div>
         <h2 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
           Session Expiring
         </h2>

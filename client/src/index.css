@@ -3,21 +3,22 @@
 ───────────────────────────────────────────── */
 :root {
   /* Brand */
-  --primary: #0f2d6b;
-  --primary-hover: #1a3d84;
-  --primary-light: #e8edf8;
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
+  --primary-light: #dbeafe;
+  --heading: #1e3a8a;
 
   /* Surfaces */
-  --bg: #f1f5f9;
+  --bg: #eff6ff;
   --surface: #ffffff;
-  --surface-2: #f8fafc;
+  --surface-2: #f8fbff;
 
   /* Borders */
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --border: #dbe7fb;
+  --border-strong: #bfd3f8;
 
   /* Text */
-  --text-primary: #0f172a;
+  --text-primary: #102244;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
 
@@ -101,6 +102,7 @@ h1, h2, h3, .landing-brand-title, .landing-brand-subtitle, .landing-title, .type
   font-family: 'Montserrat', 'Inter', system-ui, -apple-system, sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--heading);
 }
 
 h1 { font-size: clamp(1.8rem, 2.4vw, 2.2rem); }
@@ -198,6 +200,37 @@ select {
   font-family: inherit;
   font-size: 13px;
   padding: 9px 12px;
+}
+
+input[type="date"] {
+  min-height: 36px;
+  padding-right: 34px;
+  color-scheme: light;
+  background-image: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.9;
+  padding: 4px;
+  border-radius: 8px;
+  background-color: var(--primary-light);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background-color: #bfdbfe;
+  transform: scale(1.06);
+}
+
+input[type="date"]::-webkit-clear-button,
+input[type="date"]::-webkit-inner-spin-button {
+  display: none;
 }
 
 .ui-input:focus,
@@ -901,7 +934,7 @@ a,
   margin: 0;
   font-size: 18px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--heading);
 }
 
 .dashboard-section-gap {
@@ -926,7 +959,7 @@ a,
 .dashboard-chart-title {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--heading);
   margin-bottom: 4px;
 }
 
@@ -1986,6 +2019,10 @@ a,
   padding: 80px 24px;
   gap: 12px;
   text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .placeholder-icon {
@@ -2083,3 +2120,228 @@ button, a, input, select, textarea {
 }
 
 /* Review page max width for readability */
+
+/* Immersive feedback layer (replaces native browser popups) */
+.inpage-feedback-stack {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(420px, calc(100vw - 24px));
+  pointer-events: none;
+}
+
+.inpage-toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px 12px 12px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  box-shadow: 0 14px 34px rgba(15, 45, 107, 0.16);
+}
+
+.inpage-toast-icon-wrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+}
+
+.inpage-toast-content {
+  min-width: 0;
+}
+
+.inpage-toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--heading);
+  line-height: 1.25;
+}
+
+.inpage-toast-message {
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.38;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.inpage-toast-close {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.inpage-toast-close:hover {
+  color: var(--text-secondary);
+}
+
+.inpage-toast--success {
+  border-color: #bfdbfe;
+}
+
+.inpage-toast--success .inpage-toast-icon-wrap {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.inpage-toast--error {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+}
+
+.inpage-toast--error .inpage-toast-icon-wrap {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.inpage-toast--error .inpage-toast-title {
+  color: #991b1b;
+}
+
+.inpage-toast--error .inpage-toast-message {
+  color: #7f1d1d;
+}
+
+.inpage-toast--warning {
+  border-color: #fde68a;
+}
+
+.inpage-toast--warning .inpage-toast-icon-wrap {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.inpage-toast--info {
+  border-color: #c7d2fe;
+}
+
+.inpage-toast--info .inpage-toast-icon-wrap {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.inpage-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.inpage-confirm {
+  width: min(460px, 100%);
+  background: #ffffff;
+  border: 1px solid #c7d2fe;
+  border-radius: 16px;
+  box-shadow: 0 22px 50px rgba(15, 45, 107, 0.24);
+  padding: 20px;
+}
+
+.inpage-confirm-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+
+.inpage-confirm-icon--warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.inpage-confirm-icon--error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.inpage-confirm-icon--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.inpage-confirm-icon--info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.inpage-confirm-title {
+  margin: 0;
+  color: var(--heading);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.inpage-confirm-message {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.inpage-confirm-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.inpage-btn {
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.inpage-btn--ghost {
+  background: #f8fbff;
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.inpage-btn--ghost:hover {
+  background: #eef4ff;
+}
+
+.inpage-btn--primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.inpage-btn--primary:hover {
+  background: var(--primary-hover);
+}
+
+@media (max-width: 600px) {
+  .inpage-feedback-stack {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    width: auto;
+  }
+
+  .inpage-confirm {
+    padding: 16px;
+  }
+}

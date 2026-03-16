@@ -30,8 +30,10 @@ export const FIELDS_FILE_SLOTS_CONFIG = {
   agreement: {
     label: "Agreement",
     fields: [
-      { name: "repName", label: "Name of Representative", required: true },
-      { name: "repEmail", label: "Email of Representative", required: false},
+      { name: "repFirstName", label: "Representative First Name", required: true },
+      { name: "repMiddleInitial", label: "Representative Middle Initial", required: false },
+      { name: "repLastName", label: "Representative Last Name", required: true },
+      { name: "repEmail", label: "Email of Representative", required: false },
     ],
     // Note: Representative's Government Issued Valid ID is now collected directly
     // from the representative on the signing page, not from the student.
