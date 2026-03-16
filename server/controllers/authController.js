@@ -123,14 +123,24 @@ const sendResetOtpToUser = async (user, { enforceCooldown = false } = {}) => {
 // REGISTER
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { firstName, middleInitial, lastName, name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Name, email, and password are required" });
+    // Support both structured names and legacy single-name field
+    const resolvedFirstName = String(firstName || "").trim();
+    const resolvedLastName = String(lastName || "").trim();
+    const resolvedMiddleInitial = String(middleInitial || "").trim();
+
+    // Build composite name: prefer structured fields, fall back to legacy name
+    const compositeName = resolvedFirstName && resolvedLastName
+      ? `${resolvedFirstName}${resolvedMiddleInitial ? " " + resolvedMiddleInitial + "." : ""} ${resolvedLastName}`
+      : String(name || "").trim();
+
+    if (!compositeName || compositeName.length < 2) {
+      return res.status(400).json({ message: "First name and last name are required" });
     }
 
-    if (String(name).trim().length < 2) {
-      return res.status(400).json({ message: "Name must be at least 2 characters" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
     }
 
     if (!isStrongPassword(password)) {
@@ -147,7 +157,10 @@ exports.register = async (req, res) => {
     const hashedOtp = await bcrypt.hash(otp, 10);
 
     const user = await User.create({
-      name: String(name).trim(),
+      name: compositeName,
+      firstName: resolvedFirstName,
+      middleInitial: resolvedMiddleInitial,
+      lastName: resolvedLastName,
       email: email.toLowerCase(),
       password: hashedPassword,
       isVerified: false,
@@ -481,14 +494,24 @@ exports.refreshToken = async (req, res) => {
 // UPDATE PROFILE (name & password)
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, currentPassword, newPassword } = req.body;
+    const { firstName, middleInitial, lastName, name, currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     let updated = false;
 
-    // Update name
-    if (name && String(name).trim().length >= 2) {
+    // Update name - support both structured and legacy fields
+    const resolvedFirstName = String(firstName || "").trim();
+    const resolvedLastName = String(lastName || "").trim();
+    const resolvedMiddleInitial = String(middleInitial || "").trim();
+
+    if (resolvedFirstName && resolvedLastName) {
+      user.firstName = resolvedFirstName;
+      user.middleInitial = resolvedMiddleInitial;
+      user.lastName = resolvedLastName;
+      user.name = `${resolvedFirstName}${resolvedMiddleInitial ? " " + resolvedMiddleInitial + "." : ""} ${resolvedLastName}`;
+      updated = true;
+    } else if (name && String(name).trim().length >= 2) {
       user.name = String(name).trim();
       updated = true;
     }

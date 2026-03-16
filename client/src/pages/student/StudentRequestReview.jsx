@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById } from "../../services/requestService";
@@ -36,25 +37,31 @@ export default function StudentRequestReview() {
   const navigate = useNavigate();
 
   const [reqData, setReqData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const r = await getRequestById(id);
+  const load = async ({ withToast = false } = {}) => {
+    if (withToast) setRefreshing(true);
+    try {
+      const r = await getRequestById(id);
 
-        // Redirect to resubmit page if revision is requested from student
-        if (r.status === "nda_revision_requested" || r.status === "revision_requested") {
-          navigate(`/student/resubmit/${id}`, { replace: true });
-          return;
-        }
+      // Redirect to resubmit page if revision is requested from student
+      if (r.status === "nda_revision_requested" || r.status === "revision_requested") {
+        navigate(`/student/resubmit/${id}`, { replace: true });
+        return;
+      }
 
         setReqData(r);
       } catch (err) {
         alert(err.response?.data?.message || "Failed to load request");
         navigate("/student");
+      } finally {
+        if (withToast) setRefreshing(false);
       }
     };
+
+  useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
   const cfg = useMemo(() => {
@@ -90,13 +97,24 @@ export default function StudentRequestReview() {
 
         <div className="review-header">
           <h2 className="review-title">{title}</h2>
-          <div className="review-meta">
-            <span className="review-meta-row">
-              <b>Status:</b> {prettyStatus(reqData.status)}
-            </span>
-            <span className="review-meta-row">
-              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-            </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div className="review-meta">
+              <span className="review-meta-row">
+                <b>Status:</b> {prettyStatus(reqData.status)}
+              </span>
+              <span className="review-meta-row">
+                <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="ui-btn ui-btn--secondary ui-btn--icon"
+              onClick={() => load({ withToast: true })}
+              disabled={refreshing}
+              title="Refresh request data"
+            >
+              <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+            </button>
           </div>
         </div>
 
@@ -158,9 +176,33 @@ export default function StudentRequestReview() {
           <div className="info-banner info-banner--info">
             <strong>Awaiting Representative</strong>
             <p>
-              The admin has approved your request and a signing link has been sent to the
-              representative.
+              The admin has approved your request and a signing link has been generated for
+              the representative.
             </p>
+          </div>
+        )}
+
+        {/* Signing link visibility (always shown once generated) */}
+        {isAgreement && reqData.signingToken && (
+          <div className="review-section">
+            <h4 className="review-section-title">Representative Signing Link</h4>
+            <div className="review-info-box" style={{ wordBreak: "break-all", fontSize: 13 }}>
+              <a
+                href={`${window.location.origin}/sign/${reqData.signingToken}`}
+                target="_blank"
+                rel="noreferrer"
+                className="review-file-link"
+              >
+                {window.location.origin}/sign/{reqData.signingToken}
+              </a>
+              {reqData.signingTokenExpiresAt && (
+                <div style={{ marginTop: 6, fontSize: 12, color: new Date(reqData.signingTokenExpiresAt) < new Date() ? "#dc2626" : "var(--text-muted)" }}>
+                  {new Date(reqData.signingTokenExpiresAt) < new Date()
+                    ? "⚠ This link has expired."
+                    : `Expires: ${new Date(reqData.signingTokenExpiresAt).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}`}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

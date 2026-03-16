@@ -80,9 +80,11 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   const isApproved = reqData?.status === "nda_approved";
 
 
+  const isProxy = reqData?.proxyRequestee?.isProxy;
+
   const handleUpdate = async (status) => {
     if (status === "nda_approved") {
-      if (!adminSigRef.current || adminSigRef.current.isEmpty()) {
+      if (!isProxy && (!adminSigRef.current || adminSigRef.current.isEmpty())) {
         alert("Please draw your e-signature before approving.");
         return;
       }
@@ -96,63 +98,100 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
     setActiveAction(status === "nda_approved" ? "approve" : "revision");
     try {
       if (status === "nda_approved") {
-        const adminSigDataUrl = adminSigRef.current.getDataUrl();
+        // For F2F proxy requests, skip digital signatures (wet signature will be applied on print)
+        if (isProxy) {
+          const updateRes = await updateRequestStatus(reqData._id, {
+            status,
+            remarks,
+          });
+          const updated = updateRes.request;
+          if (!updated?.serialNo) throw new Error("Serial number missing");
+          const verificationUrl = buildVerificationUrl(updated.serialNo);
+          const qrDataUrl = await generateQrDataUrl(verificationUrl);
+          const studentName = reqData.proxyRequestee?.fullName || "Proxy Requestee";
+          const requestFolder = getRequestFolder(reqData.predocs);
+          if (!requestFolder) throw new Error("Could not determine request folder");
+          await uploadApprovedQrImage(qrDataUrl, reqData.type, studentName, requestFolder);
+          const docReq = {
+            ...updated,
+            userId: reqData.userId,
+            studentSigDataUrl: null,
+            adminSigDataUrl: null,
+            approverName: user?.name || "",
+            verificationUrl,
+            qrDataUrl,
+          };
+          const { generateApprovedPDF } = await import("../../config/documentTemplates");
+          const pdfBlob = await generateApprovedPDF(docReq);
+          const t = reqData.formData?.ndaType || "general";
+          const uploaded = await uploadApprovedForm(
+            pdfBlob,
+            reqData.type,
+            studentName,
+            requestFolder,
+            `NDA_${t}_Approved.pdf`
+          );
+          await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
+          alert("Approved! The document is ready for printing and physical signature.");
+        } else {
+          const adminSigDataUrl = adminSigRef.current.getDataUrl();
 
-        // Upload admin signature to Firebase
-        const studentName = reqData.userId?.name || "Unknown Student";
-        const requestFolder = getRequestFolder(reqData.predocs);
+          // Upload admin signature to Firebase
+          const studentName = reqData.userId?.name || "Unknown Student";
+          const requestFolder = getRequestFolder(reqData.predocs);
 
-        const { url: adminSigFirebaseUrl, path: adminSigFirebasePath } = await uploadSignatureImage(
-          adminSigDataUrl,
-          "nda",
-          studentName,
-          requestFolder || "unknown",
-          "admin_sig.png"
-        );
+          const { url: adminSigFirebaseUrl, path: adminSigFirebasePath } = await uploadSignatureImage(
+            adminSigDataUrl,
+            "nda",
+            studentName,
+            requestFolder || "unknown",
+            "admin_sig.png"
+          );
 
-        const updateRes = await updateRequestStatus(reqData._id, {
-          status,
-          remarks,
-          adminSigUrl: adminSigFirebaseUrl,
-          adminSigPath: adminSigFirebasePath,
-        });
-        const updated = updateRes.request;
+          const updateRes = await updateRequestStatus(reqData._id, {
+            status,
+            remarks,
+            adminSigUrl: adminSigFirebaseUrl,
+            adminSigPath: adminSigFirebasePath,
+          });
+          const updated = updateRes.request;
 
-        if (!updated?.serialNo) throw new Error("Serial number missing");
+          if (!updated?.serialNo) throw new Error("Serial number missing");
 
-        const verificationUrl = buildVerificationUrl(updated.serialNo);
-        const qrDataUrl = await generateQrDataUrl(verificationUrl);
+          const verificationUrl = buildVerificationUrl(updated.serialNo);
+          const qrDataUrl = await generateQrDataUrl(verificationUrl);
 
-        if (!requestFolder) throw new Error("Could not determine request folder");
+          if (!requestFolder) throw new Error("Could not determine request folder");
 
-        await uploadApprovedQrImage(qrDataUrl, reqData.type, studentName, requestFolder);
+          await uploadApprovedQrImage(qrDataUrl, reqData.type, studentName, requestFolder);
 
-        // Fetch signature images via proxy to avoid CORS
-        const sigImages = await getSignatureImages(reqData._id);
+          // Fetch signature images via proxy to avoid CORS
+          const sigImages = await getSignatureImages(reqData._id);
 
-        const docReq = {
-          ...updated,
-          userId: reqData.userId,
-          studentSigDataUrl: sigImages.studentSig,
-          adminSigDataUrl: sigImages.adminSig || adminSigDataUrl,
-          approverName: user?.name || "",
-          verificationUrl,
-          qrDataUrl,
-        };
-        const { generateApprovedPDF } = await import("../../config/documentTemplates");
-        const pdfBlob = await generateApprovedPDF(docReq);
-        const t = reqData.formData?.ndaType || "general";
-        const uploaded = await uploadApprovedForm(
-          pdfBlob,
-          reqData.type,
-          studentName,
-          requestFolder,
-          `NDA_${t}_Approved.pdf`
-        );
+          const docReq = {
+            ...updated,
+            userId: reqData.userId,
+            studentSigDataUrl: sigImages.studentSig,
+            adminSigDataUrl: sigImages.adminSig || adminSigDataUrl,
+            approverName: user?.name || "",
+            verificationUrl,
+            qrDataUrl,
+          };
+          const { generateApprovedPDF } = await import("../../config/documentTemplates");
+          const pdfBlob = await generateApprovedPDF(docReq);
+          const t = reqData.formData?.ndaType || "general";
+          const uploaded = await uploadApprovedForm(
+            pdfBlob,
+            reqData.type,
+            studentName,
+            requestFolder,
+            `NDA_${t}_Approved.pdf`
+          );
 
-        await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
+          await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
 
-        alert("Approved and document generated!");
+          alert("Approved and document generated!");
+        }
       } else {
         await updateRequestStatus(reqData._id, { status, remarks });
         alert(`Updated to ${status}`);
@@ -258,7 +297,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         </div>
       )}
 
-      {canProgress && isAdminReviewal && (
+      {canProgress && isAdminReviewal && !isProxy && (
         <div className="review-section">
           <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
           <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
@@ -272,6 +311,13 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           >
             Clear Signature
           </button>
+        </div>
+      )}
+
+      {canProgress && isAdminReviewal && isProxy && (
+        <div className="info-banner info-banner--info">
+          <strong>F2F Walk-in (Proxy)</strong>
+          <p>This is a face-to-face proxy request. Digital signatures are bypassed. The document will be printed for a physical wet signature.</p>
         </div>
       )}
 
@@ -323,13 +369,15 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   const { user } = useContext(AuthContext);
   const [remarks, setRemarks] = useState(reqData.remarks || "");
   const [signingLink, setSigningLink] = useState(() => {
-    // Reconstruct signing link from persisted token if it exists and hasn't been fully used
-    if (reqData.signingToken && !reqData.signingTokenUsed) {
+    // Reconstruct signing link from persisted token (always show once generated)
+    if (reqData.signingToken) {
       return `${window.location.origin}/sign/${reqData.signingToken}`;
     }
     return "";
   });
+  const [signingLinkExpiry, setSigningLinkExpiry] = useState(() => reqData.signingTokenExpiresAt || null);
   const [generating, setGenerating] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [phase1Revising, setPhase1Revising] = useState(false);
   const [approving, setApproving] = useState(false);
   const [phase3Revising, setPhase3Revising] = useState(false);
@@ -344,12 +392,30 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       const res = await generateSigningLink(reqData._id);
       const link = `${window.location.origin}/sign/${res.signingToken}`;
       setSigningLink(link);
+      setSigningLinkExpiry(res.signingTokenExpiresAt || null);
       await onRequestUpdated?.();
       alert("Signing link generated! Copy it and send to the representative manually.");
     } catch (err) {
       alert(err.response?.data?.message || err.message || "Failed to generate signing link");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleRegenerateLink = async () => {
+    if (!window.confirm("Regenerate the signing link? The old link will be invalidated.")) return;
+    setRegenerating(true);
+    try {
+      const res = await generateSigningLink(reqData._id);
+      const link = `${window.location.origin}/sign/${res.signingToken}`;
+      setSigningLink(link);
+      setSigningLinkExpiry(res.signingTokenExpiresAt || null);
+      await onRequestUpdated?.();
+      alert("New signing link generated! Copy it and send to the representative.");
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || "Failed to regenerate signing link");
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -549,12 +615,12 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         </div>
       )}
 
-      {/* Generated signing link */}
+      {/* Generated signing link (always visible once generated) */}
       {signingLink && (
         <div className="signing-link-box">
-          <p className="signing-link-title">Signing Link Generated</p>
+          <p className="signing-link-title">Representative Signing Link</p>
           <p className="signing-link-desc">
-            Copy and send this link to the representative manually:
+            Copy and send this link to the representative:
           </p>
           <div className="signing-link-row">
             <code className="signing-link-code">{signingLink}</code>
@@ -568,6 +634,23 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
               Copy
             </button>
           </div>
+          {signingLinkExpiry && (
+            <div style={{ marginTop: 6, fontSize: 12, color: new Date(signingLinkExpiry) < new Date() ? "#dc2626" : "var(--text-muted)" }}>
+              {new Date(signingLinkExpiry) < new Date()
+                ? "⚠ This link has expired."
+                : `Expires: ${new Date(signingLinkExpiry).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}`}
+            </div>
+          )}
+          {canProgress && (
+            <button
+              onClick={handleRegenerateLink}
+              disabled={regenerating}
+              className="review-btn-secondary"
+              style={{ marginTop: 10 }}
+            >
+              {regenerating ? "Regenerating…" : "🔄 Regenerate Link"}
+            </button>
+          )}
         </div>
       )}
 
@@ -668,7 +751,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
               disabled={approving || phase3Revising}
               className="review-btn-secondary"
             >
-              {phase3Revising ? "Submitting..." : "Request Rep Revision"}
+              {phase3Revising ? "Submitting..." : "Request Representative Revision"}
             </button>
           </div>
         </>

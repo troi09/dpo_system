@@ -12,7 +12,9 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
 
   const [formData, setFormData] = useState(() => ({}));
   const [proxyRequestee, setProxyRequestee] = useState({
-    fullName: "",
+    firstName: "",
+    middleInitial: "",
+    lastName: "",
     email: "",
     idNumber: "",
     departmentOrOrganization: "",
@@ -38,13 +40,17 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
     }
 
     if (proxyMode) {
-      const requiredProxyFields = [
-        ["fullName", "Requestee Full Name"],
+      const hasName = String(proxyRequestee.firstName || "").trim() && String(proxyRequestee.lastName || "").trim();
+      if (!hasName) {
+        alert("Requestee First Name and Last Name are required");
+        return;
+      }
+      const requiredNonNameFields = [
         ["email", "Requestee Email"],
         ["idNumber", "Requestee ID Number"],
         ["departmentOrOrganization", "Requestee Department/Organization"],
       ];
-      for (const [key, label] of requiredProxyFields) {
+      for (const [key, label] of requiredNonNameFields) {
         if (!String(proxyRequestee[key] || "").trim()) {
           alert(`${label} is required`);
           return;
@@ -66,15 +72,21 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
     }
 
     if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
-      alert("Please draw your e-signature before submitting.");
-      return;
+      if (!proxyMode) {
+        alert("Please draw your e-signature before submitting.");
+        return;
+      }
     }
 
     setSubmitting(true);
     try {
       const user = JSON.parse(localStorage.getItem("user") || "null");
+      // Build full name from proxy structured fields
+      const proxyFullName = proxyMode
+        ? `${proxyRequestee.firstName}${proxyRequestee.middleInitial ? " " + proxyRequestee.middleInitial + "." : ""} ${proxyRequestee.lastName}`.trim()
+        : "";
       const requestSubjectName = proxyMode
-        ? proxyRequestee.fullName.trim() || user?.name || "Proxy Requestee"
+        ? proxyFullName || user?.name || "Proxy Requestee"
         : user?.name || "Unknown Student";
       const requestFolder = getDateRequestFolder();
 
@@ -89,15 +101,21 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
         })
         .filter(Boolean);
 
-      // Upload student e-signature
-      const sigDataUrl = sigPadRef.current.getDataUrl();
-      const { url: studentSigUrl, path: studentSigPath } = await uploadSignatureImage(
-        sigDataUrl,
-        "nda",
-        requestSubjectName,
-        requestFolder,
-        "student_sig.png"
-      );
+      // Upload student e-signature (skip for proxy/F2F – wet signature on print)
+      let studentSigUrl = "";
+      let studentSigPath = "";
+      if (!proxyMode && !sigPadRef.current.isEmpty()) {
+        const sigDataUrl = sigPadRef.current.getDataUrl();
+        const sigResult = await uploadSignatureImage(
+          sigDataUrl,
+          "nda",
+          requestSubjectName,
+          requestFolder,
+          "student_sig.png"
+        );
+        studentSigUrl = sigResult.url;
+        studentSigPath = sigResult.path;
+      }
 
       await createRequest({
         type: "nda",
@@ -105,7 +123,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
         predocs,
         studentSigUrl,
         studentSigPath,
-        ...(proxyMode ? { proxyRequestee } : {}),
+        ...(proxyMode ? { proxyRequestee: { ...proxyRequestee, fullName: proxyFullName } } : {}),
       });
 
       alert(proxyMode ? "Proxy NDA request submitted." : "Request submitted!");
@@ -164,8 +182,30 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
                 <>
                   <div className="request-section-title" style={{ marginTop: 10 }}>Requestee Details (F2F Walk-in)</div>
                   <div className="request-field">
-                    <label className="request-label">Requestee Full Name</label>
-                    <input className="request-input" value={proxyRequestee.fullName} onChange={(e) => onChangeProxy("fullName", e.target.value)} required />
+                    <label className="request-label">Requestee Name</label>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 0.55fr 1fr", gap: 8 }}>
+                      <input
+                        className="request-input"
+                        placeholder="First Name"
+                        value={proxyRequestee.firstName}
+                        onChange={(e) => onChangeProxy("firstName", e.target.value)}
+                        required
+                      />
+                      <input
+                        className="request-input"
+                        placeholder="M.I."
+                        value={proxyRequestee.middleInitial}
+                        onChange={(e) => onChangeProxy("middleInitial", e.target.value)}
+                        maxLength={3}
+                      />
+                      <input
+                        className="request-input"
+                        placeholder="Last Name"
+                        value={proxyRequestee.lastName}
+                        onChange={(e) => onChangeProxy("lastName", e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="request-field">
                     <label className="request-label">Requestee Email</label>
@@ -184,20 +224,27 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
             </div>
 
             <div className="request-section">
-              <div className="request-section-title">{proxyMode ? "Requestee E-Signature *" : "Your E-Signature *"}</div>
-              <p className="request-sig-hint">
-                {proxyMode
-                  ? "Capture the walk-in requestee signature below. It will be embedded in the NDA document."
-                  : "Draw your signature below. It will be embedded in the NDA document."}
-              </p>
-              <SignaturePad ref={sigPadRef} height={250} />
-              <button
-                type="button"
-                className="request-sig-clear"
-                onClick={() => sigPadRef.current?.clear()}
-              >
-                Clear Signature
-              </button>
+              {proxyMode ? (
+                <div className="info-banner info-banner--info" style={{ marginBottom: 0 }}>
+                  <strong>F2F Walk-in (Proxy Request)</strong>
+                  <p>Digital signatures are bypassed for face-to-face walk-ins. The document will be printed for a physical wet signature.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="request-section-title">Your E-Signature *</div>
+                  <p className="request-sig-hint">
+                    Draw your signature below. It will be embedded in the NDA document.
+                  </p>
+                  <SignaturePad ref={sigPadRef} height={250} />
+                  <button
+                    type="button"
+                    className="request-sig-clear"
+                    onClick={() => sigPadRef.current?.clear()}
+                  >
+                    Clear Signature
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

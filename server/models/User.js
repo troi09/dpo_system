@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])[A-Za-z\d\W]{8,}$/;
 
 const trustedDeviceSchema = new mongoose.Schema(
   {
@@ -13,6 +13,11 @@ const trustedDeviceSchema = new mongoose.Schema(
 );
 
 const userSchema = new mongoose.Schema({
+  // Structured name fields (preferred)
+  firstName: { type: String, trim: true, default: "" },
+  middleInitial: { type: String, trim: true, default: "" },
+  lastName: { type: String, trim: true, default: "" },
+  // Legacy single-name field kept for backward compatibility
   name: {
     type: String,
     required: true,

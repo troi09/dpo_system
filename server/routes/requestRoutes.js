@@ -38,12 +38,12 @@ router.patch("/:id/resubmit", protect, resubmitRequest);
 router.get("/all", protect, authorizeRoles("admin", "staff"), getAllRequests);
 router.get("/stats", protect, authorizeRoles("admin", "staff"), getRequestStats);
 router.get("/archived", protect, authorizeRoles("admin", "staff"), getArchivedRequests);
-router.patch("/:id/approved-document", protect, authorizeRoles("admin"), saveApprovedDocument);
+router.patch("/:id/approved-document", protect, authorizeRoles("admin", "staff"), saveApprovedDocument);
 
 // Agreement-specific admin actions
-router.patch("/:id/generate-signing-link", protect, authorizeRoles("admin"), generateSigningLink);
+router.patch("/:id/generate-signing-link", protect, authorizeRoles("admin", "staff"), generateSigningLink);
 router.patch("/:id/admin-phase3", protect, authorizeRoles("admin"), adminPhase3Action);
-router.get("/:id/sig-images", protect, authorizeRoles("admin"), getSignatureImages);
+router.get("/:id/sig-images", protect, authorizeRoles("admin", "staff"), getSignatureImages);
 
 // NDA status update (pending → approved | revision_required)
 router.patch("/:id", protect, authorizeRoles("admin"), updateRequestStatus);

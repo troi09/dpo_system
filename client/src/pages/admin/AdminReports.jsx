@@ -1,77 +1,112 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  LineChart, Line,
-} from "recharts";
-import { TrendingUp, RefreshCw } from "lucide-react";
+import { RefreshCw, Search, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { getAllRequests } from "../../services/requestService";
-import {
-  APPROVED_STATUSES,
-  PENDING_STATUSES,
-  REVISION_STATUSES,
-  CHART_LABELS,
-  CHART_COLORS,
-  normalizeStatusForChart,
-} from "../../utils/requestStatusCharts";
 
-const DONUT_COLORS = ["#059669", "#ea580c", "#7c3aed", "#ca8a04", "#2563eb", "#dc2626", "#64748b", "#3b82f6"];
+const STATUS_LABEL = {
+  nda_submitted: "Submitted",
+  nda_admin_reviewal: "Admin Reviewal",
+  nda_approved: "Approved",
+  nda_revision_requested: "Revision Requested",
+  agreement_submitted: "Submitted",
+  agreement_initial_admin_reviewal: "Initial Admin Reviewal",
+  agreement_awaiting_rep_approval: "Awaiting Representative Approval",
+  agreement_final_admin_reviewal: "Final Admin Reviewal",
+  agreement_approved: "Approved",
+  agreement_rep_declined: "Declined by Representative",
+  agreement_rep_revision_requested: "Representative Revision Requested",
+  nda_pending: "Admin Reviewal",
+  revision_requested: "Revision Requested",
+  agr_pending_1: "Initial Admin Reviewal",
+  agr_awaiting_rep_signature: "Awaiting Representative Approval",
+  agr_pending_2: "Final Admin Reviewal",
+  agr_approved: "Approved",
+  agr_rep_declined: "Declined by Representative",
+  agr_rep_revision_requested: "Representative Revision Requested",
+};
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const prettyStatus = (s) =>
+  STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
-// Build a smart textual summary from the data
-function buildSummary(requests, filter) {
-  if (!requests.length) return "No requests found for the selected period.";
+const statusPillClass = (s) => {
+  if (["nda_approved", "agreement_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
+  if (["nda_submitted", "agreement_submitted", "agr_pending_1"].includes(s)) return "status-pill status-pill--orange";
+  if (["nda_admin_reviewal", "agreement_initial_admin_reviewal", "agreement_final_admin_reviewal", "nda_pending", "agr_pending_2"].includes(s)) return "status-pill status-pill--yellow";
+  if (["nda_revision_requested", "agreement_rep_revision_requested", "revision_requested", "agr_rep_revision_requested"].includes(s)) return "status-pill status-pill--red";
+  if (["agreement_awaiting_rep_approval", "agr_awaiting_rep_signature"].includes(s)) return "status-pill status-pill--blue";
+  if (["agreement_rep_declined", "agr_rep_declined"].includes(s)) return "status-pill status-pill--violet";
+  return "status-pill";
+};
 
-  const total = requests.length;
-  const pending = requests.filter((r) => PENDING_STATUSES.includes(r.status)).length;
-  const approved = requests.filter((r) => APPROVED_STATUSES.includes(r.status)).length;
-  const ndaCount = requests.filter((r) => r.type === "nda").length;
-  const agreementCount = requests.filter((r) => r.type === "agreement").length;
-  const revisions = requests.filter((r) => REVISION_STATUSES.includes(r.status)).length;
+const STATUS_FILTER_OPTIONS = [
+  { value: "", label: "All Statuses" },
+  { value: "nda_submitted,agreement_submitted", label: "Submitted" },
+  { value: "nda_admin_reviewal,agreement_initial_admin_reviewal,agreement_final_admin_reviewal", label: "Admin Reviewal" },
+  { value: "nda_approved,agreement_approved", label: "Approved" },
+  { value: "nda_revision_requested,agreement_rep_revision_requested", label: "Revision Requested" },
+  { value: "agreement_awaiting_rep_approval", label: "Awaiting Representative" },
+  { value: "agreement_rep_declined", label: "Declined" },
+];
 
-  const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
-  const ndaPct = total > 0 ? Math.round((ndaCount / total) * 100) : 0;
+const TYPE_OPTIONS = [
+  { value: "", label: "All Types" },
+  { value: "nda", label: "NDA" },
+  { value: "agreement", label: "Agreement" },
+];
 
-  let summary = `In ${filter === "all" ? "all time" : `the last ${filter}`}, there are ${total} total request(s). `;
-  summary += `${approved} (${Math.round((approved / total) * 100)}%) have been approved or completed. `;
-  if (pending > 0) summary += `${pending} (${pendingPct}%) are still pending review. `;
-  if (revisions > 0) summary += `${revisions} are awaiting revisions. `;
-  summary += `NDA requests make up ${ndaPct}% of submissions`;
-  if (agreementCount > 0) summary += `, while ${agreementCount} Agreement request(s) were filed`;
-  summary += ".";
+const SORT_FIELDS = {
+  createdAt: "Date",
+  type: "Type",
+  status: "Status",
+  "userId.name": "Requestee",
+};
 
-  if (pendingPct > 40) summary += " The high pending rate may indicate a backlog — consider prioritizing reviews.";
-  else if (approved > pending) summary += " Overall processing is on track.";
-
-  return summary;
+function SortIcon({ field, sortField, sortDir }) {
+  if (field !== sortField) return <ChevronsUpDown size={12} style={{ opacity: 0.4 }} />;
+  return sortDir === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
 }
 
 export default function AdminReports() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState("30d"); // "7d" | "30d" | "90d" | "all"
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  // Filter/search state
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // Sort state
+  const [sortField, setSortField] = useState("createdAt");
+  const [sortDir, setSortDir] = useState("desc");
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
+
+  const searchTimeout = useRef(null);
 
   const load = async ({ withToast = false } = {}) => {
     setLoading(true);
     if (withToast) setRefreshing(true);
     setError("");
     try {
-      const data = await getAllRequests();
+      const params = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      const data = await getAllRequests(params);
       setRequests(Array.isArray(data) ? data : []);
       if (withToast) {
-        setNotice("Data updated");
-        setTimeout(() => setNotice(""), 1800);
+        setNotice("Data refreshed");
+        setTimeout(() => setNotice(""), 2000);
       }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to load reports data";
-      const status = err.response?.status;
-      setError(`${msg}${status ? ` (HTTP ${status})` : ""}`);
-      console.error("Reports load error:", err);
+      const msg = err.response?.data?.message || err.message || "Failed to load data";
+      setError(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -80,227 +115,275 @@ export default function AdminReports() {
 
   useEffect(() => { load(); }, []);
 
+  // Re-fetch when date range changes
+  useEffect(() => {
+    clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => { load(); }, 600);
+    return () => clearTimeout(searchTimeout.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate]);
+
   const filteredRequests = useMemo(() => {
-    if (filter === "all") return requests;
-    const days = filter === "7d" ? 7 : filter === "30d" ? 30 : 90;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    return requests.filter((r) => new Date(r.createdAt) >= cutoff);
-  }, [requests, filter]);
+    let result = [...requests];
 
-  const statusData = useMemo(() => {
-    const counts = {};
-    filteredRequests.forEach((r) => {
-      const key = normalizeStatusForChart(r.status);
-      counts[key] = (counts[key] || 0) + 1;
-    });
-    return Object.entries(counts).map(([id, value]) => ({
-      id,
-      name: CHART_LABELS[id] || id,
-      value,
-    }));
-  }, [filteredRequests]);
-
-  const typeData = useMemo(() => [
-    { name: "NDA", count: filteredRequests.filter((r) => r.type === "nda").length },
-    { name: "Agreement", count: filteredRequests.filter((r) => r.type === "agreement").length },
-  ], [filteredRequests]);
-
-  // Monthly trend (last 6 months)
-  const trendData = useMemo(() => {
-    const now = new Date();
-    return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
-      const inMonth = requests.filter((r) => {
-        const c = new Date(r.createdAt);
-        return c >= monthStart && c <= monthEnd;
+    if (search.trim()) {
+      const term = search.trim().toLowerCase();
+      result = result.filter((r) => {
+        const name = (r.userId?.name || r.proxyRequestee?.fullName || "").toLowerCase();
+        const email = (r.userId?.email || r.proxyRequestee?.email || "").toLowerCase();
+        const serial = (r.serialNo || "").toLowerCase();
+        const type = (r.type || "").toLowerCase();
+        return name.includes(term) || email.includes(term) || serial.includes(term) || type.includes(term);
       });
-      return {
-        month: MONTH_NAMES[d.getMonth()],
-        total: inMonth.length,
-        approved: inMonth.filter((r) => APPROVED_STATUSES.includes(r.status)).length,
-        pending: inMonth.filter((r) => PENDING_STATUSES.includes(r.status)).length,
-      };
+    }
+
+    if (statusFilter) {
+      const statuses = statusFilter.split(",");
+      result = result.filter((r) => statuses.includes(r.status));
+    }
+
+    if (typeFilter) {
+      result = result.filter((r) => r.type === typeFilter);
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let av, bv;
+      if (sortField === "userId.name") {
+        av = (a.userId?.name || a.proxyRequestee?.fullName || "").toLowerCase();
+        bv = (b.userId?.name || b.proxyRequestee?.fullName || "").toLowerCase();
+      } else if (sortField === "createdAt") {
+        av = new Date(a.createdAt).getTime();
+        bv = new Date(b.createdAt).getTime();
+      } else {
+        av = (a[sortField] || "").toLowerCase();
+        bv = (b[sortField] || "").toLowerCase();
+      }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
     });
-  }, [requests]);
 
-  const summary = useMemo(() => buildSummary(filteredRequests, filter), [filteredRequests, filter]);
+    return result;
+  }, [requests, search, statusFilter, typeFilter, sortField, sortDir]);
 
-  const total = filteredRequests.length;
-  const approved = filteredRequests.filter((r) => APPROVED_STATUSES.includes(r.status)).length;
-  const pending = filteredRequests.filter((r) => PENDING_STATUSES.includes(r.status)).length;
-  const revisions = filteredRequests.filter((r) => REVISION_STATUSES.includes(r.status)).length;
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / PAGE_SIZE));
+  const paginatedRequests = filteredRequests.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const filterOptions = [
-    { label: "Last 7 Days", value: "7d" },
-    { label: "Last 30 Days", value: "30d" },
-    { label: "Last 90 Days", value: "90d" },
-    { label: "All Time", value: "all" },
-  ];
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+    setPage(1);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
+
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setPage(1);
+  };
 
   return (
     <div className="page-shell">
       {/* Header */}
       <div className="page-header-row mb-16">
         <div>
-          <h2 className="page-title">Reports &amp; Analytics</h2>
-          <p className="admin-subtitle">System-wide request data and trends</p>
+          <h2 className="page-title">Transactional Reports</h2>
+          <p className="admin-subtitle">Complete transaction history with search and filtering</p>
         </div>
-        <div className="admin-inline-actions">
-          {filterOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setFilter(opt.value)}
-              className={`ui-btn ui-btn--compact ${filter === opt.value ? "ui-btn--primary" : "ui-btn--secondary"}`}
-            >
-              {opt.label}
-            </button>
-          ))}
-          <button
-            onClick={() => load({ withToast: true })}
-            title="Refresh"
-            className="ui-btn ui-btn--secondary ui-btn--icon"
-            disabled={refreshing}
-          >
-            <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
-          </button>
-        </div>
+        <button
+          onClick={() => load({ withToast: true })}
+          title="Refresh"
+          className="ui-btn ui-btn--secondary ui-btn--icon"
+          disabled={refreshing}
+        >
+          <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+        </button>
       </div>
 
-      {notice ? (
+      {notice && (
         <div className="info-banner info-banner--success mb-12">
           <strong>{notice}</strong>
         </div>
-      ) : null}
-
+      )}
       {error && (
-        <div className="admin-flash-banner admin-flash-banner--error">
-          {error}
-        </div>
+        <div className="admin-flash-banner admin-flash-banner--error mb-12">{error}</div>
       )}
 
-      {loading && (
-        <div className="responsive-grid-4 admin-metric-grid">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={`sk-${i}`}
-              className="admin-metric-card"
-            >
-              <span className="skeleton-block" style={{ width: 60, height: 28, margin: "0 auto 8px", borderRadius: "var(--radius-md)" }} />
-              <span className="skeleton-block skeleton-text" style={{ width: 70, margin: "0 auto" }} />
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="admin-card"
+        style={{ marginBottom: 16, padding: "14px 16px" }}
+      >
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" }}>
+          {/* Search */}
+          <div style={{ position: "relative", flex: "1 1 200px" }}>
+            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+            <input
+              type="text"
+              className="ui-input"
+              placeholder="Search name, email, serial…"
+              value={search}
+              onChange={handleSearchChange}
+              style={{ paddingLeft: 32, height: 34, fontSize: 13 }}
+            />
+          </div>
 
-      {!loading && (
-        <>
-          {/* KPI Cards */}
-          <div className="responsive-grid-4 admin-metric-grid">
-            {[
-              { label: "Total", value: total, color: "#3b82f6" },
-              { label: "Approved", value: approved, color: "#10b981" },
-              { label: "Pending", value: pending, color: "#f59e0b" },
-              { label: "Needs Revision", value: revisions, color: "#ef4444" },
-            ].map((c, i) => (
-              <motion.div
-                key={c.label}
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.06 }}
-                className="admin-metric-card"
-              >
-                <div className="admin-metric-value" style={{ color: c.color }}>{c.value}</div>
-                <div className="admin-metric-label">{c.label}</div>
-              </motion.div>
+          {/* Status filter */}
+          <select
+            className="ui-input"
+            value={statusFilter}
+            onChange={handleFilterChange(setStatusFilter)}
+            style={{ flex: "0 1 190px", height: 34, fontSize: 13 }}
+          >
+            {STATUS_FILTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
             ))}
-          </div>
+          </select>
 
-          {/* Smart Summary */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-            className="admin-insight-card"
+          {/* Type filter */}
+          <select
+            className="ui-input"
+            value={typeFilter}
+            onChange={handleFilterChange(setTypeFilter)}
+            style={{ flex: "0 1 130px", height: 34, fontSize: 13 }}
           >
-            <TrendingUp size={18} color="var(--primary)" style={{ flexShrink: 0, marginTop: 2 }} />
-            <p className="admin-insight-text">
-              {summary}
-            </p>
-          </motion.div>
+            {TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
 
-          {/* Charts Grid */}
-          <div className="responsive-grid-2" style={{ marginBottom: 24 }}>
-            {/* Donut – Status distribution */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="admin-chart-card"
-            >
-              <div className="admin-chart-title">Status Distribution</div>
-              <div className="admin-chart-subtitle">Breakdown by current request status</div>
-              {statusData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={230}>
-                  <PieChart>
-                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value">
-                      {(statusData || []).map((entry, index) => (
-                        <Cell key={index} fill={CHART_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v, n) => [v, n]} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                  </PieChart>
-                </ResponsiveContainer>
+          {/* Date range */}
+          <input
+            type="date"
+            className="ui-input"
+            value={startDate}
+            onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+            style={{ flex: "0 1 140px", height: 34, fontSize: 13 }}
+            title="Start Date"
+          />
+          <input
+            type="date"
+            className="ui-input"
+            value={endDate}
+            onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+            style={{ flex: "0 1 140px", height: 34, fontSize: 13 }}
+            title="End Date"
+          />
+
+          <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap", alignSelf: "center" }}>
+            {filteredRequests.length} record{filteredRequests.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="admin-card"
+        style={{ padding: 0, overflow: "hidden" }}
+      >
+        <div style={{ overflowX: "auto" }}>
+          <table className="admin-table" style={{ width: "100%", minWidth: 660 }}>
+            <thead>
+              <tr>
+                {[
+                  { key: "createdAt", label: "Date" },
+                  { key: "userId.name", label: "Requestee" },
+                  { key: "type", label: "Type" },
+                  { key: "status", label: "Status" },
+                ].map((col) => (
+                  <th
+                    key={col.key}
+                    onClick={() => handleSort(col.key)}
+                    style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                  >
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      {col.label}
+                      <SortIcon field={col.key} sortField={sortField} sortDir={sortDir} />
+                    </span>
+                  </th>
+                ))}
+                <th>Serial</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", padding: "32px 0", color: "var(--text-muted)" }}>
+                    Loading…
+                  </td>
+                </tr>
+              ) : paginatedRequests.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", padding: "32px 0", color: "var(--text-muted)" }}>
+                    No transactions found.
+                  </td>
+                </tr>
               ) : (
-                <div className="admin-chart-empty">
-                  No data for this period
-                </div>
+                paginatedRequests.map((r) => {
+                  const name = r.proxyRequestee?.isProxy
+                    ? (r.proxyRequestee.fullName || r.proxyRequestee.firstName ? `${r.proxyRequestee.firstName || ""} ${r.proxyRequestee.lastName || ""}`.trim() : r.proxyRequestee.fullName)
+                    : (r.userId?.name || "—");
+                  const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" }) : "—";
+                  return (
+                    <tr key={r._id}>
+                      <td style={{ whiteSpace: "nowrap", fontSize: 12, color: "var(--text-secondary)" }}>{dateStr}</td>
+                      <td>
+                        <div style={{ fontWeight: 500, fontSize: 13 }}>{name}</div>
+                        {r.proxyRequestee?.isProxy && (
+                          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Proxy (F2F)</div>
+                        )}
+                      </td>
+                      <td style={{ textTransform: "capitalize", fontSize: 13 }}>{r.type || "—"}</td>
+                      <td><span className={statusPillClass(r.status)}>{prettyStatus(r.status)}</span></td>
+                      <td style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
+                        {r.serialNo || "—"}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
-            </motion.div>
+            </tbody>
+          </table>
+        </div>
 
-            {/* Bar – Type comparison */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
-              className="admin-chart-card"
-            >
-              <div className="admin-chart-title">Document Type Breakdown</div>
-              <div className="admin-chart-subtitle">NDA vs Agreement requests in this period</div>
-              <ResponsiveContainer width="100%" height={230}>
-                <BarChart data={typeData} barSize={48}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 13, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip cursor={{ fill: "var(--primary-light)" }} />
-                  <Bar dataKey="count" name="Requests" fill="var(--primary)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </motion.div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderTop: "1px solid var(--border)" }}>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              Page {page} of {totalPages}
+            </span>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button
+                className="ui-btn ui-btn--secondary ui-btn--compact"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                ‹ Prev
+              </button>
+              <button
+                className="ui-btn ui-btn--secondary ui-btn--compact"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next ›
+              </button>
+            </div>
           </div>
-
-          {/* Line Chart – Monthly Trend */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.42 }}
-            className="admin-chart-card"
-          >
-            <div className="admin-chart-title">Monthly Trend</div>
-            <div className="admin-chart-subtitle">Request volume over the last 6 months</div>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Total" />
-                <Line type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Approved/Completed" />
-                <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} name="Pending" />
-              </LineChart>
-            </ResponsiveContainer>
-          </motion.div>
-        </>
-      )}
+        )}
+      </motion.div>
     </div>
   );
 }
-
-

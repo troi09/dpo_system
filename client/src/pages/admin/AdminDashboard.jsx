@@ -28,21 +28,21 @@ const STATUS_LABEL = {
   nda_revision_requested:      "Revision Requested",
   agreement_submitted:                "Submitted",
   agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
-  agreement_awaiting_rep_approval:    "Awaiting Rep. Approval",
+  agreement_awaiting_rep_approval:    "Awaiting Representative Approval",
   agreement_final_admin_reviewal:     "Final Admin Reviewal",
   agreement_approved:                 "Approved",
-  agreement_rep_declined:             "Rep. Declined",
-  agreement_rep_revision_requested:   "Rep. Revision Requested",
+  agreement_rep_declined:             "Representative Declined",
+  agreement_rep_revision_requested:   "Representative Revision Requested",
 
   // Legacy fallback labels
   nda_pending:                "Admin Reviewal",
   revision_requested:         "Revision Requested",
   agr_pending_1:              "Initial Admin Reviewal",
-  agr_awaiting_rep_signature: "Awaiting Rep. Approval",
+  agr_awaiting_rep_signature: "Awaiting Representative Approval",
   agr_pending_2:              "Final Admin Reviewal",
   agr_approved:               "Approved",
-  agr_rep_declined:           "Rep. Declined",
-  agr_rep_revision_requested: "Rep. Revision Requested",
+  agr_rep_declined:           "Representative Declined",
+  agr_rep_revision_requested: "Representative Revision Requested",
 };
 
 const DONUT_COLORS = ["#059669", "#ea580c", "#7c3aed", "#ca8a04", "#2563eb", "#dc2626", "#64748b", "#3b82f6"];
@@ -95,6 +95,10 @@ export default function AdminDashboard() {
     return window.innerWidth < 768;
   });
 
+  // Date range filter for charts
+  const [chartStartDate, setChartStartDate] = useState("");
+  const [chartEndDate, setChartEndDate] = useState("");
+
   useEffect(() => {
     const onResize = () => setIsCompact(window.innerWidth < 768);
     window.addEventListener("resize", onResize);
@@ -146,10 +150,21 @@ export default function AdminDashboard() {
 
   const recentRequests = requests.slice(0, 4);
 
+  // Filtered requests for charts based on date range
+  const chartFilteredRequests = useMemo(() => {
+    if (!chartStartDate && !chartEndDate) return requests;
+    return requests.filter((r) => {
+      const d = new Date(r.createdAt);
+      if (chartStartDate && d < new Date(chartStartDate)) return false;
+      if (chartEndDate && d > new Date(chartEndDate + "T23:59:59")) return false;
+      return true;
+    });
+  }, [requests, chartStartDate, chartEndDate]);
+
   // Derived chart data (same approach as Reports page)
   const statusData = useMemo(() => {
     const counts = {};
-    requests.forEach((r) => {
+    chartFilteredRequests.forEach((r) => {
       if (!r.isArchived) {
         const key = normalizeStatusForChart(r.status);
         counts[key] = (counts[key] || 0) + 1;
@@ -160,17 +175,14 @@ export default function AdminDashboard() {
       name: CHART_LABELS[id] || id,
       value,
     }));
-  }, [requests]);
+  }, [chartFilteredRequests]);
 
   const typeData = useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thisMonthReqs = requests.filter((r) => new Date(r.createdAt) >= startOfMonth);
     return [
-      { name: "NDA", count: thisMonthReqs.filter((r) => r.type === "nda").length },
-      { name: "Agreement", count: thisMonthReqs.filter((r) => r.type === "agreement").length },
+      { name: "NDA", count: chartFilteredRequests.filter((r) => r.type === "nda").length },
+      { name: "Agreement", count: chartFilteredRequests.filter((r) => r.type === "agreement").length },
     ];
-  }, [requests]);
+  }, [chartFilteredRequests]);
 
   // Monthly trend (last 6 months)
   const trendData = useMemo(() => {
@@ -208,15 +220,45 @@ export default function AdminDashboard() {
     <div className="dashboard-page">
       <div className="dashboard-topbar">
         <h2 className="dashboard-title">Dashboard</h2>
-        <button
-          className="dashboard-action ui-btn--compact"
-          type="button"
-          onClick={() => load({ withToast: true })}
-          disabled={refreshing}
-        >
-          <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
-          Refresh
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {/* Date Range Picker for chart filtering */}
+          <input
+            type="date"
+            className="ui-input"
+            value={chartStartDate}
+            onChange={(e) => setChartStartDate(e.target.value)}
+            style={{ height: 32, fontSize: 12, padding: "0 8px" }}
+            title="Chart Start Date"
+          />
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>–</span>
+          <input
+            type="date"
+            className="ui-input"
+            value={chartEndDate}
+            onChange={(e) => setChartEndDate(e.target.value)}
+            style={{ height: 32, fontSize: 12, padding: "0 8px" }}
+            title="Chart End Date"
+          />
+          {(chartStartDate || chartEndDate) && (
+            <button
+              type="button"
+              className="ui-btn ui-btn--secondary ui-btn--compact"
+              onClick={() => { setChartStartDate(""); setChartEndDate(""); }}
+              style={{ fontSize: 11 }}
+            >
+              Clear
+            </button>
+          )}
+          <button
+            className="dashboard-action ui-btn--compact"
+            type="button"
+            onClick={() => load({ withToast: true })}
+            disabled={refreshing}
+          >
+            <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {notice ? (

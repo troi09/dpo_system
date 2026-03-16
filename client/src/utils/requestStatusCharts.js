@@ -27,7 +27,7 @@ export const CHART_LABELS = {
   chart_admin_reviewal: "Admin Reviewal",
   chart_revision_requested: "Revision Requested",
   chart_initial_admin_reviewal: "Initial Admin Reviewal",
-  chart_awaiting_rep_approval: "Awaiting Rep. Approval",
+  chart_awaiting_rep_approval: "Awaiting Representative Approval",
   chart_final_admin_reviewal: "Final Admin Reviewal",
   chart_approved: "Approved",
 };

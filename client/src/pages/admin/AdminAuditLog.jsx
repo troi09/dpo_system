@@ -33,8 +33,8 @@ const ACTION_LABELS = {
   user_activated: "User Activated",
   user_deactivated: "User Deactivated",
   signing_link_generated: "Signing Link Generated",
-  rep_signature_submitted: "Rep Signature Submitted",
-  rep_signature_declined: "Rep Signature Declined",
+  rep_signature_submitted: "Representative Signature Submitted",
+  rep_signature_declined: "Representative Signature Declined",
 };
 
 const prettyAction = (action) =>
@@ -189,8 +189,8 @@ export default function AdminAuditLog() {
     { label: "User Deactivated", value: "user_deactivated" },
     { label: "Email Verified", value: "email_verified" },
     { label: "Signing Link Generated", value: "signing_link_generated" },
-    { label: "Rep Signature Submitted", value: "rep_signature_submitted" },
-    { label: "Rep Signature Declined", value: "rep_signature_declined" },
+    { label: "Representative Signature Submitted", value: "rep_signature_submitted" },
+    { label: "Representative Signature Declined", value: "rep_signature_declined" },
   ];
 
   return (

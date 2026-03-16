@@ -504,3 +504,26 @@
     max-height: min(72dvh, 520px);
   }
 }
+
+/* ── Name Input Grid (Registration) ── */
+.landing-name-grid {
+  display: grid;
+  grid-template-columns: 1fr 0.55fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.landing-name-grid .landing-field-group {
+  margin: 0;
+}
+
+/* Ensure password popup is never clipped by parent containers */
+.landing-panel,
+.landing-card,
+.landing-card--register {
+  overflow: visible !important;
+}
+
+.password-hint-anchor {
+  overflow: visible;
+}

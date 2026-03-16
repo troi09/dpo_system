@@ -7,11 +7,19 @@ const Request = require('../models/Request');
   try {
     await connectDB();
     const archiveTimestamp = new Date();
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
 
+    // Archive ALL requests older than 5 years regardless of status (universal retention policy)
     const filter = {
-      $or: [
-        { isArchived: false },
-        { isArchived: { $exists: false } },
+      $and: [
+        {
+          $or: [
+            { isArchived: false },
+            { isArchived: { $exists: false } },
+          ],
+        },
+        { createdAt: { $lte: fiveYearsAgo } },
       ],
     };
 
