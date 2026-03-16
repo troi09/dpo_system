@@ -9,13 +9,13 @@ Notes
 -Check the whole system if there are requiements need to be changed or replace for being able to run in vercel (include .env files, since its in gitignore and the changes would need be maually added)
 -At the end of this, Make a read me or any explnation that makes me instructions or guides for me to implement, to do, to replace, to install depndencies, or any requirement at all after implementing the changes
 
-Add a refresh button for the student side dashboard.
-The stepper/status checks, make it so that it fills the width of the current form and is centered, make it shorter or longer dpeending on the screensize alotted. (responsive), also in mobile view, make the stepper smaller (including fonts, always take into account the distribution between and make it even) to make it fit to screen size width and not scrollable
-the donut chart status distribution. make it updated, and the statuses it have is the same as the statuses that a document can have. Submitted, Admin Reviewal, Revision Requested, Initial Admin Reviewal, Awaiting Rep. Approval, Final Admin Reviewal, Approved. These are the only statuses that should be in the donut chart, both in the dashboard and data analytics tab
-When updating a request status in admin side, the page redirects back to the main dashboard. make it so that admin user still stays on the request's page, for less hassle
-in an agreement request, when the admin approves and generates link for the representative, the link generated says "Link is not active, This signing link is no longer active (status: agreement_awaiting_rep_approval)."even though it just have been generated. fix this
-in student dashboard, when viewiing requests. the current filter option in the dashboard is pressing the button next the text of "MY REQUEST" to sort through all request statuses. revise this into a dropdown menu to sort through different document status. and update the statuses options, to the current updated statuses.
-the tracking of the password requirement warning when in registration, resetting password in admin user management, or self change password in user profile dont track the newpassword field properly, make the warning popup track the correct textfield and its location (beside the textfield at the left side)
-when registering a new account, It send an otp for email confirmation of the creation of the account. with after confirmation, auto login the user, dont go back to login. and also the ui of the registration in verify email page make it the same ui and look as with the previous page, which is the registration and login page (make it the same ui, form, styling, glasslook to the form, everything to keep it consistent)
-also add a resend otp function (wait for 1min again for resending to prevent spam) on every otp requests, (when loggin in a new IP, registration, or forget password)
-Check every UI/UX, make the websystem optimized althroughout. do every bit of optimization in front end and backend
+
+selection ng form dapat may nakalagay na requiremen
+add student refresh button on request form
+make sgining link generated in agreement request can be seen by all roles and stays permanent
+proxy request remove the signing
+squeeze agreement into crosswise
+make the name textfield divided into names
+make the signature deleted in the database for security purposes and legality
+remake the pattern of serial in agreement to DATA-
+regardless of active or not archive pa din
