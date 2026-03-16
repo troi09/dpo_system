@@ -21,20 +21,18 @@ export default defineConfig({
           if (!id.includes('node_modules')) return;
           const normalizedId = id.replace(/\\/g, '/');
 
-          if (normalizedId.includes('/react-dom/')) {
-            return 'react-dom';
+          if (normalizedId.includes('/react-dom/') || normalizedId.includes('/react/')) {
+            return 'vendor-react';
           }
 
-          if (normalizedId.includes('/react/')) {
-            return 'react';
-          }
-
-          if (normalizedId.includes('react-pdf') || normalizedId.includes('pdfjs') || normalizedId.includes('@react-pdf')) {
-            return 'pdf';
-          }
-
-          if (normalizedId.includes('recharts') || normalizedId.includes('d3-')) {
-            return 'charts';
+          if (
+            normalizedId.includes('react-pdf') ||
+            normalizedId.includes('pdfjs') ||
+            normalizedId.includes('@react-pdf') ||
+            normalizedId.includes('recharts') ||
+            normalizedId.includes('d3-')
+          ) {
+            return 'vendor-utils';
           }
 
           if (normalizedId.includes('firebase')) {
