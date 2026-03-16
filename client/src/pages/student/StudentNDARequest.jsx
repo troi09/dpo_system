@@ -150,7 +150,6 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
           >
             ‹ Back
           </button>
-          <h2 className="request-form-title">{`NDA Request - ${cfg.label}`}</h2>
           <div />
         </div>
 

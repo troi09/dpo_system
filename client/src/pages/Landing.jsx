@@ -355,8 +355,8 @@ const Landing = () => {
             src="/dpo-logo.webp"
             alt="RTU DPO Logo"
             className="landing-brand-logo"
-            width="104"
-            height="104"
+            width="156"
+            height="156"
             loading="eager"
             decoding="async"
           />

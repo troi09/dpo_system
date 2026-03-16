@@ -1,3 +1,4 @@
+import React from "react";
 import { Document, Page, View, Image, Text, StyleSheet } from "@react-pdf/renderer";
 import { formatDate, getTemplateAssetUrl } from "./styles";
 
@@ -23,12 +24,28 @@ const styles = StyleSheet.create({
   centerLine: { fontSize: 10, textAlign: "center" },
   centerOffice: { fontSize: 10, textAlign: "center" },
   centerAgreement: { fontSize: 11, fontFamily: "Times-Bold", textAlign: "center", marginTop: 2 },
+  paragraph: {
+    width: "85%",
+    alignSelf: "center",
+    textAlign: "justify",
+    textIndent: 24,
+    lineHeight: 1.25,
+    marginTop: 6,
+  },
   paragraphNoIndent: {
     width: "85%",
     alignSelf: "center",
     textAlign: "center",
     marginTop: 8,
     marginBottom: 4,
+  },
+  paragraphFinal: {
+    width: "85%",
+    alignSelf: "center",
+    textAlign: "justify",
+    textIndent: 24,
+    lineHeight: 1.25,
+    marginTop: 6,
   },
   afterParagraph: {
     marginTop: 18,
@@ -65,14 +82,10 @@ export default function NDAResearchDoc({ request }) {
   const fd = request.formData || {};
   const student = request.userId || {};
   const proxy = request.proxyRequestee || {};
-  const displayName = proxy.isProxy ? (proxy.fullName || "") : (student.name || "");
-  const displayEmail = proxy.isProxy ? (proxy.email || "") : (student.email || "");
-  const displayIdNumber = proxy.isProxy ? (proxy.idNumber || "") : "";
-  const displayDepartment = proxy.isProxy ? (proxy.departmentOrOrganization || "") : "";
   const { studentSigDataUrl, adminSigDataUrl } = request;
   const approverName = request.approverName || request.adminName || request.approvedByName || "";
   const toUpper = (value) => (value ? String(value).toUpperCase() : "");
-  const studentNameUpper = toUpper(student.name);
+  const studentNameUpper = toUpper(proxy.isProxy ? (proxy.fullName || "") : (student.name || ""));
   const hasAnySig = studentSigDataUrl || adminSigDataUrl;
   const rtuLogoSrc = getTemplateAssetUrl("rtu-logo.png");
   const dpoLogoSrc = getTemplateAssetUrl("dpo-logo-full.png");
@@ -102,8 +115,34 @@ export default function NDAResearchDoc({ request }) {
           <Image style={styles.logoDpo} src={dpoLogoSrc} />
         </View>
 
+        <Text style={styles.paragraph}>
+          I, {studentNameUpper || "________________"}, as the representative of the group, declare that it is our
+          responsibility to protect the integrity and confidentiality of the enclosed information. As the intended
+          recipient, we ensure that we will not reproduce, share, or disclose any information to anyone without the
+          consent of the data subject. Furthermore, we affirm that the data will only be used to conduct the project
+          titled:
+        </Text>
         <Text style={styles.paragraphNoIndent}>
           "{fd.researchTitle || "________________"}"
+        </Text>
+        <Text style={styles.paragraph}>
+          We guarantee our commitment to strictly adhere to the Data Privacy Act of 2012, as well as any current and
+          applicable Implementing Rules and Regulations of the National Privacy Commission and other relevant
+          legislation, rules, and publications.
+        </Text>
+        <Text style={styles.paragraph}>
+          We acknowledge the necessity of implementing the required security measures to protect the data, which
+          includes establishing appropriate organizational, physical, and technical security actions. Any
+          unauthorized disclosure, risk, or suspicious regarding such matters must be reported immediately to the
+          Data Protection Office.
+        </Text>
+        <Text style={styles.paragraph}>
+          We categorically guarantee that we will not reveal any generally Confidential, highly sensitive data, or
+          private information obtained, either directly or indirectly, from the respondents to any third party.
+        </Text>
+        <Text style={styles.paragraphFinal}>
+          Finally, we understand that we may be held liable for any damages caused by the unauthorized processing of
+          this information.
         </Text>
 
         <View style={styles.afterParagraph}>

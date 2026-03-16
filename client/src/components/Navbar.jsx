@@ -82,7 +82,7 @@ const Navbar = () => {
             {user?.role === "admin" && (
               <NavLink to="/admin/users" className={linkClass}>
                 <Users size={16} className="nav-icon" />
-                Users
+                User Management
               </NavLink>
             )}
             <NavLink to="/admin/archives" className={linkClass}>
@@ -92,7 +92,7 @@ const Navbar = () => {
             {user?.role === "admin" && (
               <NavLink to="/admin/audit" className={linkClass}>
                 <Activity size={16} className="nav-icon" />
-                Audit
+                Audit Logs
               </NavLink>
             )}
             <NavLink to="/admin/profile" className={linkClass}>

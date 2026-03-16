@@ -235,7 +235,6 @@ export default function AdminDashboard() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-topbar">
-        <h2 className="dashboard-title">Dashboard</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {/* Date Range Picker for chart filtering */}
           <input

@@ -10,7 +10,6 @@ export default function StudentNewRequest({
 
   return (
     <div className="type-chooser-page">
-      <h2 className="type-chooser-heading">{title}</h2>
       <div className="type-chooser-grid">
         <button
           type="button"

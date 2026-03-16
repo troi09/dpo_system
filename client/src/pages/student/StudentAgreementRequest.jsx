@@ -163,7 +163,6 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
           >
             ‹ Back
           </button>
-          <h2 className="request-form-title">Agreement Request</h2>
           <div />
         </div>
 

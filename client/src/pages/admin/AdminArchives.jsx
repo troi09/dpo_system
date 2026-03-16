@@ -50,10 +50,6 @@ export default function AdminArchives() {
       {/* Header */}
       <div className="page-header-row mb-16">
         <div>
-          <h2 className="page-title title-with-icon">
-            <Archive size={18} color="var(--text-muted)" />
-            Archives
-          </h2>
           <p className="admin-subtitle">
             Requests automatically archived after 5 years of completion
           </p>

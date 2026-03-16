@@ -183,7 +183,6 @@ export default function StudentResubmitRequest() {
           >
             ← Back
           </button>
-          <h2 className="review-title">{title}</h2>
           <div className="review-info-box">
             <span className="review-info-box--muted">
               This request is not marked as revision requested.
@@ -209,7 +208,6 @@ export default function StudentResubmitRequest() {
           >
             ‹ Back
           </button>
-          <h2 className="request-form-title">Resubmit {title}</h2>
           <div />
         </div>
 

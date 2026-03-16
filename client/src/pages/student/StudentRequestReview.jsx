@@ -97,7 +97,6 @@ export default function StudentRequestReview() {
         </button>
 
         <div className="review-header">
-          <h2 className="review-title">{title}</h2>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div className="review-meta">
               <span className="review-meta-row">

@@ -872,7 +872,6 @@ export default function AdminRequestReview() {
         ) : null}
 
         <div className="review-header">
-          <h2 className="review-title">Review {requestTitle}</h2>
           <div className="review-meta">
             <span className="review-meta-row">
               <b>Status:</b> {prettyStatus(reqData.status)}

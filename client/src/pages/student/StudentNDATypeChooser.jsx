@@ -21,7 +21,6 @@ export default function StudentNDATypeChooser({
         ‹ Back
       </button>
 
-      <h2 className="type-chooser-heading">Choose your NDA category</h2>
 
       <div className="type-chooser-grid">
         <button
@@ -34,12 +33,12 @@ export default function StudentNDATypeChooser({
           <span className="type-chooser-card-subtext">
             For student organization events or partner engagements involving confidential documents.
           </span>
-          <span className="type-chooser-req-title">Required Documents:</span>
+          <span className="type-chooser-req-title">Requirements:</span>
           <ul className="type-chooser-req-list" aria-label="School organization NDA requirements">
-            <li>Project concept paper or activity proposal</li>
-            <li>Endorsement from adviser or organization head</li>
-            <li>List of members or partner entities involved</li>
-            <li>Supporting materials containing confidential data scope</li>
+            <li>Letter of Intent</li>
+            <li>School ID</li>
+            <li>Registration Form</li>
+            <li>Sample Forms or Collaterals (if applicable)</li>
           </ul>
         </button>
 
@@ -53,12 +52,12 @@ export default function StudentNDATypeChooser({
           <span className="type-chooser-card-subtext">
             For thesis, capstone, or research involving sensitive data or unpublished findings.
           </span>
-          <span className="type-chooser-req-title">Required Documents:</span>
+          <span className="type-chooser-req-title">Requirements:</span>
           <ul className="type-chooser-req-list" aria-label="Research NDA requirements">
-            <li>Research proposal or approved synopsis</li>
-            <li>Endorsement from research adviser or panel</li>
-            <li>Data collection instruments or protocol</li>
-            <li>Ethics clearance or equivalent approval, if applicable</li>
+            <li>Letter of Intent</li>
+            <li>Questionnaire with Data Privacy Consent Form</li>
+            <li>School ID</li>
+            <li>Registration Form</li>
           </ul>
         </button>
       </div>

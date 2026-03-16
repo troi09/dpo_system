@@ -195,7 +195,6 @@ export default function AdminReports() {
       {/* Header */}
       <div className="page-header-row mb-16">
         <div>
-          <h2 className="page-title">Transactional Reports</h2>
           <p className="admin-subtitle">Complete transaction history with search and filtering</p>
         </div>
         <button

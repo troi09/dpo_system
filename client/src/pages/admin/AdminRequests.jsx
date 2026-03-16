@@ -152,7 +152,6 @@ export default function AdminRequests() {
   return (
     <div className="dashboard-page page-shell">
       <div className="page-header-row" style={{ marginBottom: 12 }}>
-        <h2 className="page-title">Requests</h2>
         <button
           onClick={() => loadRequests({ withToast: true })}
           className="ui-btn ui-btn--secondary"

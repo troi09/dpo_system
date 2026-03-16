@@ -178,7 +178,6 @@ export default function AdminUsers() {
       {/* Header */}
       <div className="page-header-row admin-header-gap-lg">
         <div>
-          <h2 className="page-title">Manage Users</h2>
           <p className="admin-subtitle">
             {users.length} user{users.length !== 1 ? "s" : ""} registered
           </p>

@@ -198,10 +198,6 @@ export default function AdminAuditLog() {
       {/* Header */}
       <div className="page-header-row" style={{ marginBottom: 16 }}>
         <div>
-          <h2 className="page-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Activity size={18} color="var(--text-muted)" />
-            Audit Trail
-          </h2>
           <p className="admin-subtitle">
             Full system activity log — immutable record of all user and admin actions
           </p>
