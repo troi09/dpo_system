@@ -21,10 +21,6 @@ export default defineConfig({
           if (!id.includes('node_modules')) return;
           const normalizedId = id.replace(/\\/g, '/');
 
-          if (normalizedId.includes('/react-dom/') || normalizedId.includes('/react/')) {
-            return 'vendor-react';
-          }
-
           if (
             normalizedId.includes('react-pdf') ||
             normalizedId.includes('pdfjs') ||
@@ -33,6 +29,15 @@ export default defineConfig({
             normalizedId.includes('d3-')
           ) {
             return 'vendor-utils';
+          }
+
+          if (
+            normalizedId.includes('/react-dom/') ||
+            normalizedId.includes('/react/') ||
+            normalizedId.includes('/scheduler/') ||
+            normalizedId.includes('/use-sync-external-store/')
+          ) {
+            return 'vendor-react';
           }
 
           if (normalizedId.includes('firebase')) {
