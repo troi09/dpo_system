@@ -67,7 +67,7 @@ const getRequestFolder = (predocs = []) => {
 function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   const { user } = useContext(AuthContext);
   const [remarks, setRemarks] = useState(reqData.remarks || "");
-  const [approving, setApproving] = useState(false);
+  const [activeAction, setActiveAction] = useState(null); // "approve" | "revision" | null
   const adminSigRef = useRef(null);
 
   const cfg = useMemo(() => {
@@ -88,7 +88,13 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         return;
       }
     }
-    setApproving(true);
+    if (status === "revision_requested") {
+      if (!remarks.trim()) {
+        alert("Please enter remarks before requesting a revision.");
+        return;
+      }
+    }
+    setActiveAction(status === "nda_approved" ? "approve" : "revision");
     try {
       if (status === "nda_approved") {
         const adminSigDataUrl = adminSigRef.current.getDataUrl();
@@ -155,7 +161,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
     } catch (err) {
       alert(err.response?.data?.message || err.message || "Failed to update request");
     } finally {
-      setApproving(false);
+      setActiveAction(null);
     }
   };
 
@@ -229,15 +235,15 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       {isApproved && (
         <div className="review-section">
           <h4 className="review-section-title">Approved Request Form</h4>
-          <div className="review-info-box">
-            {reqData.postdocs?.url ? (
-              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-link">
-                View Document →
-              </a>
-            ) : (
+          {reqData.postdocs?.url ? (
+            <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-file-link">
+              📎 Approved NDA Document
+            </a>
+          ) : (
+            <div className="review-info-box">
               <span className="review-info-box--muted">No approved document uploaded.</span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -285,17 +291,17 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         <div className="review-actions">
           <button
             onClick={() => handleUpdate("nda_approved")}
-            disabled={approving}
+            disabled={!!activeAction}
             className="review-btn-primary"
           >
-            {approving ? "Generating..." : "Approve"}
+            {activeAction === "approve" ? "Generating..." : "Approve"}
           </button>
           <button
             onClick={() => handleUpdate("nda_revision_requested")}
             disabled={approving}
             className="review-btn-secondary"
           >
-            Request Revision
+            {activeAction === "revision" ? "Submitting..." : "Request Revision"}
           </button>
         </div>
       )}
@@ -324,7 +330,9 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
     return "";
   });
   const [generating, setGenerating] = useState(false);
+  const [phase1Revising, setPhase1Revising] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [phase3Revising, setPhase3Revising] = useState(false);
   const adminSigRef = useRef(null);
 
   const { status } = reqData;
@@ -398,8 +406,9 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       await onRequestUpdated?.({ withToast: true });
       setApproving(false);
     } catch (err) {
-      setApproving(false);
       alert(err.response?.data?.message || err.message || "Failed to approve");
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -408,6 +417,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       alert("Please enter remarks explaining what the representative needs to revise.");
       return;
     }
+    setPhase3Revising(true);
     try {
       const res = await adminPhase3Action(reqData._id, { action: "rep_revision_requested", remarks });
       const newLink = `${window.location.origin}/sign/${res.request.signingToken}`;
@@ -416,6 +426,8 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       alert("Representative revision requested. A new signing link has been generated — copy it and send to the representative.");
     } catch (err) {
       alert(err.response?.data?.message || "Failed");
+    } finally {
+      setPhase3Revising(false);
     }
   };
 
@@ -473,21 +485,20 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
             <span className="review-field-label">Name</span>
             <div className="review-info-box">{reqData.repInfo.name}</div>
           </div>
-          {reqData.repInfo.govIdDoc?.url && (
-            <div className="review-field">
-              <span className="review-field-label">Government ID</span>
-              <div className="review-info-box">
-                <a
-                  href={reqData.repInfo.govIdDoc.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="review-link"
-                >
-                  {reqData.repInfo.govIdDoc.origName || "View ID"} →
-                </a>
-              </div>
-            </div>
-          )}
+        </div>
+      )}
+
+      {reqData.repInfo?.govIdDoc?.url && (
+        <div className="review-section">
+          <h4 className="review-section-title">Representative Attachments</h4>
+          <a
+            href={reqData.repInfo.govIdDoc.url}
+            target="_blank"
+            rel="noreferrer"
+            className="review-file-link"
+          >
+            📎 Government-Issued ID
+          </a>
         </div>
       )}
 
@@ -517,15 +528,15 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       {status === "agreement_approved" && (
         <div className="review-section">
           <h4 className="review-section-title">Approved Agreement</h4>
-          <div className="review-info-box">
-            {reqData.postdocs?.url ? (
-              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-link">
-                View Final Document →
-              </a>
-            ) : (
+          {reqData.postdocs?.url ? (
+            <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-file-link">
+              📎 Approved Agreement Document
+            </a>
+          ) : (
+            <div className="review-info-box">
               <span className="review-info-box--muted">No document uploaded yet.</span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -582,19 +593,19 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       {canProgress && status === "agreement_initial_admin_reviewal" && !signingLink && (
         <>
           <div className="review-section">
-            <h4 className="review-section-title">Remarks (for student revision)</h4>
+            <h4 className="review-section-title">Remarks</h4>
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               rows={3}
               className="review-textarea"
-              placeholder="Required only if requesting student revision..."
+              placeholder=""
             />
           </div>
           <div className="review-actions">
             <button
               onClick={handlePhase1Approve}
-              disabled={generating}
+              disabled={generating || phase1Revising}
               className="review-btn-primary"
             >
               {generating ? "Generating link..." : "Approve & Generate Signing Link"}
@@ -633,26 +644,30 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           </div>
 
           <div className="review-section">
-            <h4 className="review-section-title">Remarks (for rep revision)</h4>
+            <h4 className="review-section-title">Remarks</h4>
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               rows={3}
               className="review-textarea"
-              placeholder="Required only if requesting representative revision..."
+              placeholder=""
             />
           </div>
 
           <div className="review-actions">
             <button
               onClick={handlePhase3Approve}
-              disabled={approving}
+              disabled={approving || phase3Revising}
               className="review-btn-primary"
             >
               {approving ? "Generating final document..." : "Final Approve & Sign"}
             </button>
-            <button onClick={handlePhase3RepRevision} className="review-btn-secondary">
-              Request Rep Revision
+            <button
+              onClick={handlePhase3RepRevision}
+              disabled={approving || phase3Revising}
+              className="review-btn-secondary"
+            >
+              {phase3Revising ? "Submitting..." : "Request Rep Revision"}
             </button>
           </div>
         </>
@@ -762,7 +777,7 @@ export default function AdminRequestReview() {
               <b>Status:</b> {prettyStatus(reqData.status)}
             </span>
             <span className="review-meta-row">
-              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}
+              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
             </span>
           </div>
         </div>

@@ -8,7 +8,7 @@
 
 .request-form-card {
   width: 100%;
-  max-width: 672px;
+  max-width: 620px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -232,8 +232,13 @@
   letter-spacing: 0.01em;
 }
 
-.request-form-submit:hover {
+.request-form-submit:hover:not(:disabled) {
   background: var(--primary-hover);
+}
+
+.request-form-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {

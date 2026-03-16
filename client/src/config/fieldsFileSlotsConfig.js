@@ -3,28 +3,26 @@ export const FIELDS_FILE_SLOTS_CONFIG = {
     orgactivities: {
       label: "Student Organization Activities",
       fields: [
-        { name: "title", label: "Title", required: true },
-        { name: "details", label: "Details (optional)", required: false},
+        { name: "projectTitle", label: "Project Title", required: true },
       ],
       fileSlots: [
         { label: "Letter of Intent", required: true },
         { label: "School ID", required: false },
         { label: "Registration Form", required: false },
-        { label: "Sample Forms or Collaterals", required: false },
+        { label: "Sample Forms or Collaterals (if applicable)", required: false },
       ],
     },
 
     research: {
-      label: "Conduct of Research", 
+      label: "Conduct of Research",
       fields: [
-        { name: "1dataField", label: "Data Field 1", required: true },
-        { name: "2dataField", label: "Data Field 2", required: false },
-        { name: "3dataField", label: "Data Field 3", required: false },
+        { name: "researchTitle", label: "Research Title", required: true },
       ],
       fileSlots: [
-        { label: "Requirement 1", required: true },
-        { label: "Requirement 2", required: false },
-        { label: "Requirement 3", required: false },
+        { label: "Letter of Intent", required: true },
+        { label: "Copy of Questionnaire with Data Privacy Consent Form", required: false },
+        { label: "School Id", required: false },
+        { label: "Registration Form", required: false },
       ],
     },
   },

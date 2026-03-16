@@ -34,7 +34,7 @@ export const s = StyleSheet.create({
   footerQrLabel: { fontSize: 7, color: "#888", marginTop: 4, textAlign: "left" },
 });
 
-export const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-US") : "N/A");
+export const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "N/A");
 
 export const Header = ({ title, subtitle }) => (
   <View>

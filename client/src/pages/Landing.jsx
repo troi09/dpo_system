@@ -329,8 +329,8 @@ const Landing = () => {
     <div className={`landing ${hasMounted ? "is-mounted" : ""}`} onMouseMove={handleMouseMove}>
       <div
         ref={bgRef}
-        className={`landing-parallax-bg ${bgLoaded ? "is-loaded" : ""}`}
-        style={{ backgroundImage: "url('/RTU-Background.jpg')" }}
+        className="landing-parallax-bg"
+        style={{ backgroundImage: "url('/RTU-Background.png')" }}
       />
       <div className="landing-overlay" />
       <div className="landing-wrapper">

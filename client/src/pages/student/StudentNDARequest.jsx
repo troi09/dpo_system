@@ -190,7 +190,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
                   ? "Capture the walk-in requestee signature below. It will be embedded in the NDA document."
                   : "Draw your signature below. It will be embedded in the NDA document."}
               </p>
-              <SignaturePad ref={sigPadRef} height={150} />
+              <SignaturePad ref={sigPadRef} height={250} />
               <button
                 type="button"
                 className="request-sig-clear"
@@ -216,7 +216,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
                 </div>
 
                 <label className="request-file-action">
-                  Upload File
+                  {file ? "Change File" : "Upload File"}
                   <input
                     type="file"
                     accept="application/pdf,image/*"

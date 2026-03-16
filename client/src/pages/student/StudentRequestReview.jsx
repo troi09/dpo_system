@@ -95,7 +95,7 @@ export default function StudentRequestReview() {
               <b>Status:</b> {prettyStatus(reqData.status)}
             </span>
             <span className="review-meta-row">
-              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US")}
+              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
             </span>
           </div>
         </div>
@@ -193,15 +193,15 @@ export default function StudentRequestReview() {
         {isApproved && (
           <div className="review-section">
             <h4 className="review-section-title">Approved Document</h4>
-            <div className="review-info-box">
-              {reqData.postdocs?.url ? (
-                <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-link">
-                  View Approved Document →
-                </a>
-              ) : (
+            {reqData.postdocs?.url ? (
+              <a href={reqData.postdocs.url} target="_blank" rel="noreferrer" className="review-file-link">
+                📎 Approved Document
+              </a>
+            ) : (
+              <div className="review-info-box">
                 <span className="review-info-box--muted">No approved document uploaded.</span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>

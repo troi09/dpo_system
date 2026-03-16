@@ -30,9 +30,9 @@ export default function StudentNDATypeChooser({
           onClick={() => navigate(`${basePath}/orgactivities`)}
         >
           <Users size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
-          <span className="type-chooser-card-label">School Org Activities</span>
+          <span className="type-chooser-card-label">School Organization Activities/Projects</span>
           <span className="type-chooser-card-subtext">
-            For student org events or partner engagements involving confidential documents.
+            For student organization events or partner engagements involving confidential documents.
           </span>
         </button>
 
@@ -42,7 +42,7 @@ export default function StudentNDATypeChooser({
           onClick={() => navigate(`${basePath}/research`)}
         >
           <FlaskConical size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
-          <span className="type-chooser-card-label">Conduct Research</span>
+          <span className="type-chooser-card-label">Conduct of Research within RTU</span>
           <span className="type-chooser-card-subtext">
             For thesis, capstone, or research involving sensitive data or unpublished findings.
           </span>

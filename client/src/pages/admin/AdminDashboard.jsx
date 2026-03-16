@@ -329,7 +329,7 @@ export default function AdminDashboard() {
                   <td>
                     <span className={statusPillClass(r.status)}>{prettyStatus(r.status)}</span>
                   </td>
-                  <td>{new Date(r.createdAt).toLocaleDateString("en-US")}</td>
+                  <td>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
                   <td>
                     <button
                       className="dashboard-action"

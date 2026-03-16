@@ -337,7 +337,7 @@ export default function AdminRequests() {
                     </span>
                   </td>
 
-                  <td>{new Date(r.createdAt).toLocaleDateString("en-US")}</td>
+                  <td>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
 
                   <td>
                     <button

@@ -1,25 +1,63 @@
-import React from "react";
 import { Document, Page, View, Image, Text, StyleSheet } from "@react-pdf/renderer";
-import { s, formatDate, Header, MetaRow, SectionTitle, FieldRow, BodyText, Footer } from "./styles";
+import { formatDate } from "./styles";
 
-const sigStyles = StyleSheet.create({
-  sigSection: { marginTop: 20 },
-  sigRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
-  sigBlock: { width: "45%", alignItems: "center" },
-  sigImage: { width: 120, height: 50, objectFit: "contain", borderBottomWidth: 1, borderBottomColor: "#aaa" },
-  sigPlaceholder: { width: 120, height: 50, borderBottomWidth: 1, borderBottomColor: "#aaa" },
-  sigLabel: { fontSize: 8, color: "#555", marginTop: 4, textAlign: "center" },
-  sigName: { fontSize: 9, fontFamily: "Helvetica-Bold", textAlign: "center" },
+const styles = StyleSheet.create({
+  page: {
+    paddingTop: 36,
+    paddingBottom: 40,
+    paddingHorizontal: 36,
+    fontSize: 10,
+    fontFamily: "Times-Roman",
+    color: "#111",
+  },
+  headerRow: { flexDirection: "row", justifyContent: "space-between" },
+  headerBlock: { width: "48%" },
+  headerLeftTitle: { fontSize: 10, fontFamily: "Times-Bold" },
+  headerLeftCode: { fontSize: 9, marginTop: 2 },
+  headerRight: { alignItems: "flex-end" },
+  headerRightLine: { fontSize: 9 },
+  logoRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 12, marginBottom: 10 },
+  logo: { width: 70, height: 70, objectFit: "contain", marginHorizontal: 8 },
+  logoDpo: { width: 60, height: 60, objectFit: "contain", marginHorizontal: 8 },
+  centerTextWrap: { alignItems: "center", marginHorizontal: 6 },
+  centerLine: { fontSize: 10, textAlign: "center" },
+  centerOffice: { fontSize: 10, textAlign: "center" },
+  centerAgreement: { fontSize: 11, fontFamily: "Times-Bold", textAlign: "center", marginTop: 2 },
+  paragraphNoIndent: {
+    width: "85%",
+    alignSelf: "center",
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  afterParagraph: {
+    marginTop: 18,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    width: "85%",
+    alignSelf: "center",
+  },
+  rightColumn: { alignItems: "flex-end" },
+  sigBlock: { width: 220, alignItems: "flex-start", marginBottom: 14 },
+  sigImage: { width: 150, height: 50, objectFit: "contain", borderBottomWidth: 1, borderBottomColor: "#333" },
+  sigPlaceholder: { width: 150, height: 50, borderBottomWidth: 1, borderBottomColor: "#333" },
+  sigName: { fontSize: 10, fontFamily: "Times-Bold", marginTop: 4, textAlign: "left" },
+  sigLabel: { fontSize: 8.5, textAlign: "left" },
+  dateReceived: { fontSize: 9, alignSelf: "flex-start", marginBottom: 4, textAlign: "left" },
+  qrWrap: { alignItems: "flex-start", marginBottom: 10 },
+  qrImage: { width: 70, height: 70 },
 });
 
-const SigBlock = ({ label, name, imgUrl }) => (
-  <View style={sigStyles.sigBlock}>
+const SigBlock = ({ label, name, imgUrl, dateReceived }) => (
+  <View style={styles.sigBlock}>
+    {dateReceived ? <Text style={styles.dateReceived}>{dateReceived}</Text> : null}
     {imgUrl
-      ? <Image style={sigStyles.sigImage} src={imgUrl} />
-      : <View style={sigStyles.sigPlaceholder} />
+      ? <Image style={styles.sigImage} src={imgUrl} />
+      : <View style={styles.sigPlaceholder} />
     }
-    <Text style={sigStyles.sigName}>{name || ""}</Text>
-    <Text style={sigStyles.sigLabel}>{label}</Text>
+    <Text style={styles.sigName}>{name || ""}</Text>
+    <Text style={styles.sigLabel}>{label}</Text>
   </View>
 );
 
@@ -32,47 +70,64 @@ export default function NDAResearchDoc({ request }) {
   const displayIdNumber = proxy.isProxy ? (proxy.idNumber || "") : "";
   const displayDepartment = proxy.isProxy ? (proxy.departmentOrOrganization || "") : "";
   const { studentSigDataUrl, adminSigDataUrl } = request;
+  const approverName = request.approverName || request.adminName || request.approvedByName || "";
+  const toUpper = (value) => (value ? String(value).toUpperCase() : "");
+  const studentNameUpper = toUpper(student.name);
   const hasAnySig = studentSigDataUrl || adminSigDataUrl;
 
   return (
     <Document>
-      <Page size="A4" style={s.page}>
-        <Header title="NON-DISCLOSURE AGREEMENT" subtitle="Conduct of Research" />
-
-        <MetaRow label="Date Approved" value={formatDate(request.updatedAt)} />
-        <MetaRow label="Control #" value={request.serialNo || "N/A"} />
-        <MetaRow label="Request ID" value={request._id} />
-
-        <SectionTitle>Student Information</SectionTitle>
-        <FieldRow label="Name" value={displayName} />
-        <FieldRow label="Email" value={displayEmail} />
-        {displayIdNumber ? <FieldRow label="ID Number" value={displayIdNumber} /> : null}
-        {displayDepartment ? <FieldRow label="Department / Organization" value={displayDepartment} /> : null}
-
-        <SectionTitle>Data Form</SectionTitle>
-        <FieldRow label="Data Field 1" value={fd["1dataField"]} />
-        <FieldRow label="Data Field 2" value={fd["2dataField"]} />
-        <FieldRow label="Data Field 3" value={fd["3dataField"]} />
-
-        {hasAnySig && (
-          <View style={sigStyles.sigSection}>
-            <SectionTitle>Signatures</SectionTitle>
-            <View style={sigStyles.sigRow}>
-              <SigBlock
-                label="Student"
-                name={displayName}
-                imgUrl={studentSigDataUrl || null}
-              />
-              <SigBlock
-                label="Data Protection Office"
-                name="DPO Admin"
-                imgUrl={adminSigDataUrl || null}
-              />
-            </View>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerBlock}>
+            <Text style={styles.headerLeftTitle}>RIZAL TECHNOLOGICAL UNIVERSITY</Text>
+            <Text style={styles.headerLeftCode}>RTU-OP-UDPO-F002</Text>
           </View>
-        )}
+          <View style={[styles.headerBlock, styles.headerRight]}>
+            <Text style={styles.headerRightLine}>Effectivity {formatDate(request.updatedAt)}</Text>
+            <Text style={styles.headerRightLine}>Control # {request.serialNo || "N/A"}</Text>
+          </View>
+        </View>
 
-        <Footer qrDataUrl={request.qrDataUrl} verificationUrl={request.verificationUrl} />
+        <View style={styles.logoRow}>
+          <Image style={styles.logo} src="/rtu-logo.png" />
+          <View style={styles.centerTextWrap}>
+            <Text style={styles.centerLine}>Rizal Technological University</Text>
+            <Text style={styles.centerLine}>Boni Avenue, City of Mandaluyong</Text>
+            <Text style={styles.centerOffice}>UNIVERSITY DATA PROTECTION CENTER</Text>
+            <Text style={styles.centerAgreement}>NON-DISCLOSURE AGREEMENT</Text>
+          </View>
+          <Image style={styles.logoDpo} src="/dpo-logo-full.png" />
+        </View>
+
+        <Text style={styles.paragraphNoIndent}>
+          "{fd.researchTitle || "________________"}"
+        </Text>
+
+        <View style={styles.afterParagraph}>
+          {request.qrDataUrl ? (
+            <View style={styles.qrWrap}>
+              <Image style={styles.qrImage} src={request.qrDataUrl} />
+            </View>
+          ) : null}
+          <View style={styles.rightColumn}>
+            {hasAnySig ? (
+              <>
+                <SigBlock
+                  label="Researcher's signature over printed name"
+                  name={studentNameUpper}
+                  imgUrl={studentSigDataUrl || null}
+                />
+                <SigBlock
+                  dateReceived={`Date Received: ${formatDate(request.updatedAt)}`}
+                  label="Approving Officer's Signature over printed name"
+                  name={toUpper(approverName)}
+                  imgUrl={adminSigDataUrl || null}
+                />
+              </>
+            ) : null}
+          </View>
+        </View>
       </Page>
     </Document>
   );

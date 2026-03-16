@@ -195,24 +195,40 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
               </>
             )}
 
-            {/* Outside Philippines checkbox */}
-            <div className="request-field" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <input
-                type="checkbox"
-                id="outsidePH"
-                checked={outsidePH}
-                onChange={(e) => setOutsidePH(e.target.checked)}
-                style={{ width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: "var(--primary)" }}
-              />
-              <label htmlFor="outsidePH" style={{ cursor: "pointer", fontSize: 14, color: "var(--text-primary)", margin: 0 }}>
-                The requestee is located outside of the Philippines
-              </label>
-            </div>
-            {outsidePH && (
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: -6, marginBottom: 4, paddingLeft: 26 }}>
-                The authorization letter must be consular-notarized (apostilled or authenticated by the Philippine Embassy/Consulate).
+              {/* Outside Philippines checkbox */}
+              <div className="request-field" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <input
+                  type="checkbox"
+                  id="outsidePH"
+                  checked={outsidePH}
+                  onChange={(e) => setOutsidePH(e.target.checked)}
+                  style={{ width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: "var(--primary)" }}
+                />
+                <label htmlFor="outsidePH" style={{ cursor: "pointer", fontSize: 14, color: "var(--text-primary)", margin: 0 }}>
+                  The requestee is located outside of the Philippines
+                </label>
               </div>
-            )}
+              {outsidePH && (
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: -6, marginBottom: 4, paddingLeft: 26 }}>
+                  The authorization letter must be consular-notarized (apostilled or authenticated by the Philippine Embassy/Consulate).
+                </div>
+              )}
+            </div>
+
+            <div className="request-section">
+              <div className="request-section-title">Your E-Signature *</div>
+              <p className="request-sig-hint">
+                Draw your signature below. It will be embedded in the agreement document.
+              </p>
+              <SignaturePad ref={sigPadRef} height={250} />
+              <button
+                type="button"
+                className="request-sig-clear"
+                onClick={() => sigPadRef.current?.clear()}
+              >
+                Clear Signature
+              </button>
+            </div>
           </div>
 
           <div className="request-section">
@@ -230,7 +246,7 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
                 </div>
 
                 <label className="request-file-action">
-                  Upload File
+                  {file ? "Change File" : "Upload File"}
                   <input
                     type="file"
                     accept="application/pdf,image/*"

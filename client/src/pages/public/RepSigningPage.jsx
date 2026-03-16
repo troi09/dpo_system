@@ -220,7 +220,7 @@ export default function RepSigningPage() {
                 <span className="rep-signing-file-subtitle">PDF or image accepted</span>
               </div>
               <label className="rep-signing-file-action">
-                {govIdFile ? "Change" : "Upload"}
+                {govIdFile ? "Change File" : "Upload File"}
                 <input
                   type="file"
                   accept="application/pdf,image/*"
