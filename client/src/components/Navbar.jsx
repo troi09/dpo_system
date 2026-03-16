@@ -61,6 +61,12 @@ const Navbar = () => {
               <ClipboardList size={16} className="nav-icon" />
               Requests
             </NavLink>
+            {user?.role === "staff" && (
+              <NavLink to="/admin/proxy-request" className={linkClass}>
+                <FilePlus size={16} className="nav-icon" />
+                Proxy Request
+              </NavLink>
+            )}
             <NavLink to="/admin/reports" className={linkClass}>
               <BarChart2 size={16} className="nav-icon" />
               Reports
@@ -75,10 +81,12 @@ const Navbar = () => {
               <Archive size={16} className="nav-icon" />
               Archives
             </NavLink>
-            <NavLink to="/admin/audit" className={linkClass}>
-              <Activity size={16} className="nav-icon" />
-              Audit
-            </NavLink>
+            {user?.role === "admin" && (
+              <NavLink to="/admin/audit" className={linkClass}>
+                <Activity size={16} className="nav-icon" />
+                Audit
+              </NavLink>
+            )}
             <NavLink to="/admin/profile" className={linkClass}>
               <UserCircle size={16} className="nav-icon" />
               Profile

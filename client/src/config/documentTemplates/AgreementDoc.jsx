@@ -79,6 +79,7 @@ const SigBlock = ({ label, name, imgUrl, dateReceived }) => (
  */
 export default function AgreementDoc({ request }) {
   const student = request.userId || {};
+  const proxy = request.proxyRequestee || {};
   const repInfo = request.repInfo || {};
   const { authorizerSigUrl, repSigUrl, adminSigDataUrl } = request;
   const approverName = request.approverName || request.adminName || request.approvedByName || "";
@@ -133,7 +134,7 @@ export default function AgreementDoc({ request }) {
               <>
                 <SigBlock
                   label="Authorizer's signature over printed name"
-                  name={toUpper(student.name)}
+                  name={toUpper(proxy.isProxy ? (proxy.fullName || "") : (student.name || ""))}
                   imgUrl={authorizerSigUrl || null}
                 />
                 <SigBlock

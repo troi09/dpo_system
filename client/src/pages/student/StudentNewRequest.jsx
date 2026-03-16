@@ -2,17 +2,20 @@ import { useNavigate } from "react-router-dom";
 import { FileText, ShieldCheck } from "lucide-react";
 import "../../components/TypeChooser.css";
 
-export default function StudentNewRequest() {
+export default function StudentNewRequest({
+  basePath = "/student/new-request",
+  title = "What type of request would you like to submit?",
+}) {
   const navigate = useNavigate();
 
   return (
     <div className="type-chooser-page">
-      <h2 className="type-chooser-heading">What type of request would you like to submit?</h2>
+      <h2 className="type-chooser-heading">{title}</h2>
       <div className="type-chooser-grid">
         <button
           type="button"
           className="type-chooser-card-btn"
-          onClick={() => navigate("/student/new-request/nda")}
+          onClick={() => navigate(`${basePath}/nda`)}
         >
           <ShieldCheck size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
           <span className="type-chooser-card-label">Non-Disclosure Agreement</span>
@@ -21,7 +24,7 @@ export default function StudentNewRequest() {
         <button
           type="button"
           className="type-chooser-card-btn"
-          onClick={() => navigate("/student/new-request/agreement")}
+          onClick={() => navigate(`${basePath}/agreement`)}
         >
           <FileText size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
           <span className="type-chooser-card-label">Agreement</span>

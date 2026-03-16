@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from "react";
 import { Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 

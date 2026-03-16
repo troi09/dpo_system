@@ -26,6 +26,10 @@ export const verifyLoginOtp = async (email, otp) => {
 
 export const verifyEmail = async (email, otp) => {
   const res = await axios.post(`${API_URL}/verify-email`, { email, otp });
+  if (res.data.token) {
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+  }
   return res.data;
 };
 
@@ -36,6 +40,11 @@ export const verifyEmailByToken = async (token) => {
 
 export const resendVerificationOtp = async (email) => {
   const res = await axios.post(`${API_URL}/resend-verification-otp`, { email });
+  return res.data;
+};
+
+export const resendLoginOtp = async (email) => {
+  const res = await axios.post(`${API_URL}/resend-login-otp`, { email });
   return res.data;
 };
 
@@ -59,6 +68,11 @@ export const getToken = () => localStorage.getItem("token");
 // ── Forgot Password / Reset flow ──────────────────────────────────────────────
 export const forgotPassword = async (email) => {
   const res = await axios.post(`${API_URL}/forgot-password`, { email });
+  return res.data;
+};
+
+export const resendResetOtp = async (email) => {
+  const res = await axios.post(`${API_URL}/resend-reset-otp`, { email });
   return res.data;
 };
 
@@ -112,7 +126,17 @@ export const toggleUserActive = async (id) => {
   return res.data;
 };
 
-export const adminTriggerPasswordReset = async (id) => {
-  const res = await axios.post(`${API_URL}/users/${id}/trigger-reset`, {}, { headers: authHeader() });
+export const adminUpdateUser = async (id, payload) => {
+  const res = await axios.patch(`${API_URL}/users/${id}`, payload, { headers: authHeader() });
+  return res.data;
+};
+
+export const adminDeleteUser = async (id) => {
+  const res = await axios.delete(`${API_URL}/users/${id}`, { headers: authHeader() });
+  return res.data;
+};
+
+export const adminResetUserPassword = async (id, temporaryPassword) => {
+  const res = await axios.post(`${API_URL}/users/${id}/reset-password`, { temporaryPassword }, { headers: authHeader() });
   return res.data;
 };

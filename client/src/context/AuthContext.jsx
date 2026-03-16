@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { logout as logoutService, getCurrentUser, getToken, refreshToken } from "../services/authService";
 
@@ -126,6 +127,7 @@ export const AuthProvider = ({ children }) => {
     // on load or refresh, check token validity
     scheduleAutoLogout();
     return () => clearAllTimers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

@@ -6,10 +6,22 @@ import { getRequestById } from "../../services/requestService";
 
 const prettyStatus = (s) => {
   const map = {
-    nda_pending:                "Pending Approval",
+    nda_submitted:              "Submitted",
+    nda_admin_reviewal:         "Admin Reviewal",
     nda_approved:               "Approved",
+    nda_revision_requested:      "Revision Requested",
+    agreement_submitted:                "Submitted",
+    agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
+    agreement_awaiting_rep_approval:    "Awaiting Representative Signature",
+    agreement_final_admin_reviewal:     "Pending Final Admin Review",
+    agreement_approved:                 "Approved",
+    agreement_rep_declined:             "Declined by Representative",
+    agreement_rep_revision_requested:   "Representative Revision Requested",
+
+    // Legacy fallback
+    nda_pending:                "Admin Reviewal",
     revision_requested:         "Revision Requested",
-    agr_pending_1:              "Initial Pending Approval",
+    agr_pending_1:              "Initial Admin Reviewal",
     agr_awaiting_rep_signature: "Awaiting Representative Signature",
     agr_pending_2:              "Pending Final Admin Review",
     agr_approved:               "Approved",
@@ -31,7 +43,7 @@ export default function StudentRequestReview() {
         const r = await getRequestById(id);
 
         // Redirect to resubmit page if revision is requested from student
-        if (r.status === "revision_requested") {
+        if (r.status === "nda_revision_requested" || r.status === "revision_requested") {
           navigate(`/student/resubmit/${id}`, { replace: true });
           return;
         }
@@ -59,7 +71,7 @@ export default function StudentRequestReview() {
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` — ${reqData.formData.ndaTypeLabel}` : ""}`;
 
-  const isApproved = reqData.status === "nda_approved" || reqData.status === "agr_approved";
+  const isApproved = reqData.status === "nda_approved" || reqData.status === "agreement_approved" || reqData.status === "agr_approved";
   const isAgreement = reqData.type === "agreement";
 
   return (
@@ -89,7 +101,7 @@ export default function StudentRequestReview() {
         </div>
 
         <div className="review-section review-section--stepper">
-          <RequestStepper status={reqData.status} />
+          <RequestStepper status={reqData.status} type={reqData.type} />
         </div>
 
         {/* Remarks */}
@@ -142,7 +154,7 @@ export default function StudentRequestReview() {
         </div>
 
         {/* Agreement-specific status banners */}
-        {isAgreement && reqData.status === "agr_awaiting_rep_signature" && (
+        {isAgreement && (reqData.status === "agreement_awaiting_rep_approval" || reqData.status === "agr_awaiting_rep_signature") && (
           <div className="info-banner info-banner--info">
             <strong>Awaiting Representative</strong>
             <p>
@@ -152,7 +164,7 @@ export default function StudentRequestReview() {
           </div>
         )}
 
-        {isAgreement && reqData.status === "agr_pending_2" && (
+        {isAgreement && (reqData.status === "agreement_final_admin_reviewal" || reqData.status === "agr_pending_2") && (
           <div className="info-banner info-banner--success">
             <strong>Representative Signed</strong>
             <p>
@@ -161,14 +173,14 @@ export default function StudentRequestReview() {
           </div>
         )}
 
-        {isAgreement && reqData.status === "agr_rep_declined" && (
+        {isAgreement && (reqData.status === "agreement_rep_declined" || reqData.status === "agr_rep_declined") && (
           <div className="info-banner info-banner--danger">
             <strong>Representative Declined</strong>
             <p>The representative declined to sign this agreement.</p>
           </div>
         )}
 
-        {isAgreement && reqData.status === "agr_rep_revision_requested" && (
+        {isAgreement && (reqData.status === "agreement_rep_revision_requested" || reqData.status === "agr_rep_revision_requested") && (
           <div className="info-banner info-banner--warning">
             <strong>Representative Revision Requested</strong>
             <p>

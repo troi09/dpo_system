@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { AuthContext } from "../../context/AuthContext";
@@ -18,18 +19,31 @@ import {
   uploadApprovedForm,
   uploadApprovedQrImage,
   deleteStorageFile,
+  uploadSignatureImage,
 } from "../../services/firebaseStorageService";
 import { buildVerificationUrl, generateQrDataUrl } from "../../services/qrService";
 import SignaturePad from "../../components/SignaturePad";
 
 const prettyStatus = (s) => {
   const map = {
-    nda_pending:                "Pending Approval",
+    nda_submitted:              "Submitted",
+    nda_admin_reviewal:         "Admin Reviewal",
     nda_approved:               "Approved",
+    nda_revision_requested:      "Revision Requested",
+    agreement_submitted:                "Submitted",
+    agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
+    agreement_awaiting_rep_approval:    "Awaiting Representative Approval",
+    agreement_final_admin_reviewal:     "Final Admin Reviewal",
+    agreement_approved:                 "Approved",
+    agreement_rep_declined:             "Declined by Representative",
+    agreement_rep_revision_requested:   "Representative Revision Requested",
+
+    // Legacy fallback labels
+    nda_pending:                "Admin Reviewal",
     revision_requested:         "Revision Requested",
-    agr_pending_1:              "Initial Pending Approval",
-    agr_awaiting_rep_signature: "Awaiting Representative Signature",
-    agr_pending_2:              "Pending Final Admin Review",
+    agr_pending_1:              "Initial Admin Reviewal",
+    agr_awaiting_rep_signature: "Awaiting Representative Approval",
+    agr_pending_2:              "Final Admin Reviewal",
     agr_approved:               "Approved",
     agr_rep_declined:           "Declined by Representative",
     agr_rep_revision_requested: "Representative Revision Requested",
@@ -50,8 +64,7 @@ const getRequestFolder = (predocs = []) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // NDA review panel (flow: pending → approved | revision_requested)
 // ─────────────────────────────────────────────────────────────────────────────
-function NdaReviewPanel({ reqData }) {
-  const navigate = useNavigate();
+function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   const { user } = useContext(AuthContext);
   const [remarks, setRemarks] = useState(reqData.remarks || "");
   const [approving, setApproving] = useState(false);
@@ -62,8 +75,9 @@ function NdaReviewPanel({ reqData }) {
     return null;
   }, [reqData]);
 
-  const isPending = reqData?.status === "nda_pending";
-  const isRevision = reqData?.status === "revision_requested";
+  const isSubmitted = reqData?.status === "nda_submitted";
+  const isAdminReviewal = reqData?.status === "nda_admin_reviewal" || reqData?.status === "nda_pending";
+  const isRevision = reqData?.status === "nda_revision_requested" || reqData?.status === "revision_requested";
   const isApproved = reqData?.status === "nda_approved";
 
 
@@ -83,7 +97,6 @@ function NdaReviewPanel({ reqData }) {
         const studentName = reqData.userId?.name || "Unknown Student";
         const requestFolder = getRequestFolder(reqData.predocs);
 
-        const { uploadSignatureImage } = await import("../../services/firebaseStorageService");
         const { url: adminSigFirebaseUrl, path: adminSigFirebasePath } = await uploadSignatureImage(
           adminSigDataUrl,
           "nda",
@@ -138,8 +151,7 @@ function NdaReviewPanel({ reqData }) {
         await updateRequestStatus(reqData._id, { status, remarks });
         alert(`Updated to ${status}`);
       }
-      if (window.history.length > 1) navigate(-1);
-      else navigate("/admin");
+      await onRequestUpdated?.({ withToast: true });
     } catch (err) {
       alert(err.response?.data?.message || err.message || "Failed to update request");
     } finally {
@@ -192,7 +204,7 @@ function NdaReviewPanel({ reqData }) {
         )}
       </div>
 
-      {isPending && (
+      {canProgress && (isSubmitted || isAdminReviewal) && (
         <div className="review-section">
           <h4 className="review-section-title">Remarks</h4>
           <textarea
@@ -240,7 +252,7 @@ function NdaReviewPanel({ reqData }) {
         </div>
       )}
 
-      {isPending && (
+      {canProgress && isAdminReviewal && (
         <div className="review-section">
           <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
           <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
@@ -257,7 +269,19 @@ function NdaReviewPanel({ reqData }) {
         </div>
       )}
 
-      {isPending && (
+      {canProgress && isSubmitted && (
+        <div className="review-actions">
+          <button
+            onClick={() => handleUpdate("nda_admin_reviewal")}
+            disabled={approving}
+            className="review-btn-primary"
+          >
+            {approving ? "Updating..." : "Forward to Admin Reviewal"}
+          </button>
+        </div>
+      )}
+
+      {canProgress && isAdminReviewal && (
         <div className="review-actions">
           <button
             onClick={() => handleUpdate("nda_approved")}
@@ -267,12 +291,19 @@ function NdaReviewPanel({ reqData }) {
             {approving ? "Generating..." : "Approve"}
           </button>
           <button
-            onClick={() => handleUpdate("revision_requested")}
+            onClick={() => handleUpdate("nda_revision_requested")}
             disabled={approving}
             className="review-btn-secondary"
           >
             Request Revision
           </button>
+        </div>
+      )}
+
+      {!canProgress && (
+        <div className="info-banner info-banner--info">
+          <strong>Read-only access</strong>
+          <p>Staff can view request details but only Admin can move, approve, or sign this request.</p>
         </div>
       )}
     </>
@@ -282,8 +313,7 @@ function NdaReviewPanel({ reqData }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Agreement review panel (multi-phase)
 // ─────────────────────────────────────────────────────────────────────────────
-function AgreementReviewPanel({ reqData }) {
-  const navigate = useNavigate();
+function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   const { user } = useContext(AuthContext);
   const [remarks, setRemarks] = useState(reqData.remarks || "");
   const [signingLink, setSigningLink] = useState(() => {
@@ -306,22 +336,12 @@ function AgreementReviewPanel({ reqData }) {
       const res = await generateSigningLink(reqData._id);
       const link = `${window.location.origin}/sign/${res.signingToken}`;
       setSigningLink(link);
+      await onRequestUpdated?.();
       alert("Signing link generated! Copy it and send to the representative manually.");
     } catch (err) {
       alert(err.response?.data?.message || err.message || "Failed to generate signing link");
     } finally {
       setGenerating(false);
-    }
-  };
-
-  const handlePhase1Revision = async () => {
-    try {
-      await updateRequestStatus(reqData._id, { status: "revision_requested", remarks });
-      alert("Revision requested from student.");
-      if (window.history.length > 1) navigate(-1);
-      else navigate("/admin");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed");
     }
   };
 
@@ -375,9 +395,8 @@ function AgreementReviewPanel({ reqData }) {
       await deleteStorageFile(reqData.repSigPath);
 
       alert("Agreement fully approved and document generated!");
+      await onRequestUpdated?.({ withToast: true });
       setApproving(false);
-      if (window.history.length > 1) navigate(-1);
-      else navigate("/admin");
     } catch (err) {
       setApproving(false);
       alert(err.response?.data?.message || err.message || "Failed to approve");
@@ -393,6 +412,7 @@ function AgreementReviewPanel({ reqData }) {
       const res = await adminPhase3Action(reqData._id, { action: "rep_revision_requested", remarks });
       const newLink = `${window.location.origin}/sign/${res.request.signingToken}`;
       setSigningLink(newLink);
+      await onRequestUpdated?.({ withToast: true });
       alert("Representative revision requested. A new signing link has been generated — copy it and send to the representative.");
     } catch (err) {
       alert(err.response?.data?.message || "Failed");
@@ -485,7 +505,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* Remarks display */}
-      {(status === "revision_requested" || status === "agr_rep_revision_requested") &&
+      {(status === "nda_revision_requested" || status === "agreement_rep_revision_requested" || status === "revision_requested" || status === "agr_rep_revision_requested") &&
         reqData.remarks && (
           <div className="review-section">
             <h4 className="review-section-title">Remarks</h4>
@@ -494,7 +514,7 @@ function AgreementReviewPanel({ reqData }) {
         )}
 
       {/* Final approved document */}
-      {status === "agr_approved" && (
+      {status === "agreement_approved" && (
         <div className="review-section">
           <h4 className="review-section-title">Approved Agreement</h4>
           <div className="review-info-box">
@@ -510,7 +530,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* Rep rejected */}
-      {status === "agr_rep_declined" && (
+      {status === "agreement_rep_declined" && (
         <div className="info-banner info-banner--danger">
           <strong>Representative Declined</strong>
           <p>The representative declined to sign. This request lifecycle has ended.</p>
@@ -540,7 +560,26 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Phase 1 actions ── */}
-      {status === "agr_pending_1" && !signingLink && (
+      {canProgress && status === "agreement_submitted" && (
+        <div className="review-actions">
+          <button
+            onClick={async () => {
+              try {
+                await updateRequestStatus(reqData._id, { status: "agreement_initial_admin_reviewal" });
+                alert("Request moved to Initial Admin Reviewal.");
+                await onRequestUpdated?.({ withToast: true });
+              } catch (err) {
+                alert(err.response?.data?.message || "Failed");
+              }
+            }}
+            className="review-btn-primary"
+          >
+            Forward to Initial Admin Reviewal
+          </button>
+        </div>
+      )}
+
+      {canProgress && status === "agreement_initial_admin_reviewal" && !signingLink && (
         <>
           <div className="review-section">
             <h4 className="review-section-title">Remarks (for student revision)</h4>
@@ -560,15 +599,12 @@ function AgreementReviewPanel({ reqData }) {
             >
               {generating ? "Generating link..." : "Approve & Generate Signing Link"}
             </button>
-            <button onClick={handlePhase1Revision} className="review-btn-secondary">
-              Request Revision from Student
-            </button>
           </div>
         </>
       )}
 
       {/* ── Phase 2: waiting on rep ── */}
-      {status === "agr_awaiting_rep_signature" && !signingLink && (
+      {status === "agreement_awaiting_rep_approval" && !signingLink && (
         <div className="info-banner info-banner--info">
           <strong>Waiting for Representative</strong>
           <p>
@@ -579,7 +615,7 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Phase 3 actions ── */}
-      {status === "agr_pending_2" && (
+      {canProgress && status === "agreement_final_admin_reviewal" && (
         <>
           <div className="review-section">
             <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
@@ -623,13 +659,20 @@ function AgreementReviewPanel({ reqData }) {
       )}
 
       {/* ── Rep revision requested ── */}
-      {status === "agr_rep_revision_requested" && !signingLink && (
+      {status === "agreement_rep_revision_requested" && !signingLink && (
         <div className="info-banner info-banner--warning">
           <strong>Representative Revision Pending</strong>
           <p>
             A new signing link has been generated. Send it to the representative so they can
             resubmit.
           </p>
+        </div>
+      )}
+
+      {!canProgress && (
+        <div className="info-banner info-banner--info">
+          <strong>Read-only access</strong>
+          <p>Staff can view request details but only Admin can move, approve, or sign this request.</p>
         </div>
       )}
     </>
@@ -642,24 +685,38 @@ function AgreementReviewPanel({ reqData }) {
 export default function AdminRequestReview() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
   const [reqData, setReqData] = useState(null);
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const r = await getRequestById(id);
-        setReqData(r);
-      } catch (err) {
-        alert(err.response?.data?.message || "Failed to load request");
-        navigate("/admin/requests");
+  const [refreshing, setRefreshing] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  const loadRequest = async ({ withToast = false } = {}) => {
+    if (withToast) setRefreshing(true);
+    try {
+      const r = await getRequestById(id);
+      setReqData(r);
+      if (withToast) {
+        setNotice("Data updated");
+        setTimeout(() => setNotice(""), 1800);
       }
-    };
-    load();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to load request");
+      navigate("/admin/requests");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRequest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
   if (!reqData) return null;
 
   const isAgreement = reqData.type === "agreement";
+  const canProgress = user?.role === "admin";
 
   const requestTitle =
     reqData.type === "agreement"
@@ -669,15 +726,34 @@ export default function AdminRequestReview() {
   return (
     <div className="review-page">
       <div className="review-card">
-        <button
-          className="review-back-btn"
-          onClick={() => {
-            if (window.history.length > 1) navigate(-1);
-            else navigate("/admin");
-          }}
-        >
-          ← Back
-        </button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+          <button
+            className="review-back-btn"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/admin");
+            }}
+          >
+            ← Back
+          </button>
+
+          <button
+            className="dashboard-action"
+            type="button"
+            onClick={() => loadRequest({ withToast: true })}
+            disabled={refreshing}
+            style={{ padding: "8px 12px" }}
+          >
+            <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+            Refresh
+          </button>
+        </div>
+
+        {notice ? (
+          <div className="info-banner info-banner--success">
+            <strong>{notice}</strong>
+          </div>
+        ) : null}
 
         <div className="review-header">
           <h2 className="review-title">Review {requestTitle}</h2>
@@ -692,23 +768,40 @@ export default function AdminRequestReview() {
         </div>
 
         <div className="review-section">
-          <RequestStepper status={reqData.status} />
+          <RequestStepper status={reqData.status} type={reqData.type} />
         </div>
 
         <div className="review-section">
           <h4 className="review-section-title">Student</h4>
           <div className="review-info-box">
-            <div style={{ fontWeight: 600 }}>{reqData.userId?.name || "Unknown"}</div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
-              {reqData.userId?.email || ""}
+            <div style={{ fontWeight: 600 }}>
+              {reqData.proxyRequestee?.isProxy ? (reqData.proxyRequestee?.fullName || "Proxy Requestee") : (reqData.userId?.name || "Unknown")}
             </div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+              {reqData.proxyRequestee?.isProxy ? (reqData.proxyRequestee?.email || "") : (reqData.userId?.email || "")}
+            </div>
+            {reqData.proxyRequestee?.isProxy ? (
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                Submitted by staff: {reqData.userId?.name || "Unknown"}
+              </div>
+            ) : null}
+            {reqData.proxyRequestee?.isProxy && reqData.proxyRequestee?.idNumber ? (
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                ID: {reqData.proxyRequestee.idNumber}
+              </div>
+            ) : null}
+            {reqData.proxyRequestee?.isProxy && reqData.proxyRequestee?.departmentOrOrganization ? (
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                Department/Org: {reqData.proxyRequestee.departmentOrOrganization}
+              </div>
+            ) : null}
           </div>
         </div>
 
         {isAgreement ? (
-          <AgreementReviewPanel reqData={reqData} />
+          <AgreementReviewPanel reqData={reqData} canProgress={canProgress} onRequestUpdated={loadRequest} />
         ) : (
-          <NdaReviewPanel reqData={reqData} />
+          <NdaReviewPanel reqData={reqData} canProgress={canProgress} onRequestUpdated={loadRequest} />
         )}
       </div>
     </div>

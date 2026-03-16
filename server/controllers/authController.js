@@ -8,6 +8,7 @@ const {
   sendWelcomeEmail,
   sendLoginOtpEmail,
   sendVerificationOtpEmail,
+  sendPasswordChangedAlertEmail,
 } = require("../utils/emailService");
 
 // Helper to safely log audit events without blocking the response
@@ -24,7 +25,11 @@ const getClientIp = (req) => {
 };
 
 const OTP_TRUST_WINDOW_MS = 72 * 60 * 60 * 1000; // 72 hours
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const EMAIL_ERROR_MESSAGE = "Failed to send verification email. Please try again later.";
+const PASSWORD_POLICY_MESSAGE = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character (@$!%*?&)";
+
+const isStrongPassword = (password) => User.isStrongPassword(password);
 
 const buildErrorMessage = (error) => {
   if (error?.isEmailError) {
@@ -33,12 +38,86 @@ const buildErrorMessage = (error) => {
   return error?.message || "Internal server error";
 };
 
-const sendVerificationOtpToUser = async (user) => {
+const issueAuthPayload = (user) => {
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "8h" }
+  );
+
+  return {
+    token,
+    user: { id: user._id, name: user.name, email: user.email, role: user.role },
+  };
+};
+
+const getOtpCooldownState = (user) => {
+  const last = user?.otpLastSentAt ? new Date(user.otpLastSentAt).getTime() : 0;
+  const elapsed = Date.now() - last;
+  const retryAfterMs = OTP_RESEND_COOLDOWN_MS - elapsed;
+  return {
+    isCoolingDown: last > 0 && retryAfterMs > 0,
+    retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)),
+  };
+};
+
+const sendVerificationOtpToUser = async (user, { enforceCooldown = false } = {}) => {
+  if (enforceCooldown) {
+    const { isCoolingDown, retryAfterSeconds } = getOtpCooldownState(user);
+    if (isCoolingDown) {
+      const err = new Error(`Please wait ${retryAfterSeconds}s before requesting another OTP.`);
+      err.statusCode = 429;
+      err.retryAfterSeconds = retryAfterSeconds;
+      throw err;
+    }
+  }
+
   const otp = generateOtp();
   user.otp = await bcrypt.hash(otp, 10);
   user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  user.otpLastSentAt = new Date();
   await user.save();
   await sendVerificationOtpEmail(user.email, user.name, otp);
+};
+
+const sendLoginOtpToUser = async (user, { enforceCooldown = false } = {}) => {
+  if (enforceCooldown) {
+    const { isCoolingDown, retryAfterSeconds } = getOtpCooldownState(user);
+    if (isCoolingDown) {
+      const err = new Error(`Please wait ${retryAfterSeconds}s before requesting another OTP.`);
+      err.statusCode = 429;
+      err.retryAfterSeconds = retryAfterSeconds;
+      throw err;
+    }
+  }
+
+  const otp = generateOtp();
+  user.otp = await bcrypt.hash(otp, 10);
+  user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  user.otpLastSentAt = new Date();
+  await user.save();
+  await sendLoginOtpEmail(user.email, otp);
+};
+
+const sendResetOtpToUser = async (user, { enforceCooldown = false } = {}) => {
+  if (enforceCooldown) {
+    const { isCoolingDown, retryAfterSeconds } = getOtpCooldownState(user);
+    if (isCoolingDown) {
+      const err = new Error(`Please wait ${retryAfterSeconds}s before requesting another OTP.`);
+      err.statusCode = 429;
+      err.retryAfterSeconds = retryAfterSeconds;
+      throw err;
+    }
+  }
+
+  const otp = generateOtp();
+  user.otp = await bcrypt.hash(otp, 10);
+  user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  user.otpLastSentAt = new Date();
+  user.resetToken = null;
+  user.resetTokenExpiry = null;
+  await user.save();
+  await sendOtpEmail(user.email, otp, "reset");
 };
 
 // REGISTER
@@ -54,8 +133,8 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Name must be at least 2 characters" });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -105,7 +184,10 @@ exports.verifyEmail = async (req, res) => {
       user.verificationExpires = null;
       await user.save();
       logAudit({ userId: user._id, action: "email_verified", details: { email: user.email } });
-      return res.json({ message: "Email verified successfully! You can now log in." });
+      return res.json({
+        message: "Email verified successfully!",
+        ...issueAuthPayload(user),
+      });
     }
 
     // OTP-based verification
@@ -117,7 +199,10 @@ exports.verifyEmail = async (req, res) => {
     }
 
     if (user.isVerified) {
-      return res.json({ message: "Email is already verified. You can log in." });
+      return res.json({
+        message: "Email is already verified.",
+        ...issueAuthPayload(user),
+      });
     }
 
     if (user.otpExpiry < new Date()) {
@@ -134,7 +219,10 @@ exports.verifyEmail = async (req, res) => {
 
     logAudit({ userId: user._id, action: "email_verified", details: { email: user.email } });
 
-    res.json({ message: "Email verified successfully! You can now log in." });
+    res.json({
+      message: "Email verified successfully!",
+      ...issueAuthPayload(user),
+    });
   } catch (error) {
     res.status(500).json({ message: buildErrorMessage(error) });
   }
@@ -156,16 +244,46 @@ exports.resendVerificationOtp = async (req, res) => {
       return res.status(400).json({ message: "This account is already verified. You can log in." });
     }
 
-    const otp = generateOtp();
-    user.otp = await bcrypt.hash(otp, 10);
-    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-    await user.save();
-
-    await sendVerificationOtpEmail(user.email, user.name, otp);
+    await sendVerificationOtpToUser(user, { enforceCooldown: true });
 
     res.json({ message: "A new verification OTP has been sent to your email." });
   } catch (error) {
+    if (error?.statusCode === 429) {
+      return res.status(429).json({ message: error.message, retryAfterSeconds: error.retryAfterSeconds });
+    }
     res.status(500).json({ message: buildErrorMessage(error) });
+  }
+};
+
+exports.resendLoginOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const clientIp = getClientIp(req);
+
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(200).json({ message: "If that account exists, a new OTP has been sent." });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: "Account is deactivated. Contact an administrator." });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ message: "Please verify your email first." });
+    }
+
+    await sendLoginOtpToUser(user, { enforceCooldown: true });
+
+    logAudit({ userId: user._id, action: "login_otp_sent", details: { ip: clientIp, reason: "resend" }, ipAddress: clientIp });
+    return res.status(200).json({ message: "A new login OTP has been sent." });
+  } catch (error) {
+    if (error?.statusCode === 429) {
+      return res.status(429).json({ message: error.message, retryAfterSeconds: error.retryAfterSeconds });
+    }
+    return res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -176,8 +294,8 @@ exports.activateAccount = async (req, res) => {
     if (!token || !password) {
       return res.status(400).json({ message: "Token and new password are required" });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
     }
 
     const user = await User.findOne({
@@ -225,7 +343,7 @@ exports.login = async (req, res) => {
     }
 
     if (!user.isVerified) {
-      await sendVerificationOtpToUser(user);
+      await sendVerificationOtpToUser(user, { enforceCooldown: true });
       logAudit({ userId: user._id, action: "verification_otp_sent", details: { reason: "login_intercept" }, ipAddress: clientIp });
       return res.status(403).json({
         requireVerification: true,
@@ -262,12 +380,7 @@ exports.login = async (req, res) => {
     }
 
     // Device not trusted or expired → send OTP
-    const otp = generateOtp();
-    user.otp = await bcrypt.hash(otp, 10);
-    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    await user.save();
-
-    await sendLoginOtpEmail(user.email, otp);
+    await sendLoginOtpToUser(user, { enforceCooldown: true });
 
     logAudit({ userId: user._id, action: "login_otp_sent", details: { ip: clientIp }, ipAddress: clientIp });
 
@@ -276,6 +389,9 @@ exports.login = async (req, res) => {
       message: "A verification code has been sent to your email.",
     });
   } catch (error) {
+    if (error?.statusCode === 429) {
+      return res.status(429).json({ message: error.message, retryAfterSeconds: error.retryAfterSeconds });
+    }
     res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
@@ -382,8 +498,8 @@ exports.updateProfile = async (req, res) => {
       if (!currentPassword) {
         return res.status(400).json({ message: "Current password is required to set a new password" });
       }
-      if (newPassword.length < 8) {
-        return res.status(400).json({ message: "New password must be at least 8 characters" });
+      if (!isStrongPassword(newPassword)) {
+        return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
       }
       const isMatch = await bcrypt.compare(currentPassword, user.password);
       if (!isMatch) {
@@ -392,6 +508,7 @@ exports.updateProfile = async (req, res) => {
       user.password = await bcrypt.hash(newPassword, 12);
       updated = true;
       logAudit({ userId: user._id, action: "password_changed", details: { method: "profile" } });
+      await sendPasswordChangedAlertEmail(user.email, user.name, "self-service change");
     }
 
     if (!updated) {
@@ -420,19 +537,36 @@ exports.forgotPassword = async (req, res) => {
     // Always respond 200 to prevent email enumeration
     if (!user) return res.status(200).json({ message: "If that account exists, an OTP has been sent." });
 
-    const otp = generateOtp();
-    user.otp = await bcrypt.hash(otp, 10);
-    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    user.resetToken = null;
-    user.resetTokenExpiry = null;
-    await user.save();
-
-    await sendOtpEmail(user.email, otp, "reset");
+    await sendResetOtpToUser(user, { enforceCooldown: true });
     logAudit({ userId: user._id, action: "password_reset_requested", details: { email: user.email } });
 
     res.status(200).json({ message: "If that account exists, an OTP has been sent." });
   } catch (error) {
+    if (error?.statusCode === 429) {
+      return res.status(429).json({ message: error.message, retryAfterSeconds: error.retryAfterSeconds });
+    }
     res.status(500).json({ message: buildErrorMessage(error) });
+  }
+};
+
+exports.resendResetOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(200).json({ message: "If that account exists, an OTP has been sent." });
+    }
+
+    await sendResetOtpToUser(user, { enforceCooldown: true });
+    logAudit({ userId: user._id, action: "password_reset_requested", details: { email: user.email, reason: "resend" } });
+    return res.status(200).json({ message: "A new password reset OTP has been sent." });
+  } catch (error) {
+    if (error?.statusCode === 429) {
+      return res.status(429).json({ message: error.message, retryAfterSeconds: error.retryAfterSeconds });
+    }
+    return res.status(500).json({ message: buildErrorMessage(error) });
   }
 };
 
@@ -472,8 +606,9 @@ exports.resetPassword = async (req, res) => {
     if (!email || !resetToken || !newPassword)
       return res.status(400).json({ message: "Email, reset token, and new password are required" });
 
-    if (newPassword.length < 8)
-      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
+    }
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !user.resetToken || !user.resetTokenExpiry)
@@ -491,6 +626,7 @@ exports.resetPassword = async (req, res) => {
     await user.save();
 
     logAudit({ userId: user._id, action: "password_changed", details: { method: "reset" } });
+    await sendPasswordChangedAlertEmail(user.email, user.name, "account recovery reset");
 
     res.json({ message: "Password reset successfully" });
   } catch (error) {
@@ -502,8 +638,9 @@ exports.resetPassword = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select("-password -otp -otpExpiry -resetToken -resetTokenExpiry -verificationToken -trustedDevices")
-      .sort({ createdAt: -1 });
+      .select("-password -otp -otpExpiry -otpLastSentAt -resetToken -resetTokenExpiry -verificationToken -trustedDevices")
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: buildErrorMessage(error) });
@@ -518,8 +655,8 @@ exports.adminCreateUser = async (req, res) => {
     if (!name || !email || !password) return res.status(400).json({ message: "Name, email, role, and temporary password are required" });
     if (!["student", "admin", "staff"].includes(role))
       return res.status(400).json({ message: "Invalid role" });
-    if (String(password).length < 8) {
-      return res.status(400).json({ message: "Temporary password must be at least 8 characters" });
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
     }
 
     const existing = await User.findOne({ email: email.toLowerCase() });
@@ -583,28 +720,135 @@ exports.toggleUserActive = async (req, res) => {
   }
 };
 
-// ADMIN: Trigger password reset OTP for a specific user
-exports.adminTriggerPasswordReset = async (req, res) => {
+// ADMIN: Edit user details and role
+exports.adminUpdateUser = async (req, res) => {
   try {
+    const { name, email, role, isActive } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const otp = generateOtp();
-    user.otp = await bcrypt.hash(otp, 10);
-    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    const updates = {};
+
+    if (name !== undefined) {
+      const trimmedName = String(name || "").trim();
+      if (trimmedName.length < 2) {
+        return res.status(400).json({ message: "Name must be at least 2 characters" });
+      }
+      updates.name = trimmedName;
+    }
+
+    if (email !== undefined) {
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      if (!normalizedEmail) return res.status(400).json({ message: "Email is required" });
+      const duplicate = await User.findOne({ email: normalizedEmail, _id: { $ne: user._id } });
+      if (duplicate) return res.status(400).json({ message: "Another user already uses this email" });
+      updates.email = normalizedEmail;
+    }
+
+    if (role !== undefined) {
+      if (![
+        "student",
+        "staff",
+        "admin",
+      ].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+      updates.role = role;
+    }
+
+    if (isActive !== undefined) {
+      if (String(user._id) === String(req.user.id) && isActive === false) {
+        return res.status(400).json({ message: "You cannot deactivate your own account" });
+      }
+      updates.isActive = Boolean(isActive);
+    }
+
+    Object.assign(user, updates);
     await user.save();
 
-    await sendOtpEmail(user.email, otp, "reset");
     logAudit({
       userId: req.user.id,
-      action: "password_reset_triggered_by_admin",
+      action: "user_updated",
+      resourceType: "user",
+      resourceId: String(user._id),
+      details: { fields: Object.keys(updates), targetEmail: user.email },
+    });
+
+    return res.json({
+      message: "User updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: buildErrorMessage(error) });
+  }
+};
+
+// ADMIN: Permanently delete user
+exports.adminDeleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (String(user._id) === String(req.user.id)) {
+      return res.status(400).json({ message: "You cannot delete your own account" });
+    }
+
+    await User.deleteOne({ _id: user._id });
+
+    logAudit({
+      userId: req.user.id,
+      action: "user_deleted",
       resourceType: "user",
       resourceId: String(user._id),
       details: { targetEmail: user.email },
     });
 
-    res.json({ message: `Password reset OTP sent to ${user.email}` });
+    return res.json({ message: "User deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: buildErrorMessage(error) });
+    return res.status(500).json({ message: buildErrorMessage(error) });
+  }
+};
+
+// ADMIN: Reset password with admin-defined temporary password
+exports.adminResetUserPassword = async (req, res) => {
+  try {
+    const { temporaryPassword } = req.body;
+    if (!isStrongPassword(temporaryPassword)) {
+      return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.password = await bcrypt.hash(temporaryPassword, 12);
+    user.isVerified = false;
+    user.otp = null;
+    user.otpExpiry = null;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    user.trustedDevices = [];
+    await user.save();
+
+    await sendVerificationOtpToUser(user);
+    await sendWelcomeEmail(user.email, user.name, temporaryPassword);
+    await sendPasswordChangedAlertEmail(user.email, user.name, "admin temporary reset");
+
+    logAudit({
+      userId: req.user.id,
+      action: "password_reset_triggered_by_admin",
+      resourceType: "user",
+      resourceId: String(user._id),
+      details: { targetEmail: user.email, forcedReverify: true },
+    });
+
+    return res.json({ message: `Temporary password set. Security alerts sent to ${user.email}.` });
+  } catch (error) {
+    return res.status(500).json({ message: buildErrorMessage(error) });
   }
 };

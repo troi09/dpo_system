@@ -30,13 +30,28 @@ const requestSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
-        // NDA statuses
-        "nda_pending", "nda_approved", "revision_requested",
-        // Agreement multi-phase statuses
-        "agr_pending_1", "agr_awaiting_rep_signature", "agr_pending_2",
-        "agr_approved", "agr_rep_declined", "agr_rep_revision_requested",
+        // NDA workflow
+        "nda_submitted", "nda_admin_reviewal", "nda_approved", "nda_revision_requested",
+        // Agreement workflow
+        "agreement_submitted", "agreement_initial_admin_reviewal", "agreement_awaiting_rep_approval",
+        "agreement_final_admin_reviewal", "agreement_approved",
+        // Agreement exception statuses
+        "agreement_rep_declined", "agreement_rep_revision_requested",
       ],
-      default: "nda_pending",
+      default: "nda_submitted",
+    },
+
+    proxyRequestee: {
+      isProxy: { type: Boolean, default: false },
+      staffUserId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      fullName: { type: String, default: "" },
+      email: { type: String, default: "" },
+      idNumber: { type: String, default: "" },
+      departmentOrOrganization: { type: String, default: "" },
     },
 
     formData: {
@@ -109,5 +124,10 @@ const requestSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Query-path indexes used by dashboard/report and owner-specific views.
+requestSchema.index({ userId: 1, createdAt: -1 });
+requestSchema.index({ status: 1, createdAt: -1 });
+requestSchema.index({ isArchived: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Request", requestSchema);

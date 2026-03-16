@@ -1,86 +1,120 @@
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
+import { motion } from "framer-motion";
+import "./RequestStepper.css";
 
-const STEPS = [
-  { label: "Submitted", statuses: ["nda_pending", "agr_pending_1"] },
-  { label: "Under Review", statuses: ["revision_requested", "agr_rep_revision_requested"] },
-  { label: "Awaiting Signature", statuses: ["agr_awaiting_rep_signature", "agr_pending_2"] },
-  { label: "Approved / Completed", statuses: ["nda_approved", "agr_approved", "agr_rep_declined"] },
+const NDA_STEPS = ["Submitted", "Admin Reviewal", "Approved"];
+const AGREEMENT_STEPS = [
+  "Submitted",
+  "Initial Admin Reviewal",
+  "Awaiting Rep. Approval",
+  "Final Admin Reviewal",
+  "Approved",
 ];
 
-function getActiveStep(status) {
-  for (let i = STEPS.length - 1; i >= 0; i--) {
-    if (STEPS[i].statuses.includes(status)) return i;
-  }
-  return 0;
-}
+const STATUS_TO_INDEX = {
+  nda_submitted: 0,
+  nda_admin_reviewal: 1,
+  nda_revision_requested: 1,
+  nda_approved: 2,
 
-export default function RequestStepper({ status }) {
-  const active = getActiveStep(status);
-  const isDeclined = status === "agr_rep_declined";
+  agreement_submitted: 0,
+  agreement_initial_admin_reviewal: 1,
+  agreement_awaiting_rep_approval: 2,
+  agreement_rep_revision_requested: 2,
+  agreement_final_admin_reviewal: 3,
+  agreement_approved: 4,
+  agreement_rep_declined: 4,
+
+  // Legacy fallback mapping for old records
+  nda_pending: 1,
+  revision_requested: 1,
+  agr_pending_1: 1,
+  agr_awaiting_rep_signature: 2,
+  agr_rep_revision_requested: 2,
+  agr_pending_2: 3,
+  agr_approved: 4,
+  agr_rep_declined: 4,
+};
+
+export default function RequestStepper({ status, type }) {
+  const steps = type === "agreement" ? AGREEMENT_STEPS : NDA_STEPS;
+  const isDeclined = status === "agreement_rep_declined" || status === "agr_rep_declined" || status === "declined";
+  const finalStepIndex = steps.length - 1;
+  const declinedIndex = type === "agreement" ? 2 : 1;
+  const activeIndex = isDeclined ? declinedIndex : (STATUS_TO_INDEX[status] ?? 0);
+  const isFinalApproved = ["nda_approved", "agreement_approved", "agr_approved", "approved", "approved_completed"].includes(String(status || "").toLowerCase())
+    || status === "nda_approved"
+    || status === "agreement_approved"
+    || status === "agr_approved";
 
   return (
-    <div style={{ width: "100%", padding: "8px 0" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 0, width: "100%" }}>
-      {STEPS.map((step, i) => {
-        const done = i < active;
-        const current = i === active;
-        const future = i > active;
+    <div className="request-stepper-wrap">
+      <div className="request-stepper-track">
+        {steps.map((step, index) => {
+          const isCompleted = index < activeIndex || (isFinalApproved && index <= finalStepIndex);
+          const isActive = index === activeIndex;
+          const isDeclinedNode = isDeclined && index === declinedIndex;
 
-        const dotColor = isDeclined && i === STEPS.length - 1
-          ? "#ef4444"
-          : done || current
-          ? "var(--primary)"
-          : "var(--border-strong)";
+          return (
+            <div key={`${step}-${index}`} className="request-stepper-segment">
+              <div className="request-stepper-node-wrap">
+                <div
+                  className={`request-stepper-node ${
+                    isDeclinedNode
+                      ? "is-declined"
+                      : isCompleted
+                      ? "is-completed"
+                      : isActive
+                      ? "is-active"
+                      : "is-upcoming"
+                  }`}
+                >
+                  {isDeclinedNode ? (
+                    <X size={14} strokeWidth={3} />
+                  ) : isCompleted ? (
+                    <Check size={14} strokeWidth={3} />
+                  ) : (
+                    <motion.span
+                      className="request-stepper-node-core"
+                      animate={isActive ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                      transition={{ duration: 1.2, repeat: isActive ? Infinity : 0 }}
+                    />
+                  )}
+                </div>
 
-        const labelColor = current
-          ? "var(--primary)"
-          : done
-          ? "var(--text-secondary)"
-          : "var(--text-muted)";
-
-        return (
-          <div key={step.label} style={{ display: "flex", alignItems: "center", flex: i < STEPS.length - 1 ? 1 : 0 }}>
-            {/* Node */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: "50%",
-                background: done ? "var(--primary)" : current ? "var(--primary)" : "var(--surface)",
-                border: `2px solid ${dotColor}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all 0.2s",
-              }}>
-                {done ? (
-                  <Check size={15} color="#fff" strokeWidth={3} />
-                ) : (
-                  <div style={{
-                    width: 10, height: 10, borderRadius: "50%",
-                    background: current
-                      ? (isDeclined && i === STEPS.length - 1 ? "#ef4444" : "var(--primary)")
-                      : "transparent",
-                  }} />
-                )}
+                <div
+                  className={`request-stepper-label ${
+                    isDeclinedNode
+                      ? "is-declined"
+                      : isCompleted
+                      ? "is-completed"
+                      : isActive
+                      ? "is-active"
+                      : "is-upcoming"
+                  }`}
+                >
+                  {isDeclinedNode ? "Declined" : step}
+                </div>
               </div>
-              <span style={{
-                marginTop: 6, fontSize: 11, fontWeight: current ? 700 : 500,
-                whiteSpace: "nowrap", textAlign: "center", lineHeight: 1.25,
-                color: isDeclined && i === STEPS.length - 1 ? "#ef4444" : labelColor,
-              }}>
-                {isDeclined && i === STEPS.length - 1 ? "Declined" : step.label}
-              </span>
-            </div>
 
-            {/* Connector line */}
-            {i < STEPS.length - 1 && (
-              <div style={{
-                flex: 1, height: 2, marginBottom: 22,
-                background: done ? "var(--primary)" : "var(--border-strong)",
-                transition: "background 0.2s",
-              }} />
-            )}
-          </div>
-        );
-      })}
+              {index < steps.length - 1 && (
+                <div className="request-stepper-line-shell" aria-hidden="true">
+                  <div className="request-stepper-line-base" />
+                  <motion.div
+                    className="request-stepper-line-fill"
+                    initial={false}
+                    animate={{
+                      width: index < activeIndex ? "100%" : "0%",
+                    }}
+                    transition={{ duration: 0.45, ease: "easeOut" }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
+

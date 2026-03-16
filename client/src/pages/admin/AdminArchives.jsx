@@ -10,18 +10,26 @@ const prettyType = (t) => TYPE_LABELS[t] || (t ? t.charAt(0).toUpperCase() + t.s
 export default function AdminArchives() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [notice, setNotice] = useState("");
 
-  const load = async () => {
+  const load = async ({ withToast = false } = {}) => {
     setLoading(true);
+    if (withToast) setRefreshing(true);
     try {
       const data = await getArchivedRequests();
       setRequests(data);
+      if (withToast) {
+        setNotice("Data updated");
+        setTimeout(() => setNotice(""), 1800);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -38,56 +46,50 @@ export default function AdminArchives() {
   }, [requests, search, typeFilter]);
 
   return (
-    <div>
+    <div className="page-shell">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div className="page-header-row mb-16">
         <div>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 className="page-title title-with-icon">
             <Archive size={18} color="var(--text-muted)" />
             Archives
           </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-muted)" }}>
+          <p className="admin-subtitle">
             Requests automatically archived after 5 years of completion
           </p>
         </div>
         <button
-          onClick={load}
+          onClick={() => load({ withToast: true })}
           title="Refresh"
-          style={{
-            padding: "8px 10px", borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border-strong)", background: "var(--surface)",
-            cursor: "pointer", display: "flex", alignItems: "center",
-          }}
+          className="ui-btn ui-btn--secondary ui-btn--icon"
+          disabled={refreshing}
         >
-          <RefreshCw size={14} color="var(--text-secondary)" />
+          <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
         </button>
       </div>
 
+      {notice ? (
+        <div className="info-banner info-banner--success mb-12">
+          <strong>{notice}</strong>
+        </div>
+      ) : null}
+
       {/* Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-          <Search size={14} color="var(--text-muted)" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+      <div className="admin-controls-row">
+        <div className="admin-search-wrap">
+          <Search size={14} className="admin-search-icon" />
           <input
+            className="ui-input admin-search-input--full"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or email…"
-            style={{
-              width: "100%", padding: "9px 12px 9px 34px", borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-strong)", background: "var(--surface)",
-              fontSize: 13, fontFamily: "inherit", color: "var(--text-primary)", boxSizing: "border-box",
-            }}
           />
         </div>
         {["all", "nda", "agreement"].map((t) => (
           <button
             key={t}
             onClick={() => setTypeFilter(t)}
-            style={{
-              padding: "8px 14px", borderRadius: "var(--radius-md)", fontWeight: 600, fontSize: 12,
-              border: "1px solid var(--border-strong)", fontFamily: "inherit", cursor: "pointer",
-              background: typeFilter === t ? "var(--primary)" : "var(--surface)",
-              color: typeFilter === t ? "#fff" : "var(--text-secondary)",
-            }}
+            className={`ui-btn ui-btn--compact ${typeFilter === t ? "ui-btn--primary" : "ui-btn--secondary"}`}
           >
             {t === "all" ? "All Types" : prettyType(t)}
           </button>
@@ -95,43 +97,40 @@ export default function AdminArchives() {
       </div>
 
       {/* Table */}
-      <div style={{
-        background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: "var(--radius-lg)", overflowX: "auto", boxShadow: "var(--shadow-sm)",
-      }}>
+      <div className="admin-table-card">
         {loading ? (
-          <table style={{ width: "100%", minWidth: 900, borderCollapse: "collapse", fontSize: 13 }}>
+          <table className="admin-table admin-table--min-900">
             <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
+              <tr>
                 {["Student", "Type", "NDA Sub-type", "Submitted", "Archived On", "Status"].map((h) => (
-                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {[...Array(4)].map((_, i) => (
-                <tr key={`sk-${i}`} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-text" /></td>
-                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-pill" /></td>
-                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-text" /></td>
-                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-text" /></td>
-                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-text" /></td>
-                  <td style={{ padding: "12px 16px" }}><span className="skeleton-block skeleton-pill" /></td>
+                <tr key={`sk-${i}`}>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-pill" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-pill" /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: "32px 20px", color: "var(--text-muted)", fontSize: 13, textAlign: "center" }}>
-            <Archive size={32} color="var(--border-strong)" style={{ display: "block", margin: "0 auto 10px" }} />
+          <div className="admin-table-empty">
+            <Archive size={32} color="var(--border-strong)" className="admin-table-empty-icon" />
             No archived requests found.
           </div>
         ) : (
-          <table style={{ width: "100%", minWidth: 900, borderCollapse: "collapse", fontSize: 13 }}>
+          <table className="admin-table admin-table--min-900">
             <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
+              <tr>
                 {["Student", "Type", "NDA Sub-type", "Submitted", "Archived On", "Status"].map((h) => (
-                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -140,32 +139,30 @@ export default function AdminArchives() {
                 <motion.tr
                   key={r._id}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
-                  style={{ borderBottom: "1px solid var(--border)" }}
                 >
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{r.userId?.name || "—"}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{r.userId?.email || ""}</div>
+                  <td>
+                    <div className="admin-cell-strong">{r.userId?.name || "—"}</div>
+                    <div className="admin-cell-mono">{r.userId?.email || ""}</div>
                   </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{
-                      padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700,
+                  <td>
+                    <span className="tag-pill" style={{
                       background: r.type === "nda" ? "#ede9fe" : "#dbeafe",
                       color: r.type === "nda" ? "#4c1d95" : "#1e3a8a",
                     }}>
                       {prettyType(r.type)}
                     </span>
                   </td>
-                  <td style={{ padding: "12px 16px", color: "var(--text-secondary)", fontSize: 12 }}>
+                  <td className="admin-cell-small-muted admin-cell-muted">
                     {r.formData?.ndaTypeLabel || (r.type === "agreement" ? "—" : r.formData?.ndaType || "—")}
                   </td>
-                  <td style={{ padding: "12px 16px", color: "var(--text-muted)", fontSize: 12 }}>
+                  <td className="admin-cell-small-muted">
                     {r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}
                   </td>
-                  <td style={{ padding: "12px 16px", color: "var(--text-muted)", fontSize: 12 }}>
+                  <td className="admin-cell-small-muted">
                     {r.archivedAt ? new Date(r.archivedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}
                   </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: "#f1f5f9", color: "#64748b" }}>
+                  <td>
+                    <span className="tag-pill tag-pill--neutral">
                       Archived
                     </span>
                   </td>
@@ -178,3 +175,4 @@ export default function AdminArchives() {
     </div>
   );
 }
+

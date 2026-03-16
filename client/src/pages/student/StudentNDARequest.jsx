@@ -6,17 +6,26 @@ import { uploadRequirements, uploadSignatureImage, getDateRequestFolder } from "
 import SignaturePad from "../../components/SignaturePad";
 import "../../components/RequestForm.css";
 
-export default function StudentNDARequest({ ndaType }) {
+export default function StudentNDARequest({ ndaType, proxyMode = false, fallbackPath = "/student" }) {
   const navigate = useNavigate();
   const cfg = useMemo(() => FIELDS_FILE_SLOTS_CONFIG.nda[ndaType], [ndaType]);
 
   const [formData, setFormData] = useState(() => ({}));
+  const [proxyRequestee, setProxyRequestee] = useState({
+    fullName: "",
+    email: "",
+    idNumber: "",
+    departmentOrOrganization: "",
+  });
   const [files, setFiles] = useState(() => Array(cfg.fileSlots.length).fill(null));
   const [submitting, setSubmitting] = useState(false);
   const sigPadRef = useRef(null);
 
   const onChangeField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value }));
+
+  const onChangeProxy = (name, value) =>
+    setProxyRequestee((prev) => ({ ...prev, [name]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,6 +34,21 @@ export default function StudentNDARequest({ ndaType }) {
       if (f.required && !String(formData[f.name] || "").trim()) {
         alert(`${f.label} is required`);
         return;
+      }
+    }
+
+    if (proxyMode) {
+      const requiredProxyFields = [
+        ["fullName", "Requestee Full Name"],
+        ["email", "Requestee Email"],
+        ["idNumber", "Requestee ID Number"],
+        ["departmentOrOrganization", "Requestee Department/Organization"],
+      ];
+      for (const [key, label] of requiredProxyFields) {
+        if (!String(proxyRequestee[key] || "").trim()) {
+          alert(`${label} is required`);
+          return;
+        }
       }
     }
 
@@ -49,10 +73,12 @@ export default function StudentNDARequest({ ndaType }) {
     setSubmitting(true);
     try {
       const user = JSON.parse(localStorage.getItem("user") || "null");
-      const studentName = user?.name || "Unknown Student";
+      const requestSubjectName = proxyMode
+        ? proxyRequestee.fullName.trim() || user?.name || "Proxy Requestee"
+        : user?.name || "Unknown Student";
       const requestFolder = getDateRequestFolder();
 
-      const uploaded = await uploadRequirements(selectedFiles, "nda", studentName, requestFolder);
+      const uploaded = await uploadRequirements(selectedFiles, "nda", requestSubjectName, requestFolder);
 
       let uploadIndex = 0;
       const predocs = files
@@ -68,7 +94,7 @@ export default function StudentNDARequest({ ndaType }) {
       const { url: studentSigUrl, path: studentSigPath } = await uploadSignatureImage(
         sigDataUrl,
         "nda",
-        studentName,
+        requestSubjectName,
         requestFolder,
         "student_sig.png"
       );
@@ -79,10 +105,11 @@ export default function StudentNDARequest({ ndaType }) {
         predocs,
         studentSigUrl,
         studentSigPath,
+        ...(proxyMode ? { proxyRequestee } : {}),
       });
 
-      alert("Request submitted!");
-      navigate("/student");
+      alert(proxyMode ? "Proxy NDA request submitted." : "Request submitted!");
+      navigate(fallbackPath);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to submit request");
     } finally {
@@ -132,12 +159,36 @@ export default function StudentNDARequest({ ndaType }) {
                   )}
                 </div>
               ))}
+
+              {proxyMode && (
+                <>
+                  <div className="request-section-title" style={{ marginTop: 10 }}>Requestee Details (F2F Walk-in)</div>
+                  <div className="request-field">
+                    <label className="request-label">Requestee Full Name</label>
+                    <input className="request-input" value={proxyRequestee.fullName} onChange={(e) => onChangeProxy("fullName", e.target.value)} required />
+                  </div>
+                  <div className="request-field">
+                    <label className="request-label">Requestee Email</label>
+                    <input className="request-input" type="email" value={proxyRequestee.email} onChange={(e) => onChangeProxy("email", e.target.value)} required />
+                  </div>
+                  <div className="request-field">
+                    <label className="request-label">Requestee ID Number</label>
+                    <input className="request-input" value={proxyRequestee.idNumber} onChange={(e) => onChangeProxy("idNumber", e.target.value)} required />
+                  </div>
+                  <div className="request-field">
+                    <label className="request-label">Requestee Department/Organization</label>
+                    <input className="request-input" value={proxyRequestee.departmentOrOrganization} onChange={(e) => onChangeProxy("departmentOrOrganization", e.target.value)} required />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="request-section">
-              <div className="request-section-title">Your E-Signature *</div>
+              <div className="request-section-title">{proxyMode ? "Requestee E-Signature *" : "Your E-Signature *"}</div>
               <p className="request-sig-hint">
-                Draw your signature below. It will be embedded in the NDA document.
+                {proxyMode
+                  ? "Capture the walk-in requestee signature below. It will be embedded in the NDA document."
+                  : "Draw your signature below. It will be embedded in the NDA document."}
               </p>
               <SignaturePad ref={sigPadRef} height={150} />
               <button

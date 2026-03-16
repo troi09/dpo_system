@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
 const trustedDeviceSchema = new mongoose.Schema(
   {
     ip: { type: String, required: true },
@@ -43,11 +45,21 @@ const userSchema = new mongoose.Schema({
   // OTP for login verification
   otp: { type: String, default: null },
   otpExpiry: { type: Date, default: null },
+  otpLastSentAt: { type: Date, default: null },
   // Password reset
   resetToken: { type: String, default: null },
   resetTokenExpiry: { type: Date, default: null },
   // Trusted devices for context-aware OTP
   trustedDevices: { type: [trustedDeviceSchema], default: [] },
 }, { timestamps: true });
+
+userSchema.statics.isStrongPassword = (password) => PASSWORD_REGEX.test(String(password || ""));
+
+userSchema.path("password").validate(function validatePasswordStrength(value) {
+  const v = String(value || "");
+  // Bcrypt hashes are already processed and should pass schema validation.
+  if (v.startsWith("$2a$") || v.startsWith("$2b$") || v.startsWith("$2y$")) return true;
+  return PASSWORD_REGEX.test(v);
+}, "Password does not meet complexity policy");
 
 module.exports = mongoose.model("User", userSchema);

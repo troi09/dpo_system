@@ -1,6 +1,8 @@
 import { useContext, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import { updateProfile } from "../../services/authService";
+import PasswordChecklist from "../../components/PasswordChecklist";
+import { isStrongPassword, PASSWORD_POLICY_MESSAGE } from "../../utils/passwordPolicy";
 
 const StudentProfile = () => {
   const { user, updateUser } = useContext(AuthContext);
@@ -39,7 +41,9 @@ const StudentProfile = () => {
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
     if (!currentPassword) return showFlash("error", "Current password is required.");
-    if (newPassword.length < 8) return showFlash("error", "New password must be at least 8 characters.");
+    if (!isStrongPassword(newPassword)) {
+      return showFlash("error", PASSWORD_POLICY_MESSAGE);
+    }
     if (newPassword !== confirmPassword) return showFlash("error", "Passwords do not match.");
     setLoading(true);
     try {
@@ -131,9 +135,10 @@ const StudentProfile = () => {
             <label style={labelStyle}>Current Password</label>
             <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" style={fieldStyle} />
           </div>
-          <div>
+          <div className="password-hint-anchor" style={{ position: "relative" }}>
             <label style={labelStyle}>New Password</label>
             <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" minLength={8} style={fieldStyle} />
+            {newPassword && !isStrongPassword(newPassword) ? <PasswordChecklist password={newPassword} popup side="left" /> : null}
           </div>
           <div>
             <label style={labelStyle}>Confirm New Password</label>

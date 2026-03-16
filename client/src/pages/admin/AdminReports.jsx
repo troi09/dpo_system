@@ -5,50 +5,18 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   LineChart, Line,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from "lucide-react";
+import { TrendingUp, RefreshCw } from "lucide-react";
 import { getAllRequests } from "../../services/requestService";
-
-const CHART_LABELS = {
-  chart_approved:             "Approved",
-  chart_final_pending:        "Final Pending Approval",
-  chart_revision:             "Revision Requested",
-  agr_pending_1:              "Initial Pending Approval",
-  agr_awaiting_rep_signature: "Awaiting Rep. Approval",
-  agr_rep_declined:           "Rep. Declined",
-};
-
-const CHART_COLORS = {
-  chart_approved:             "#059669",
-  chart_final_pending:        "#ca8a04",
-  chart_revision:             "#dc2626",
-  agr_pending_1:              "#ea580c",
-  agr_awaiting_rep_signature: "#2563eb",
-  agr_rep_declined:           "#7c3aed",
-};
-
-const normalizeForChart = (s) => {
-  if (s === "nda_approved" || s === "agr_approved") return "chart_approved";
-  if (s === "nda_pending" || s === "agr_pending_2") return "chart_final_pending";
-  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "chart_revision";
-  return s;
-};
+import {
+  APPROVED_STATUSES,
+  PENDING_STATUSES,
+  REVISION_STATUSES,
+  CHART_LABELS,
+  CHART_COLORS,
+  normalizeStatusForChart,
+} from "../../utils/requestStatusCharts";
 
 const DONUT_COLORS = ["#059669", "#ea580c", "#7c3aed", "#ca8a04", "#2563eb", "#dc2626", "#64748b", "#3b82f6"];
-
-const prettyStatus = (s) => {
-  const map = {
-    nda_pending:                "Pending Approval",
-    nda_approved:               "Approved",
-    revision_requested:         "Revision Requested",
-    agr_pending_1:              "Initial Pending Approval",
-    agr_awaiting_rep_signature: "Awaiting Rep. Approval",
-    agr_pending_2:              "Final Pending Approval",
-    agr_approved:               "Approved",
-    agr_rep_declined:           "Rep. Declined",
-    agr_rep_revision_requested: "Rep. Revision Requested",
-  };
-  return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
-};
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -57,11 +25,11 @@ function buildSummary(requests, filter) {
   if (!requests.length) return "No requests found for the selected period.";
 
   const total = requests.length;
-  const pending = requests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2", "agr_awaiting_rep_signature"].includes(r.status)).length;
-  const approved = requests.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length;
+  const pending = requests.filter((r) => PENDING_STATUSES.includes(r.status)).length;
+  const approved = requests.filter((r) => APPROVED_STATUSES.includes(r.status)).length;
   const ndaCount = requests.filter((r) => r.type === "nda").length;
   const agreementCount = requests.filter((r) => r.type === "agreement").length;
-  const revisions = requests.filter((r) => ["revision_requested", "agr_rep_revision_requested"].includes(r.status)).length;
+  const revisions = requests.filter((r) => REVISION_STATUSES.includes(r.status)).length;
 
   const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
   const ndaPct = total > 0 ? Math.round((ndaCount / total) * 100) : 0;
@@ -83,15 +51,22 @@ function buildSummary(requests, filter) {
 export default function AdminReports() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("30d"); // "7d" | "30d" | "90d" | "all"
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const load = async () => {
+  const load = async ({ withToast = false } = {}) => {
     setLoading(true);
+    if (withToast) setRefreshing(true);
     setError("");
     try {
       const data = await getAllRequests();
-      setRequests(data);
+      setRequests(Array.isArray(data) ? data : []);
+      if (withToast) {
+        setNotice("Data updated");
+        setTimeout(() => setNotice(""), 1800);
+      }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Failed to load reports data";
       const status = err.response?.status;
@@ -99,6 +74,7 @@ export default function AdminReports() {
       console.error("Reports load error:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -115,7 +91,7 @@ export default function AdminReports() {
   const statusData = useMemo(() => {
     const counts = {};
     filteredRequests.forEach((r) => {
-      const key = normalizeForChart(r.status);
+      const key = normalizeStatusForChart(r.status);
       counts[key] = (counts[key] || 0) + 1;
     });
     return Object.entries(counts).map(([id, value]) => ({
@@ -144,8 +120,8 @@ export default function AdminReports() {
       return {
         month: MONTH_NAMES[d.getMonth()],
         total: inMonth.length,
-        approved: inMonth.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length,
-        pending: inMonth.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2"].includes(r.status)).length,
+        approved: inMonth.filter((r) => APPROVED_STATUSES.includes(r.status)).length,
+        pending: inMonth.filter((r) => PENDING_STATUSES.includes(r.status)).length,
       };
     });
   }, [requests]);
@@ -153,9 +129,9 @@ export default function AdminReports() {
   const summary = useMemo(() => buildSummary(filteredRequests, filter), [filteredRequests, filter]);
 
   const total = filteredRequests.length;
-  const approved = filteredRequests.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length;
-  const pending = filteredRequests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2", "agr_awaiting_rep_signature"].includes(r.status)).length;
-  const revisions = filteredRequests.filter((r) => ["revision_requested", "agr_rep_revision_requested"].includes(r.status)).length;
+  const approved = filteredRequests.filter((r) => APPROVED_STATUSES.includes(r.status)).length;
+  const pending = filteredRequests.filter((r) => PENDING_STATUSES.includes(r.status)).length;
+  const revisions = filteredRequests.filter((r) => REVISION_STATUSES.includes(r.status)).length;
 
   const filterOptions = [
     { label: "Last 7 Days", value: "7d" },
@@ -165,64 +141,52 @@ export default function AdminReports() {
   ];
 
   return (
-    <div>
+    <div className="page-shell">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div className="page-header-row mb-16">
         <div>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Reports &amp; Analytics</h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-muted)" }}>System-wide request data and trends</p>
+          <h2 className="page-title">Reports &amp; Analytics</h2>
+          <p className="admin-subtitle">System-wide request data and trends</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div className="admin-inline-actions">
           {filterOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setFilter(opt.value)}
-              style={{
-                padding: "7px 14px",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--border-strong)",
-                background: filter === opt.value ? "var(--primary)" : "var(--surface)",
-                color: filter === opt.value ? "#fff" : "var(--text-secondary)",
-                cursor: "pointer", fontWeight: 600, fontSize: 12, fontFamily: "inherit",
-                transition: "all 0.15s ease",
-              }}
+              className={`ui-btn ui-btn--compact ${filter === opt.value ? "ui-btn--primary" : "ui-btn--secondary"}`}
             >
               {opt.label}
             </button>
           ))}
           <button
-            onClick={load}
+            onClick={() => load({ withToast: true })}
             title="Refresh"
-            style={{
-              padding: "7px 10px", borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-strong)", background: "var(--surface)",
-              cursor: "pointer", display: "flex", alignItems: "center",
-            }}
+            className="ui-btn ui-btn--secondary ui-btn--icon"
+            disabled={refreshing}
           >
-            <RefreshCw size={14} color="var(--text-secondary)" />
+            <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
           </button>
         </div>
       </div>
 
+      {notice ? (
+        <div className="info-banner info-banner--success mb-12">
+          <strong>{notice}</strong>
+        </div>
+      ) : null}
+
       {error && (
-        <div style={{
-          marginBottom: 16, padding: "12px 16px", borderRadius: "var(--radius-md)",
-          background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", fontSize: 13,
-        }}>
+        <div className="admin-flash-banner admin-flash-banner--error">
           {error}
         </div>
       )}
 
       {loading && (
-        <div className="responsive-grid-4" style={{ gap: 14, marginBottom: 24 }}>
+        <div className="responsive-grid-4 admin-metric-grid">
           {[...Array(4)].map((_, i) => (
             <div
               key={`sk-${i}`}
-              style={{
-                background: "var(--surface)", border: "1px solid var(--border)",
-                borderRadius: "var(--radius-lg)", padding: "18px 20px",
-                boxShadow: "var(--shadow-sm)", textAlign: "center",
-              }}
+              className="admin-metric-card"
             >
               <span className="skeleton-block" style={{ width: 60, height: 28, margin: "0 auto 8px", borderRadius: "var(--radius-md)" }} />
               <span className="skeleton-block skeleton-text" style={{ width: 70, margin: "0 auto" }} />
@@ -234,7 +198,7 @@ export default function AdminReports() {
       {!loading && (
         <>
           {/* KPI Cards */}
-          <div className="responsive-grid-4" style={{ gap: 14, marginBottom: 24 }}>
+          <div className="responsive-grid-4 admin-metric-grid">
             {[
               { label: "Total", value: total, color: "#3b82f6" },
               { label: "Approved", value: approved, color: "#10b981" },
@@ -245,14 +209,10 @@ export default function AdminReports() {
                 key={c.label}
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.06 }}
-                style={{
-                  background: "var(--surface)", border: "1px solid var(--border)",
-                  borderRadius: "var(--radius-lg)", padding: "18px 20px",
-                  boxShadow: "var(--shadow-sm)", textAlign: "center",
-                }}
+                className="admin-metric-card"
               >
-                <div style={{ fontSize: 28, fontWeight: 700, color: c.color }}>{c.value}</div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{c.label}</div>
+                <div className="admin-metric-value" style={{ color: c.color }}>{c.value}</div>
+                <div className="admin-metric-label">{c.label}</div>
               </motion.div>
             ))}
           </div>
@@ -260,14 +220,10 @@ export default function AdminReports() {
           {/* Smart Summary */}
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-            style={{
-              background: "var(--primary-light)", border: "1px solid #c7d8f8",
-              borderRadius: "var(--radius-lg)", padding: "16px 20px", marginBottom: 24,
-              display: "flex", gap: 12, alignItems: "flex-start",
-            }}
+            className="admin-insight-card"
           >
             <TrendingUp size={18} color="var(--primary)" style={{ flexShrink: 0, marginTop: 2 }} />
-            <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-primary)", lineHeight: 1.65 }}>
+            <p className="admin-insight-text">
               {summary}
             </p>
           </motion.div>
@@ -277,18 +233,15 @@ export default function AdminReports() {
             {/* Donut – Status distribution */}
             <motion.div
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              style={{
-                background: "var(--surface)", border: "1px solid var(--border)",
-                borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
-              }}
+              className="admin-chart-card"
             >
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Status Distribution</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Breakdown by current request status</div>
+              <div className="admin-chart-title">Status Distribution</div>
+              <div className="admin-chart-subtitle">Breakdown by current request status</div>
               {statusData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={230}>
                   <PieChart>
                     <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value">
-                      {statusData.map((entry, index) => (
+                      {(statusData || []).map((entry, index) => (
                         <Cell key={index} fill={CHART_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
                       ))}
                     </Pie>
@@ -297,7 +250,7 @@ export default function AdminReports() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ height: 230, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 13 }}>
+                <div className="admin-chart-empty">
                   No data for this period
                 </div>
               )}
@@ -306,13 +259,10 @@ export default function AdminReports() {
             {/* Bar – Type comparison */}
             <motion.div
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
-              style={{
-                background: "var(--surface)", border: "1px solid var(--border)",
-                borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
-              }}
+              className="admin-chart-card"
             >
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Document Type Breakdown</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>NDA vs Agreement requests in this period</div>
+              <div className="admin-chart-title">Document Type Breakdown</div>
+              <div className="admin-chart-subtitle">NDA vs Agreement requests in this period</div>
               <ResponsiveContainer width="100%" height={230}>
                 <BarChart data={typeData} barSize={48}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -327,14 +277,13 @@ export default function AdminReports() {
 
           {/* Line Chart – Monthly Trend */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
-            style={{
-              background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
-            }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.42 }}
+            className="admin-chart-card"
           >
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Monthly Trend</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Request volume over the last 6 months</div>
+            <div className="admin-chart-title">Monthly Trend</div>
+            <div className="admin-chart-subtitle">Request volume over the last 6 months</div>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -353,4 +302,5 @@ export default function AdminReports() {
     </div>
   );
 }
+
 

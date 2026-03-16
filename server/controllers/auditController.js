@@ -18,7 +18,8 @@ exports.getAuditLogs = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select("-__v"),
+        .select("-__v")
+        .lean(),
       AuditLog.countDocuments(filter),
     ]);
 
@@ -36,7 +37,8 @@ exports.getRecentAuditLogs = async (req, res) => {
       .populate("userId", "name email role")
       .sort({ createdAt: -1 })
       .limit(count)
-      .select("-__v");
+      .select("-__v")
+      .lean();
     res.json(logs);
   } catch (error) {
     res.status(500).json({ message: error.message });

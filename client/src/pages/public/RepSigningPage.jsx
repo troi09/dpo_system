@@ -71,7 +71,13 @@ export default function RepSigningPage() {
   }
 
   // Guard: wrong status
-  const signingStatuses = ["agr_awaiting_rep_signature", "agr_rep_revision_requested"];
+  const signingStatuses = [
+    "agreement_awaiting_rep_approval",
+    "agreement_rep_revision_requested",
+    // Legacy compatibility
+    "agr_awaiting_rep_signature",
+    "agr_rep_revision_requested",
+  ];
   if (!signingStatuses.includes(reqData.status)) {
     return (
       <div className="rep-signing-outer">
@@ -83,7 +89,7 @@ export default function RepSigningPage() {
     );
   }
 
-  const isRevision = reqData.status === "agr_rep_revision_requested";
+  const isRevision = reqData.status === "agreement_rep_revision_requested" || reqData.status === "agr_rep_revision_requested";
   const student = reqData.userId || {};
   const fd = reqData.formData || {};
 

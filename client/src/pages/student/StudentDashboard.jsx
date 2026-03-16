@@ -1,80 +1,108 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import { getMyRequests } from "../../services/requestService";
 
 const STATUS_LABEL = {
-  nda_pending:                "Pending Approval",
+  nda_submitted:              "Submitted",
+  nda_admin_reviewal:         "Admin Reviewal",
   nda_approved:               "Approved",
+  nda_revision_requested:      "Revision Requested",
+  agreement_submitted:                "Submitted",
+  agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
+  agreement_awaiting_rep_approval:    "Awaiting Rep. Approval",
+  agreement_final_admin_reviewal:     "Final Admin Reviewal",
+  agreement_approved:                 "Approved",
+  agreement_rep_declined:             "Rep. Declined",
+  agreement_rep_revision_requested:   "Rep. Revision Requested",
+
+  // Legacy fallback labels
+  nda_pending:                "Admin Reviewal",
   revision_requested:         "Revision Requested",
-  agr_pending_1:              "Initial Pending Approval",
+  agr_pending_1:              "Initial Admin Reviewal",
   agr_awaiting_rep_signature: "Awaiting Rep. Approval",
-  agr_pending_2:              "Final Pending Approval",
+  agr_pending_2:              "Final Admin Reviewal",
   agr_approved:               "Approved",
   agr_rep_declined:           "Rep. Declined",
   agr_rep_revision_requested: "Rep. Revision Requested",
 };
 
-const FILTERS = [
-  { key: "all", label: "All" },
-  { key: "approved", label: "Approved" },
-  { key: "pending", label: "Pending" },
-  { key: "revision", label: "Revision Requested" },
-  { key: "rep", label: "Rep. Statuses" },
+const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: "submitted", label: "Submitted" },
+  { value: "admin_reviewal", label: "Admin Reviewal" },
+  { value: "revision_requested", label: "Revision Requested" },
+  { value: "initial_admin_reviewal", label: "Initial Admin Reviewal" },
+  { value: "awaiting_rep_approval", label: "Awaiting Rep. Approval" },
+  { value: "final_admin_reviewal", label: "Final Admin Reviewal" },
+  { value: "approved", label: "Approved" },
 ];
 
 const prettyStatus = (s) =>
   STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
 const statusClass = (s) => {
-  if (s === "nda_approved" || s === "agr_approved") return "status-pill status-pill--green";
-  if (s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
-  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
-  if (s === "agr_pending_1") return "status-pill status-pill--orange";
-  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
-  if (s === "agr_rep_declined") return "status-pill status-pill--violet";
+  if (s === "nda_approved" || s === "agreement_approved" || s === "agr_approved") return "status-pill status-pill--green";
+  if (s === "nda_submitted" || s === "agreement_submitted" || s === "agr_pending_1") return "status-pill status-pill--orange";
+  if (s === "nda_admin_reviewal" || s === "agreement_initial_admin_reviewal" || s === "agreement_final_admin_reviewal" || s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
+  if (s === "nda_revision_requested" || s === "agreement_rep_revision_requested" || s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
+  if (s === "agreement_awaiting_rep_approval" || s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agreement_rep_declined" || s === "agr_rep_declined") return "status-pill status-pill--violet";
   return "status-pill";
 };
 
-const filterClass = (s) => {
-  if (s === "approved") return "status-filter status-filter--approved";
-  if (s === "pending") return "status-filter status-filter--pending";
-  if (s === "revision") return "status-filter status-filter--revision";
-  if (s === "rep") return "status-filter status-filter--rep";
-  return "status-filter status-filter--all";
+const normalizeStatusForStudentFilter = (status) => {
+  if (["nda_submitted", "agreement_submitted"].includes(status)) return "submitted";
+  if (["nda_admin_reviewal", "nda_pending"].includes(status)) return "admin_reviewal";
+  if (["nda_revision_requested", "agreement_rep_revision_requested", "revision_requested", "agr_rep_revision_requested", "agreement_rep_declined", "agr_rep_declined"].includes(status)) return "revision_requested";
+  if (["agreement_initial_admin_reviewal", "agr_pending_1"].includes(status)) return "initial_admin_reviewal";
+  if (["agreement_awaiting_rep_approval", "agr_awaiting_rep_signature"].includes(status)) return "awaiting_rep_approval";
+  if (["agreement_final_admin_reviewal", "agr_pending_2"].includes(status)) return "final_admin_reviewal";
+  if (["nda_approved", "agreement_approved", "agr_approved"].includes(status)) return "approved";
+  return "admin_reviewal";
 };
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterIndex, setFilterIndex] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("all");
+
+  const loadRequests = async ({ withToast = false } = {}) => {
+    if (withToast) setRefreshing(true);
+    try {
+      const data = await getMyRequests();
+      setRequests(data);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to load requests");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await getMyRequests();
-        setRequests(data);
-      } catch (err) {
-        alert(err.response?.data?.message || "Failed to load requests");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    loadRequests();
   }, []);
 
-  const activeFilter = FILTERS[filterIndex];
-
   const filtered = useMemo(() => {
-    if (activeFilter.key === "all") return requests;
-    if (activeFilter.key === "approved") return requests.filter((r) => r.status === "nda_approved" || r.status === "agr_approved");
-    if (activeFilter.key === "pending") return requests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2"].includes(r.status));
-    if (activeFilter.key === "revision") return requests.filter((r) => ["revision_requested", "agr_rep_revision_requested"].includes(r.status));
-    if (activeFilter.key === "rep") return requests.filter((r) => ["agr_rep_declined", "agr_awaiting_rep_signature"].includes(r.status));
-    return requests;
+    if (activeFilter === "all") return requests;
+    return requests.filter((r) => normalizeStatusForStudentFilter(r.status) === activeFilter);
   }, [requests, activeFilter]);
 
-  const cycleFilter = () => setFilterIndex((i) => (i + 1) % FILTERS.length);
+  const selectedFilterLabel = useMemo(() => {
+    const found = STATUS_FILTER_OPTIONS.find((option) => option.value === activeFilter);
+    return found ? found.label : "All Statuses";
+  }, [activeFilter]);
+
+  const filterBadgeClass = useMemo(() => {
+    if (activeFilter === "approved") return "status-filter status-filter--approved";
+    if (["submitted", "admin_reviewal", "initial_admin_reviewal", "final_admin_reviewal"].includes(activeFilter)) return "status-filter status-filter--pending";
+    if (activeFilter === "revision_requested") return "status-filter status-filter--revision";
+    if (activeFilter === "awaiting_rep_approval") return "status-filter status-filter--rep";
+    return "status-filter status-filter--all";
+  }, [activeFilter]);
 
   return (
     <div className="dashboard-page">
@@ -86,9 +114,27 @@ const StudentDashboard = () => {
               <th colSpan={4}>
                 <div className="dashboard-table-title-wrap">
                   <span className="dashboard-table-title">My Requests</span>
-                  <button className={filterClass(activeFilter.key)} onClick={cycleFilter}>
-                    {activeFilter.label}
+                  <button
+                    className="dashboard-action ui-btn--compact"
+                    type="button"
+                    onClick={() => loadRequests({ withToast: true })}
+                    disabled={refreshing}
+                    title="Refresh"
+                  >
+                    <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+                    Refresh
                   </button>
+                  <div className={filterBadgeClass}>{selectedFilterLabel}</div>
+                  <select
+                    className="ui-input dashboard-status-select"
+                    value={activeFilter}
+                    onChange={(e) => setActiveFilter(e.target.value)}
+                    aria-label="Filter requests by status"
+                  >
+                    {STATUS_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
                 </div>
               </th>
             </tr>

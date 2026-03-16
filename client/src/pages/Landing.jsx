@@ -7,10 +7,14 @@ import { AuthContext } from "../context/AuthContext";
 import {
   login as loginService,
   verifyLoginOtp,
+  resendLoginOtp,
   forgotPassword,
+  resendResetOtp,
   verifyResetOtp,
   resetPassword,
 } from "../services/authService";
+import PasswordChecklist from "../components/PasswordChecklist";
+import { isStrongPassword, PASSWORD_POLICY_MESSAGE } from "../utils/passwordPolicy";
 import "../components/Landing.css";
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth`;
@@ -25,6 +29,16 @@ function ForgotPasswordFlow({ onCancel }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [passwordAttempted, setPasswordAttempted] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setResendSeconds((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendSeconds]);
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -34,8 +48,23 @@ function ForgotPasswordFlow({ onCancel }) {
     try {
       await forgotPassword(email.trim());
       setStep("otp");
+      setResendSeconds(60);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send OTP. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendSeconds > 0) return;
+    setError("");
+    setLoading(true);
+    try {
+      await resendResetOtp(email.trim());
+      setResendSeconds(60);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to resend OTP.");
     } finally {
       setLoading(false);
     }
@@ -60,7 +89,10 @@ function ForgotPasswordFlow({ onCancel }) {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError("");
-    if (newPassword.length < 8) return setError("Password must be at least 8 characters.");
+    if (!isStrongPassword(newPassword)) {
+      setPasswordAttempted(true);
+      return setError(PASSWORD_POLICY_MESSAGE);
+    }
     if (newPassword !== confirmPassword) return setError("Passwords do not match.");
     setLoading(true);
     try {
@@ -110,7 +142,9 @@ function ForgotPasswordFlow({ onCancel }) {
           <button type="submit" className="landing-submit" disabled={loading}>
             {loading ? "Verifying…" : "Verify OTP"}
           </button>
-          <button type="button" className="landing-link-btn" onClick={() => setStep("email")}>← Resend OTP</button>
+          <button type="button" className="landing-link-btn" onClick={handleResendOtp} disabled={loading || resendSeconds > 0}>
+            {resendSeconds > 0 ? `Resend OTP in ${resendSeconds}s` : "Resend OTP"}
+          </button>
         </form>
       )}
       {step === "newpass" && (
@@ -119,6 +153,7 @@ function ForgotPasswordFlow({ onCancel }) {
           <div className="landing-field-group">
             <label className="landing-label">New Password</label>
             <input type="password" className="landing-field" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" minLength={8} required />
+            {passwordAttempted ? <PasswordChecklist password={newPassword} /> : null}
           </div>
           <div className="landing-field-group">
             <label className="landing-label">Confirm Password</label>
@@ -140,6 +175,8 @@ const Landing = () => {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+  const [bgLoaded, setBgLoaded] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -158,6 +195,15 @@ const Landing = () => {
   const [otpStep, setOtpStep] = useState(false);
   const [loginOtp, setLoginOtp] = useState("");
   const [pendingEmail, setPendingEmail] = useState("");
+  const [loginResendSeconds, setLoginResendSeconds] = useState(0);
+
+  useEffect(() => {
+    if (loginResendSeconds <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setLoginResendSeconds((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [loginResendSeconds]);
 
   const onChange = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
   const resetForm = () => {
@@ -167,6 +213,7 @@ const Landing = () => {
     setOtpStep(false);
     setLoginOtp("");
     setPendingEmail("");
+    setLoginResendSeconds(0);
   };
 
   const handleSubmit = async (e) => {
@@ -180,6 +227,7 @@ const Landing = () => {
         if (data.requireOtp) {
           setPendingEmail(form.email);
           setOtpStep(true);
+          setLoginResendSeconds(60);
           setLoading(false);
           return;
         }
@@ -189,6 +237,11 @@ const Landing = () => {
         }
         login(data.user);
         navigate(data.user.role === "student" ? "/student" : "/admin");
+        return;
+      }
+      if (!isLogin && !isStrongPassword(form.password)) {
+        setError(PASSWORD_POLICY_MESSAGE);
+        setLoading(false);
         return;
       }
       const res = await axios.post(`${API_URL}/register`, {
@@ -232,7 +285,31 @@ const Landing = () => {
     }
   };
 
+  const handleResendLoginOtp = async () => {
+    if (!pendingEmail || loginResendSeconds > 0) return;
+    setError("");
+    setLoading(true);
+    try {
+      const data = await resendLoginOtp(pendingEmail);
+      setSuccess(data.message || "A new OTP has been sent.");
+      setLoginResendSeconds(60);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to resend OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isLogin = mode === "login";
+
+  useEffect(() => {
+    setHasMounted(true);
+
+    const preload = new Image();
+    preload.src = "/RTU-Background.jpg";
+    preload.onload = () => setBgLoaded(true);
+    preload.onerror = () => setBgLoaded(false);
+  }, []);
 
   useEffect(() => {
     // Lock page scroll while on the landing/auth route for app-like immersion.
@@ -249,10 +326,10 @@ const Landing = () => {
   }, []);
 
   return (
-    <div className="landing" onMouseMove={handleMouseMove}>
+    <div className={`landing ${hasMounted ? "is-mounted" : ""}`} onMouseMove={handleMouseMove}>
       <div
         ref={bgRef}
-        className="landing-parallax-bg"
+        className={`landing-parallax-bg ${bgLoaded ? "is-loaded" : ""}`}
         style={{ backgroundImage: "url('/RTU-Background.jpg')" }}
       />
       <div className="landing-overlay" />
@@ -267,7 +344,7 @@ const Landing = () => {
         </div>
 
         {/* ── White Form Panel ── */}
-        <div className="landing-panel">
+        <div className={`landing-panel ${hasMounted ? "is-mounted" : ""}`}>
         {/* ── Form Area ── */}
         <AnimatePresence mode="wait">
           {/* Login OTP step */}
@@ -301,6 +378,14 @@ const Landing = () => {
                 </div>
                 <button type="submit" className="landing-submit" disabled={loading}>
                   {loading ? "Verifying…" : "Verify & Login"}
+                </button>
+                <button
+                  type="button"
+                  className="landing-link-btn"
+                  onClick={handleResendLoginOtp}
+                  disabled={loading || loginResendSeconds > 0}
+                >
+                  {loginResendSeconds > 0 ? `Resend OTP in ${loginResendSeconds}s` : "Resend OTP"}
                 </button>
                 <button type="button" className="landing-link-btn" onClick={resetForm}>
                   ← Back to Login
@@ -345,7 +430,7 @@ const Landing = () => {
                 <div className={`landing-toggle-indicator ${isLogin ? "left" : "right"}`} />
               </div>
 
-              <form onSubmit={handleSubmit} className="landing-card">
+              <form onSubmit={handleSubmit} className={`landing-card ${!isLogin ? "landing-card--register" : ""}`}>
                 <h2 className="landing-title">{isLogin ? "Welcome back" : "Create an account"}</h2>
 
                 {success && <div className="landing-success">{success}</div>}
@@ -378,7 +463,7 @@ const Landing = () => {
                   />
                 </div>
 
-                <div className="landing-field-group">
+                <div className="landing-field-group password-hint-anchor">
                   <label className="landing-label" htmlFor="landing-password">Password</label>
                   <div className="landing-password-wrap">
                     <input
@@ -400,6 +485,9 @@ const Landing = () => {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  {!isLogin && form.password && !isStrongPassword(form.password) ? (
+                    <PasswordChecklist password={form.password} popup side="left" />
+                  ) : null}
                 </div>
 
                 {error && <div className="landing-error">{error}</div>}
@@ -429,3 +517,4 @@ const Landing = () => {
 };
 
 export default Landing;
+

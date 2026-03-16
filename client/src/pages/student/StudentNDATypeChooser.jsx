@@ -2,7 +2,10 @@ import { useNavigate } from "react-router-dom";
 import { FlaskConical, Users } from "lucide-react";
 import "../../components/TypeChooser.css";
 
-export default function StudentNDATypeChooser() {
+export default function StudentNDATypeChooser({
+  basePath = "/student/new-request/nda",
+  fallbackPath = "/student",
+}) {
   const navigate = useNavigate();
 
   return (
@@ -12,7 +15,7 @@ export default function StudentNDATypeChooser() {
         className="type-chooser-back"
         onClick={() => {
           if (window.history.length > 1) navigate(-1);
-          else navigate("/student");
+          else navigate(fallbackPath);
         }}
       >
         ‹ Back
@@ -24,7 +27,7 @@ export default function StudentNDATypeChooser() {
         <button
           type="button"
           className="type-chooser-card-btn"
-          onClick={() => navigate("/student/new-request/nda/orgactivities")}
+          onClick={() => navigate(`${basePath}/orgactivities`)}
         >
           <Users size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
           <span className="type-chooser-card-label">School Org Activities</span>
@@ -36,7 +39,7 @@ export default function StudentNDATypeChooser() {
         <button
           type="button"
           className="type-chooser-card-btn"
-          onClick={() => navigate("/student/new-request/nda/research")}
+          onClick={() => navigate(`${basePath}/research`)}
         >
           <FlaskConical size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
           <span className="type-chooser-card-label">Conduct Research</span>

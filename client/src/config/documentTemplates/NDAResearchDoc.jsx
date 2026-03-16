@@ -26,6 +26,11 @@ const SigBlock = ({ label, name, imgUrl }) => (
 export default function NDAResearchDoc({ request }) {
   const fd = request.formData || {};
   const student = request.userId || {};
+  const proxy = request.proxyRequestee || {};
+  const displayName = proxy.isProxy ? (proxy.fullName || "") : (student.name || "");
+  const displayEmail = proxy.isProxy ? (proxy.email || "") : (student.email || "");
+  const displayIdNumber = proxy.isProxy ? (proxy.idNumber || "") : "";
+  const displayDepartment = proxy.isProxy ? (proxy.departmentOrOrganization || "") : "";
   const { studentSigDataUrl, adminSigDataUrl } = request;
   const hasAnySig = studentSigDataUrl || adminSigDataUrl;
 
@@ -39,8 +44,10 @@ export default function NDAResearchDoc({ request }) {
         <MetaRow label="Request ID" value={request._id} />
 
         <SectionTitle>Student Information</SectionTitle>
-        <FieldRow label="Name" value={student.name} />
-        <FieldRow label="Email" value={student.email} />
+        <FieldRow label="Name" value={displayName} />
+        <FieldRow label="Email" value={displayEmail} />
+        {displayIdNumber ? <FieldRow label="ID Number" value={displayIdNumber} /> : null}
+        {displayDepartment ? <FieldRow label="Department / Organization" value={displayDepartment} /> : null}
 
         <SectionTitle>Data Form</SectionTitle>
         <FieldRow label="Data Field 1" value={fd["1dataField"]} />
@@ -53,7 +60,7 @@ export default function NDAResearchDoc({ request }) {
             <View style={sigStyles.sigRow}>
               <SigBlock
                 label="Student"
-                name={student.name}
+                name={displayName}
                 imgUrl={studentSigDataUrl || null}
               />
               <SigBlock

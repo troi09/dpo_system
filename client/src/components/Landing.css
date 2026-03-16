@@ -1,7 +1,6 @@
 .landing {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -10,6 +9,10 @@
   background: #0a1f4d;
   overflow: hidden;
   z-index: 10;
+}
+
+.landing.is-mounted {
+  animation: landingFadeIn 0.5s ease both;
 }
 
 /* ── Parallax Background ── */
@@ -23,6 +26,12 @@
   transition: transform 0.15s ease-out;
   transform: translate3d(0, 0, 0) scale(1.05);
   z-index: 0;
+  opacity: 0;
+}
+
+.landing-parallax-bg.is-loaded {
+  opacity: 1;
+  transition: opacity 0.45s ease;
 }
 
 .landing-overlay {
@@ -62,12 +71,16 @@
   z-index: 2;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 20px;
-  width: 100%;
-  max-width: 560px;
-  padding: 24px 28px;
+  gap: 12px;
+  width: min(760px, 96vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 12px 22px;
   box-sizing: border-box;
+  overflow-x: visible;
+  overflow-y: auto;
 }
 
 /* ── White Form Panel (form only) ── */
@@ -75,9 +88,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  width: 100%;
-  padding: 24px 20px;
+  gap: 12px;
+  width: min(430px, 92vw);
+  max-height: min(70dvh, 560px);
+  padding: 18px 18px;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -85,6 +99,17 @@
   border-radius: var(--radius-lg);
   box-shadow: 0 10px 28px rgba(5, 20, 48, 0.28);
   box-sizing: border-box;
+  opacity: 0;
+  transform: translateY(8px);
+  contain: layout;
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+.landing-panel.is-mounted {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
 /* ── Brand (on blue background, above panel) ── */
@@ -92,7 +117,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
 }
 
 .landing-brand-text {
@@ -105,25 +130,27 @@
 }
 
 .landing-brand-logo {
-  width: 134px;
-  height: 134px;
+  width: 104px;
+  height: 104px;
   object-fit: contain;
   filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.25));
 }
 
 .landing-brand-title {
-  font-size: 42px;
+  font-size: 34px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.97);
   letter-spacing: -0.02em;
+  line-height: 1.02;
 }
 .landing-brand-subtitle {
-  font-size: 32px;
+  font-size: 23px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.92);
   letter-spacing: -0.01em;
   width: 100%;
   text-align: center;
+  line-height: 1.05;
 }
 
 /* ── Toggle ── */
@@ -187,6 +214,20 @@
   margin: 0 auto;
 }
 
+.landing-card--register {
+  max-height: none;
+  overflow: visible;
+}
+
+@keyframes landingFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .landing-title {
   margin: 0 0 4px;
   font-size: 18px;
@@ -247,6 +288,16 @@
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
+}
+
+.landing-field::-ms-reveal,
+.landing-field::-ms-clear {
+  display: none;
+}
+
+.landing-field::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* ── Password Toggle ── */
@@ -333,6 +384,11 @@
   opacity: 0.75;
 }
 
+.landing-link-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .landing-success {
   font-size: 13px;
   color: var(--s-approved-text);
@@ -351,26 +407,30 @@
   .landing-wrapper {
     max-width: 100%;
     margin: 0;
-    padding: 16px 16px;
-    gap: 14px;
+    padding: 10px 14px;
+    gap: 10px;
+    overflow-x: visible;
   }
 
   .landing-panel {
-    padding: 18px 14px;
+    max-height: min(74dvh, 560px);
+    padding: 14px 12px;
     border-radius: 12px;
+    overflow: visible;
   }
 
   .landing-brand-logo {
-    width: 100px;
-    height: 100px;
+    width: 84px;
+    height: 84px;
   }
 
   .landing-brand-title {
-    font-size: 34px;
+    font-size: 28px;
   }
 
   .landing-brand-subtitle {
-    font-size: 24px;
+    font-size: 19px;
+    line-height: 1.08;
   }
 
   .landing-toggle {
@@ -386,24 +446,26 @@
 
 @media (max-width: 390px) {
   .landing-wrapper {
-    padding: 12px 12px;
+    padding: 8px 10px;
   }
 
   .landing-panel {
-    padding: 14px 10px;
+    max-height: min(76dvh, 560px);
+    padding: 12px 10px;
+    overflow: visible;
   }
 
   .landing-brand-logo {
-    width: 88px;
-    height: 88px;
+    width: 76px;
+    height: 76px;
   }
 
   .landing-brand-title {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .landing-brand-subtitle {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .landing-title {
@@ -420,21 +482,25 @@
 
 @media (max-height: 700px) {
   .landing-wrapper {
-    gap: 10px;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    gap: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
 
   .landing-brand-logo {
-    width: 100px;
-    height: 100px;
+    width: 74px;
+    height: 74px;
   }
 
   .landing-brand-title {
-    font-size: 34px;
+    font-size: 24px;
   }
 
   .landing-brand-subtitle {
-    font-size: 24px;
+    font-size: 16px;
+  }
+
+  .landing-panel {
+    max-height: min(72dvh, 520px);
   }
 }

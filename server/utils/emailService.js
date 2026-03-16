@@ -127,15 +127,17 @@ exports.sendPasswordResetEmail = (email, resetUrl) =>
  */
 exports.sendStatusUpdateEmail = (email, name, requestType, newStatus, remarks) => {
   const statusLabels = {
-    nda_pending: "Pending Review",
+    nda_submitted: "Submitted",
+    nda_admin_reviewal: "Admin Reviewal",
     nda_approved: "Approved",
-    revision_requested: "Revision Requested",
-    agr_pending_1: "Submitted",
-    agr_awaiting_rep_signature: "Awaiting Representative Signature",
-    agr_pending_2: "Pending Final Approval",
-    agr_approved: "Completed",
-    agr_rep_declined: "Declined by Representative",
-    agr_rep_revision_requested: "Representative Revision Requested",
+    nda_revision_requested: "Revision Requested",
+    agreement_submitted: "Submitted",
+    agreement_initial_admin_reviewal: "Initial Admin Reviewal",
+    agreement_awaiting_rep_approval: "Awaiting Representative Approval",
+    agreement_final_admin_reviewal: "Final Admin Reviewal",
+    agreement_approved: "Approved",
+    agreement_rep_declined: "Declined by Representative",
+    agreement_rep_revision_requested: "Representative Revision Requested",
   };
   const label = statusLabels[newStatus] || newStatus;
   const remarksBlock = remarks
@@ -265,6 +267,25 @@ exports.sendLoginOtpEmail = (email, otp) =>
           <p style="color:#64748b;font-size:13px">This code expires in <strong>10 minutes</strong>. If you did not attempt to log in, your password may be compromised — please reset it immediately.</p>
         </div>
       </div>`,
+  });
+
+exports.sendPasswordChangedAlertEmail = (email, name, reason = "account security event") =>
+  sendBrevoEmail({
+    to: email,
+    subject: "RTU DPO Portal – Security Alert: Password Changed",
+    htmlContent: `
+      <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="background:#7f1d1d;padding:24px 32px">
+          <h1 style="color:#fff;margin:0;font-size:18px">Security Alert</h1>
+        </div>
+        <div style="padding:32px">
+          <p style="color:#0f172a;font-size:15px;margin-top:0">Hi <strong>${name || "User"}</strong>,</p>
+          <p style="color:#475569;font-size:14px">Your account password was changed due to <strong>${reason}</strong>.</p>
+          <p style="color:#475569;font-size:14px">If this was not you, reset your password immediately and contact the DPO office.</p>
+          <p style="color:#94a3b8;font-size:12px;margin-top:18px">Timestamp: ${new Date().toISOString()}</p>
+        </div>
+      </div>
+    `,
   });
 exports.sendBrevoEmail = sendBrevoEmail;
 exports.EmailDeliveryError = EmailDeliveryError;

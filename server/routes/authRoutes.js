@@ -6,10 +6,12 @@ const {
   register,
   login,
   verifyLoginOtp,
+  resendLoginOtp,
   verifyEmail,
   resendVerificationOtp,
   activateAccount,
   forgotPassword,
+  resendResetOtp,
   verifyResetOtp,
   resetPassword,
   refreshToken,
@@ -17,7 +19,9 @@ const {
   getAllUsers,
   adminCreateUser,
   toggleUserActive,
-  adminTriggerPasswordReset,
+  adminUpdateUser,
+  adminDeleteUser,
+  adminResetUserPassword,
 } = require("../controllers/authController");
 const { protect, authorizeAdmin } = require("../middleware/authMiddleware");
 
@@ -25,10 +29,12 @@ const { protect, authorizeAdmin } = require("../middleware/authMiddleware");
 router.post("/register", register);
 router.post("/login", login);
 router.post("/verify-login-otp", verifyLoginOtp);
+router.post("/resend-login-otp", resendLoginOtp);
 router.post("/verify-email", verifyEmail);
 router.post("/resend-verification-otp", resendVerificationOtp);
 router.post("/activate-account", activateAccount);
 router.post("/forgot-password", forgotPassword);
+router.post("/resend-reset-otp", resendResetOtp);
 router.post("/verify-reset-otp", verifyResetOtp);
 router.post("/reset-password", resetPassword);
 
@@ -43,6 +49,8 @@ router.get("/admin", protect, authorizeAdmin, (req, res) => {
 router.get("/users", protect, authorizeAdmin, getAllUsers);
 router.post("/users", protect, authorizeAdmin, adminCreateUser);
 router.patch("/users/:id/toggle-active", protect, authorizeAdmin, toggleUserActive);
-router.post("/users/:id/trigger-reset", protect, authorizeAdmin, adminTriggerPasswordReset);
+router.patch("/users/:id", protect, authorizeAdmin, adminUpdateUser);
+router.delete("/users/:id", protect, authorizeAdmin, adminDeleteUser);
+router.post("/users/:id/reset-password", protect, authorizeAdmin, adminResetUserPassword);
 
 module.exports = router;

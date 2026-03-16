@@ -2,12 +2,15 @@ import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, XCircle } from "lucide-react";
 import { activateAccount } from "../services/authService";
+import PasswordChecklist from "../components/PasswordChecklist";
+import { isStrongPassword, PASSWORD_POLICY_MESSAGE } from "../utils/passwordPolicy";
 
 export default function ActivateAccountPage() {
   const [params] = useSearchParams();
   const token = params.get("token");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordAttempted, setPasswordAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("form"); // "form" | "success" | "error"
   const [message, setMessage] = useState("");
@@ -40,7 +43,7 @@ export default function ActivateAccountPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
-    if (password.length < 8) { setMessage("Password must be at least 8 characters."); return; }
+    if (!isStrongPassword(password)) { setPasswordAttempted(true); setMessage(PASSWORD_POLICY_MESSAGE); return; }
     if (password !== confirmPassword) { setMessage("Passwords do not match."); return; }
     setLoading(true);
     try {
@@ -128,6 +131,7 @@ export default function ActivateAccountPage() {
                 color: "#0f172a", boxSizing: "border-box",
               }}
             />
+            {passwordAttempted ? <PasswordChecklist password={password} compact /> : null}
           </div>
           <div>
             <label style={{ fontSize: 12.5, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>Confirm Password</label>

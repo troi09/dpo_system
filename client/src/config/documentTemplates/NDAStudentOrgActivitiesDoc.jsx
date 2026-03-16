@@ -81,10 +81,11 @@ const SigBlock = ({ label, name, imgUrl, dateReceived }) => (
 export default function NDAStudentOrgActivitiesDoc({ request }) {
   const fd = request.formData || {};
   const student = request.userId || {};
+  const proxy = request.proxyRequestee || {};
   const { studentSigDataUrl, adminSigDataUrl } = request;
   const approverName = request.approverName || request.adminName || request.approvedByName || "";
   const toUpper = (value) => (value ? String(value).toUpperCase() : "");
-  const studentNameUpper = toUpper(student.name);
+  const studentNameUpper = toUpper(proxy.isProxy ? (proxy.fullName || "") : (student.name || ""));
   const hasAnySig = studentSigDataUrl || adminSigDataUrl;
 
   return (

@@ -8,6 +8,11 @@ This document covers every change made during the latest multi-phase upgrade of 
 
 ## Required Environment Variables
 
+Use the committed templates as source of truth:
+
+- `server/.env.example`
+- `client/.env.example`
+
 ### Server (`server/.env`)
 
 ```env
@@ -37,10 +42,19 @@ FRONTEND_URL=http://localhost:5173
 ### Client (`client/.env`)
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000
+VITE_API_BASE_URL=http://localhost:5000
 ```
 
 > **Note**: Do NOT include `/api` in `VITE_API_BASE_URL`. The services append `/api/...` themselves.
+
+### Vercel Deployment Variables
+
+Set these in Vercel Project Settings (do not rely on local `.env` in production):
+
+- **Client project**: `VITE_API_BASE_URL`
+- **Server project**: `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL`, `ALLOWED_ORIGINS`, `FRONTEND_URL`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`
+
+For cross-origin calls, ensure the exact deployed client origin is included in `ALLOWED_ORIGINS`.
 
 ---
 
@@ -49,7 +63,7 @@ VITE_API_BASE_URL=http://localhost:3000
 ### Server
 
 ```
-@getbrevo/brevo — Brevo transactional email delivery
+sib-api-v3-sdk — Brevo transactional email delivery
 node-cron    — 5-year automatic archiving job
 ```
 
@@ -108,11 +122,18 @@ db.users.updateMany(
 
 **Resend OTP**: Users can request a new verification OTP by clicking "Resend OTP" on the verify-email page.
 
+**OTP Anti-Spam Protection**:
+
+- All OTP resend flows now enforce a strict 60-second cooldown both on frontend and backend.
+- Backend returns HTTP `429` with `retryAfterSeconds` when OTP resend is attempted too early.
+
 **New/Updated Routes**:
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `POST` | `/api/auth/verify-email` | public | Verify email via OTP or legacy token |
 | `POST` | `/api/auth/resend-verification-otp` | public | Resend verification OTP |
+| `POST` | `/api/auth/resend-login-otp` | public | Resend OTP for login challenge |
+| `POST` | `/api/auth/resend-reset-otp` | public | Resend OTP for forgot-password flow |
 | `POST` | `/api/auth/activate-account` | public | Set password + verify (admin-created users) |
 
 **Frontend Pages**:
@@ -130,6 +151,11 @@ On login from an **untrusted device** (new IP + User-Agent combo), the server re
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `POST` | `/api/auth/verify-login-otp` | public | Verify login OTP and issue JWT |
+| `POST` | `/api/auth/resend-login-otp` | public | Resend login OTP (60s cooldown) |
+
+### Registration OTP Auto-Login
+
+After successful email OTP verification, backend now returns JWT + user payload and frontend logs in the account immediately, then routes to the correct dashboard.
 
 ### 15-Minute Inactivity Timeout
 
@@ -285,10 +311,12 @@ All content areas now expand to fill the available space in the page container.
 | `POST` | `/api/auth/register` | public | Register (sends verification email) |
 | `POST` | `/api/auth/login` | public | Login (may return OTP challenge) |
 | `POST` | `/api/auth/verify-login-otp` | public | Verify login OTP |
+| `POST` | `/api/auth/resend-login-otp` | public | Resend login OTP |
 | `POST` | `/api/auth/verify-email` | public | Verify email (OTP or legacy token) |
 | `POST` | `/api/auth/resend-verification-otp` | public | Resend verification OTP |
 | `POST` | `/api/auth/activate-account` | public | Set password for admin-created user |
 | `POST` | `/api/auth/forgot-password` | public | Send password reset OTP |
+| `POST` | `/api/auth/resend-reset-otp` | public | Resend password reset OTP |
 | `POST` | `/api/auth/verify-reset-otp` | public | Verify reset OTP |
 | `POST` | `/api/auth/reset-password` | public | Set new password with reset token |
 | `POST` | `/api/auth/refresh-token` | JWT | Refresh JWT (session extension) |

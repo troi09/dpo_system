@@ -123,6 +123,7 @@ const PAGE_SIZE = 20;
 export default function AdminAuditLog() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
@@ -133,8 +134,9 @@ export default function AdminAuditLog() {
     return window.innerWidth >= 768;
   });
 
-  const load = async (p = page, action = actionFilter) => {
+  const load = async (p = page, action = actionFilter, withToast = false) => {
     setLoading(true);
+    if (withToast) setRefreshing(true);
     setError("");
     try {
       const res = await getAuditLogs({ page: p, limit: PAGE_SIZE, action: action || undefined });
@@ -148,9 +150,11 @@ export default function AdminAuditLog() {
       console.error("Audit log load error:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(page, actionFilter); }, [page, actionFilter]);
 
   const handleActionFilter = (v) => {
@@ -189,75 +193,53 @@ export default function AdminAuditLog() {
   ];
 
   return (
-    <div style={{ maxWidth: 1100 }}>
+    <div className="page-shell">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div className="page-header-row" style={{ marginBottom: 16 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 className="page-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Activity size={18} color="var(--text-muted)" />
             Audit Trail
           </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-muted)" }}>
+          <p className="admin-subtitle">
             Full system activity log — immutable record of all user and admin actions
           </p>
         </div>
         <button
-          onClick={() => load(page, actionFilter)}
+          onClick={() => load(page, actionFilter, true)}
           title="Refresh"
-          style={{
-            padding: "8px 10px", borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border-strong)", background: "var(--surface)",
-            cursor: "pointer", display: "flex", alignItems: "center",
-          }}
+          className="ui-btn ui-btn--secondary"
+          style={{ padding: "8px 10px" }}
+          disabled={refreshing}
         >
-          <RefreshCw size={14} color="var(--text-secondary)" />
+          <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
         </button>
       </div>
 
       {/* Error Banner */}
       {error && (
-        <div style={{
-          marginBottom: 16, padding: "12px 16px", borderRadius: "var(--radius-md)",
-          background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", fontSize: 13,
-        }}>
-          {error}
+        <div className="info-banner info-banner--danger" style={{ marginBottom: 16 }}>
+          <strong>{error}</strong>
         </div>
       )}
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-          <Search size={14} color="var(--text-muted)" style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+      <div className="admin-controls-row">
+        <div className="admin-search-wrap">
+          <Search size={14} className="admin-search-icon" />
           <input
+            className="ui-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filter in current page…"
-            style={{
-              width: "100%", padding: "9px 12px 9px 34px", borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-strong)", background: "var(--surface)",
-              fontSize: 13, fontFamily: "inherit", color: "var(--text-primary)", boxSizing: "border-box",
-            }}
+            style={{ width: "100%", paddingLeft: 34 }}
           />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 220 }}>
           <button
             onClick={() => setFiltersOpen((prev) => !prev)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-              width: "100%",
-              padding: "9px 12px",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-strong)",
-              background: "var(--surface)",
-              color: "var(--text-secondary)",
-              fontSize: 12,
-              fontWeight: 700,
-              fontFamily: "inherit",
-              cursor: "pointer",
-            }}
+            className="ui-btn ui-btn--secondary"
+            style={{ justifyContent: "space-between", width: "100%" }}
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
               <SlidersHorizontal size={14} />
@@ -272,12 +254,8 @@ export default function AdminAuditLog() {
                 <button
                   key={a.value || "all"}
                   onClick={() => handleActionFilter(a.value)}
-                  style={{
-                    padding: "8px 12px", borderRadius: "var(--radius-md)", fontWeight: 600, fontSize: 11,
-                    border: "1px solid var(--border-strong)", fontFamily: "inherit", cursor: "pointer",
-                    background: actionFilter === a.value ? "var(--primary)" : "var(--surface)",
-                    color: actionFilter === a.value ? "#fff" : "var(--text-secondary)",
-                  }}
+                  className={`ui-btn ${actionFilter === a.value ? "ui-btn--primary" : "ui-btn--secondary"}`}
+                  style={{ padding: "7px 10px", fontSize: 11 }}
                 >
                   {a.label}
                 </button>
@@ -288,43 +266,39 @@ export default function AdminAuditLog() {
       </div>
 
       {/* Table */}
-      <div style={{
-        background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: "var(--radius-lg)", overflowX: "auto", boxShadow: "var(--shadow-sm)",
-        marginBottom: 16,
-      }}>
+      <div className="admin-table-card" style={{ marginBottom: 16 }}>
         {loading ? (
-          <table style={{ width: "100%", minWidth: 960, borderCollapse: "collapse", fontSize: 13 }}>
+          <table className="admin-table admin-table--min-960">
             <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
+              <tr>
                 {["Timestamp", "Action", "User", "Resource", "Details"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {[...Array(6)].map((_, i) => (
-                <tr key={`sk-${i}`} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
-                  <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-pill" /></td>
-                  <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
-                  <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
-                  <td style={{ padding: "11px 14px" }}><span className="skeleton-block skeleton-text" /></td>
+                <tr key={`sk-${i}`}>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-pill" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: "32px 20px", color: "var(--text-muted)", fontSize: 13, textAlign: "center" }}>
-            <Activity size={32} color="var(--border-strong)" style={{ display: "block", margin: "0 auto 10px" }} />
+          <div className="admin-table-empty">
+            <Activity size={32} color="var(--border-strong)" className="admin-table-empty-icon" />
             No audit logs found.
           </div>
         ) : (
-          <table style={{ width: "100%", minWidth: 960, borderCollapse: "collapse", fontSize: 13 }}>
+          <table className="admin-table admin-table--min-960">
             <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
+              <tr>
                 {["Timestamp", "Action", "User", "Resource", "Details"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -335,9 +309,8 @@ export default function AdminAuditLog() {
                   <motion.tr
                     key={log._id}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.015 }}
-                    style={{ borderBottom: "1px solid var(--border)" }}
                   >
-                    <td style={{ padding: "11px 14px", color: "var(--text-muted)", fontSize: 12, whiteSpace: "nowrap" }}>
+                    <td className="admin-cell-small-muted" style={{ whiteSpace: "nowrap" }}>
                       {log.createdAt
                         ? new Date(log.createdAt).toLocaleString("en-US", {
                             month: "short", day: "numeric", year: "numeric",
@@ -345,27 +318,27 @@ export default function AdminAuditLog() {
                           })
                         : "—"}
                     </td>
-                    <td style={{ padding: "11px 14px" }}>
-                      <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: style.bg, color: style.color, whiteSpace: "nowrap" }}>
+                    <td>
+                      <span className="tag-pill" style={{ background: style.bg, color: style.color }}>
                         {prettyAction(log.action)}
                       </span>
                     </td>
-                    <td style={{ padding: "11px 14px" }}>
+                    <td>
                       {log.userId ? (
                         <>
-                          <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{log.userId.name || "—"}</div>
-                          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{log.userId.email || ""}</div>
+                          <div className="admin-cell-strong">{log.userId.name || "—"}</div>
+                          <div className="admin-cell-mono">{log.userId.email || ""}</div>
                         </>
                       ) : (
-                        <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>System</span>
+                        <span className="admin-cell-small-muted" style={{ fontStyle: "italic" }}>System</span>
                       )}
                     </td>
-                    <td style={{ padding: "11px 14px", color: "var(--text-secondary)", fontSize: 12 }}>
+                    <td className="admin-cell-small-muted" style={{ color: "var(--text-secondary)" }}>
                       {log.resourceType ? log.resourceType.charAt(0).toUpperCase() + log.resourceType.slice(1) : "—"}
-                      {log.resourceId ? <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{String(log.resourceId).slice(-8)}</div> : null}
+                      {log.resourceId ? <div className="admin-cell-mono">{String(log.resourceId).slice(-8)}</div> : null}
                     </td>
-                    <td style={{ padding: "11px 14px", color: "var(--text-secondary)", fontSize: 12, maxWidth: 240 }}>
-                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <td className="admin-cell-small-muted" style={{ color: "var(--text-secondary)", maxWidth: 240 }}>
+                      <div className="admin-cell-ellipsis">
                         {formatAuditDetails(log)}
                       </div>
                     </td>
@@ -379,31 +352,21 @@ export default function AdminAuditLog() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+        <div className="admin-pagination">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            style={{
-              display: "flex", alignItems: "center", padding: "7px 12px",
-              borderRadius: "var(--radius-md)", border: "1px solid var(--border-strong)",
-              background: "var(--surface)", cursor: page <= 1 ? "not-allowed" : "pointer",
-              opacity: page <= 1 ? 0.4 : 1,
-            }}
+            className="admin-pagination-btn"
           >
             <ChevronLeft size={14} />
           </button>
-          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+          <span className="admin-pagination-text">
             Page {page} of {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            style={{
-              display: "flex", alignItems: "center", padding: "7px 12px",
-              borderRadius: "var(--radius-md)", border: "1px solid var(--border-strong)",
-              background: "var(--surface)", cursor: page >= totalPages ? "not-allowed" : "pointer",
-              opacity: page >= totalPages ? 0.4 : 1,
-            }}
+            className="admin-pagination-btn"
           >
             <ChevronRight size={14} />
           </button>
@@ -412,3 +375,4 @@ export default function AdminAuditLog() {
     </div>
   );
 }
+

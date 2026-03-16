@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -8,46 +8,41 @@ import {
 } from "recharts";
 import {
   FileText, Clock, CheckCircle, Archive, Activity,
-  ArrowRight,
+  ArrowRight, RefreshCw,
 } from "lucide-react";
 import { getAllRequests } from "../../services/requestService";
 import { getRecentAuditLogs } from "../../services/auditService";
+import { AuthContext } from "../../context/AuthContext";
+import {
+  APPROVED_STATUSES,
+  PENDING_STATUSES,
+  CHART_LABELS,
+  CHART_COLORS,
+  normalizeStatusForChart,
+} from "../../utils/requestStatusCharts";
 
 const STATUS_LABEL = {
-  nda_pending:                "Pending Approval",
+  nda_submitted:              "Submitted",
+  nda_admin_reviewal:         "Admin Reviewal",
   nda_approved:               "Approved",
+  nda_revision_requested:      "Revision Requested",
+  agreement_submitted:                "Submitted",
+  agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
+  agreement_awaiting_rep_approval:    "Awaiting Rep. Approval",
+  agreement_final_admin_reviewal:     "Final Admin Reviewal",
+  agreement_approved:                 "Approved",
+  agreement_rep_declined:             "Rep. Declined",
+  agreement_rep_revision_requested:   "Rep. Revision Requested",
+
+  // Legacy fallback labels
+  nda_pending:                "Admin Reviewal",
   revision_requested:         "Revision Requested",
-  agr_pending_1:              "Initial Pending Approval",
+  agr_pending_1:              "Initial Admin Reviewal",
   agr_awaiting_rep_signature: "Awaiting Rep. Approval",
-  agr_pending_2:              "Final Pending Approval",
+  agr_pending_2:              "Final Admin Reviewal",
   agr_approved:               "Approved",
   agr_rep_declined:           "Rep. Declined",
   agr_rep_revision_requested: "Rep. Revision Requested",
-};
-
-const CHART_LABELS = {
-  chart_approved:             "Approved",
-  chart_final_pending:        "Final Pending Approval",
-  chart_revision:             "Revision Requested",
-  agr_pending_1:              "Initial Pending Approval",
-  agr_awaiting_rep_signature: "Awaiting Rep. Approval",
-  agr_rep_declined:           "Rep. Declined",
-};
-
-const CHART_COLORS = {
-  chart_approved:             "#059669",
-  chart_final_pending:        "#ca8a04",
-  chart_revision:             "#dc2626",
-  agr_pending_1:              "#ea580c",
-  agr_awaiting_rep_signature: "#2563eb",
-  agr_rep_declined:           "#7c3aed",
-};
-
-const normalizeForChart = (s) => {
-  if (s === "nda_approved" || s === "agr_approved") return "chart_approved";
-  if (s === "nda_pending" || s === "agr_pending_2") return "chart_final_pending";
-  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "chart_revision";
-  return s;
 };
 
 const DONUT_COLORS = ["#059669", "#ea580c", "#7c3aed", "#ca8a04", "#2563eb", "#dc2626", "#64748b", "#3b82f6"];
@@ -56,12 +51,12 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 const prettyStatus = (s) => STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
 const statusPillClass = (s) => {
-  if (s === "nda_approved" || s === "agr_approved") return "status-pill status-pill--green";
-  if (s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
-  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
-  if (s === "agr_pending_1") return "status-pill status-pill--orange";
-  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
-  if (s === "agr_rep_declined") return "status-pill status-pill--violet";
+  if (s === "nda_approved" || s === "agreement_approved" || s === "agr_approved") return "status-pill status-pill--green";
+  if (s === "nda_submitted" || s === "agreement_submitted" || s === "agr_pending_1") return "status-pill status-pill--orange";
+  if (s === "nda_admin_reviewal" || s === "agreement_initial_admin_reviewal" || s === "agreement_final_admin_reviewal" || s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
+  if (s === "nda_revision_requested" || s === "agreement_rep_revision_requested" || s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
+  if (s === "agreement_awaiting_rep_approval" || s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agreement_rep_declined" || s === "agr_rep_declined") return "status-pill status-pill--violet";
   return "status-pill";
 };
 
@@ -88,10 +83,13 @@ const cardVariants = {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [requests, setRequests] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [notice, setNotice] = useState("");
   const [isCompact, setIsCompact] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
@@ -103,8 +101,8 @@ export default function AdminDashboard() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    const load = async () => {
+  const load = async ({ withToast = false } = {}) => {
+      if (withToast) setRefreshing(true);
       const errors = [];
 
       // Fetch independently so one failure doesn't block the other
@@ -119,8 +117,12 @@ export default function AdminDashboard() {
       }
 
       try {
-        const auditData = await getRecentAuditLogs(6);
-        setAuditLogs(auditData);
+        if (user?.role === "admin") {
+          const auditData = await getRecentAuditLogs(6);
+          setAuditLogs(auditData);
+        } else {
+          setAuditLogs([]);
+        }
       } catch (err) {
         const msg = err.response?.data?.message || err.message || "Failed to load audit logs";
         const status = err.response?.status;
@@ -129,9 +131,17 @@ export default function AdminDashboard() {
       }
 
       if (errors.length) setError(errors.join(" | "));
+      if (withToast && errors.length === 0) {
+        setNotice("Data updated");
+        setTimeout(() => setNotice(""), 1800);
+      }
       setLoading(false);
+      setRefreshing(false);
     };
+
+  useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const recentRequests = requests.slice(0, 4);
@@ -141,7 +151,7 @@ export default function AdminDashboard() {
     const counts = {};
     requests.forEach((r) => {
       if (!r.isArchived) {
-        const key = normalizeForChart(r.status);
+        const key = normalizeStatusForChart(r.status);
         counts[key] = (counts[key] || 0) + 1;
       }
     });
@@ -176,15 +186,15 @@ export default function AdminDashboard() {
       return {
         month: MONTH_NAMES[d.getMonth()],
         total: inMonth.length,
-        approved: inMonth.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length,
-        pending: inMonth.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2"].includes(r.status)).length,
+        approved: inMonth.filter((r) => APPROVED_STATUSES.includes(r.status)).length,
+        pending: inMonth.filter((r) => PENDING_STATUSES.includes(r.status)).length,
       };
     });
   }, [requests]);
 
   const totalActive = requests.filter((r) => !r.isArchived).length;
-  const totalPending = requests.filter((r) => ["nda_pending", "agr_pending_1", "agr_pending_2", "agr_awaiting_rep_signature"].includes(r.status)).length;
-  const totalApproved = requests.filter((r) => ["nda_approved", "agr_approved"].includes(r.status)).length;
+  const totalPending = requests.filter((r) => PENDING_STATUSES.includes(r.status)).length;
+  const totalApproved = requests.filter((r) => APPROVED_STATUSES.includes(r.status)).length;
   const totalArchived = requests.filter((r) => r.isArchived).length;
 
   const summaryCards = [
@@ -196,17 +206,29 @@ export default function AdminDashboard() {
 
   return (
     <div className="dashboard-page">
-      {/* ── Error Banner ── */}
-      {error && (
-        <div style={{
-          marginBottom: 16, padding: "12px 16px", borderRadius: "var(--radius-md)",
-          background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", fontSize: 13,
-        }}>
-          {error}
+      <div className="dashboard-topbar">
+        <h2 className="dashboard-title">Dashboard</h2>
+        <button
+          className="dashboard-action ui-btn--compact"
+          type="button"
+          onClick={() => load({ withToast: true })}
+          disabled={refreshing}
+        >
+          <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+          Refresh
+        </button>
+      </div>
+
+      {notice ? (
+        <div className="info-banner info-banner--success mb-12">
+          <strong>{notice}</strong>
         </div>
-      )}
+      ) : null}
+
+      {/* ── Error Banner ── */}
+      {error && <div className="admin-flash-banner admin-flash-banner--error">{error}</div>}
       {/* ── Summary Cards ── */}
-      <div className="responsive-grid-4" style={{ marginBottom: 24 }}>
+      <div className="responsive-grid-4 dashboard-section-gap">
         {summaryCards.map((card, i) => (
           <motion.div
             key={card.label}
@@ -245,8 +267,7 @@ export default function AdminDashboard() {
       {/* ── TOP: Recent Requests ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
-        className="dashboard-card"
-        style={{ marginBottom: 24 }}
+        className="dashboard-card dashboard-section-gap"
       >
         <div className="table-scroll">
         <table className="dashboard-table">
@@ -257,10 +278,7 @@ export default function AdminDashboard() {
                   <span className="dashboard-table-title">Recent Requests</span>
                   <Link
                     to="/admin/requests"
-                    style={{
-                      marginLeft: "auto", display: "flex", alignItems: "center", gap: 4,
-                      fontSize: 12, fontWeight: 600, color: "var(--primary)", textDecoration: "none",
-                    }}
+                    className="dashboard-view-all-link"
                   >
                     View All <ArrowRight size={13} />
                   </Link>
@@ -300,7 +318,7 @@ export default function AdminDashboard() {
               recentRequests.map((r) => (
                 <tr key={r._id}>
                   <td>
-                    <span style={{ fontWeight: 600 }}>{r.userId?.name || "Unknown"}</span>
+                    <span className="dashboard-student-name">{r.userId?.name || "Unknown"}</span>
                     <span className="dashboard-subtext">{r.userId?.email || ""}</span>
                   </td>
                   <td>
@@ -329,20 +347,16 @@ export default function AdminDashboard() {
       </motion.div>
 
       {/* ── MIDDLE: Analytics Charts ── */}
-      <div className="responsive-grid-2" style={{ marginBottom: 24 }}>
+      <div className="responsive-grid-2 dashboard-section-gap">
         {/* Donut Chart – Status Distribution */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          style={{
-            background: "var(--surface)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
-          }}
-          className="dashboard-chart-card"
+          className="admin-chart-card dashboard-chart-card"
         >
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
+          <div className="dashboard-chart-title">
             Request Status Distribution
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Current active requests by status</div>
+          <div className="dashboard-chart-subtitle">Current active requests by status</div>
           {statusData.length > 0 ? (
             <div className="dashboard-chart-canvas">
             <ResponsiveContainer width="100%" height="100%">
@@ -373,7 +387,7 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
             </div>
           ) : (
-            <div className="dashboard-chart-canvas" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 13 }}>
+            <div className="dashboard-chart-canvas dashboard-chart-empty">
               No data available
             </div>
           )}
@@ -382,16 +396,12 @@ export default function AdminDashboard() {
         {/* Bar Chart – Document Types This Month */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
-          style={{
-            background: "var(--surface)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
-          }}
-          className="dashboard-chart-card"
+          className="admin-chart-card dashboard-chart-card"
         >
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
+          <div className="dashboard-chart-title">
             Document Types — This Month
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>NDA vs Agreement requests submitted</div>
+          <div className="dashboard-chart-subtitle">NDA vs Agreement requests submitted</div>
           <div className="dashboard-chart-canvas">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={typeData} barSize={40}>
@@ -409,15 +419,10 @@ export default function AdminDashboard() {
       {/* Monthly Trend Line Chart */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.49 }}
-        style={{
-          background: "var(--surface)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius-lg)", padding: "20px 24px", boxShadow: "var(--shadow-sm)",
-          marginBottom: 24,
-        }}
-        className="dashboard-chart-card"
+        className="admin-chart-card dashboard-chart-card dashboard-section-gap"
       >
-        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Monthly Trend</div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Request volume over the last 6 months</div>
+        <div className="dashboard-chart-title">Monthly Trend</div>
+        <div className="dashboard-chart-subtitle">Request volume over the last 6 months</div>
         <div className="dashboard-chart-canvas">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={trendData}>
@@ -434,54 +439,48 @@ export default function AdminDashboard() {
         </div>
       </motion.div>
 
-      {/* ── BOTTOM: Recent Audit Logs ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.56 }}
-        style={{
-          background: "var(--surface)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)", overflow: "hidden",
-        }}
-      >
-        <div style={{
-          padding: "16px 20px", borderBottom: "1px solid var(--border)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Activity size={16} color="var(--primary)" />
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Most Recent Activity</span>
-          </div>
-          <Link to="/admin/audit" style={{ fontSize: 12, fontWeight: 600, color: "var(--primary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
-            View All <ArrowRight size={13} />
-          </Link>
-        </div>
-        <div style={{ padding: "8px 0" }}>
-          {auditLogs.length === 0 ? (
-            <div style={{ padding: "24px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
-              No activity yet
+      {/* ── BOTTOM: Recent Audit Logs (admin-only) ── */}
+      {user?.role === "admin" ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.56 }}
+          className="dashboard-audit-card"
+        >
+          <div className="dashboard-audit-header">
+            <div className="dashboard-audit-header-title">
+              <Activity size={16} color="var(--primary)" />
+              <span className="dashboard-audit-title-text">Most Recent Activity</span>
             </div>
-          ) : (
-            auditLogs.map((log, idx) => (
-              <div
-                key={log._id}
-                style={{
-                  padding: "10px 20px",
-                  borderBottom: idx < auditLogs.length - 1 ? "1px solid var(--border)" : "none",
-                  display: "flex", flexDirection: "column", gap: 2,
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-                  {ACTION_LABEL[log.action] || log.action}
-                </span>
-                <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
-                  {log.userId?.name || "System"}
-                  {" · "}
-                  {new Date(log.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                </span>
+            <Link to="/admin/audit" className="dashboard-view-all-link">
+              View All <ArrowRight size={13} />
+            </Link>
+          </div>
+          <div className="dashboard-audit-list">
+            {auditLogs.length === 0 ? (
+              <div className="dashboard-audit-empty">
+                No activity yet
               </div>
-            ))
-          )}
-        </div>
-      </motion.div>
+            ) : (
+              auditLogs.map((log, idx) => (
+                <div
+                  key={log._id}
+                  className={`dashboard-audit-item ${idx < auditLogs.length - 1 ? "dashboard-audit-item--bordered" : ""}`}
+                >
+                  <span className="dashboard-audit-action">
+                    {ACTION_LABEL[log.action] || log.action}
+                  </span>
+                  <span className="dashboard-audit-meta">
+                    {log.userId?.name || "System"}
+                    {" · "}
+                    {new Date(log.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </motion.div>
+      ) : null}
     </div>
   );
 }
+
+

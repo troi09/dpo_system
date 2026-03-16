@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from "react";
 import { pdf, Document, Page } from "@react-pdf/renderer";
 import { s, Header, BodyText, Footer } from "./styles";

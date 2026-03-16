@@ -9,12 +9,13 @@ Notes
 -Check the whole system if there are requiements need to be changed or replace for being able to run in vercel (include .env files, since its in gitignore and the changes would need be maually added)
 -At the end of this, Make a read me or any explnation that makes me instructions or guides for me to implement, to do, to replace, to install depndencies, or any requirement at all after implementing the changes
 
-in the login page Make the logo and titles of DPO adn RTU larger by around 20%
-also in the login page, when viewed in phone size, make the background image fill the background, since when in phne view theres a big gap on the bottom, the background doest fill the entire screen. Also lock the login screen so it is not scrollable
-when the user creates a request and picks the NDA option, make the option up next (school org activities, and conduct research) the same buttons layout and buttons as the initial pciking of NDA and Agreeement, and below the logo and titel of the form, a brief explnation of what si the purpose of both (for what it is)
-in the request review page, make  the page form centered and make it wider to fit the progress bar tracking 
-
-general bug. when the websystem is deployed to vercel already same code and all. When we load in the dashbaord the datas are empty, the responsive grid at the top have no data (like total request, pending, etc. are 0), the data charts and graphs are empty (although the data of these charts and graph are available in the reports and analytics page, just the daashabord are mising data)
-similar to other issue. Audit logs are not avaiable and not retreieving in vercel deployment.
-same also with the users management tab, tehre are no users loaded in and gives the error of Failed to load users
-all of these error and bugs happens in the vercel deployment mode, but local it all works flawlessly
+Add a refresh button for the student side dashboard.
+The stepper/status checks, make it so that it fills the width of the current form and is centered, make it shorter or longer dpeending on the screensize alotted. (responsive), also in mobile view, make the stepper smaller (including fonts, always take into account the distribution between and make it even) to make it fit to screen size width and not scrollable
+the donut chart status distribution. make it updated, and the statuses it have is the same as the statuses that a document can have. Submitted, Admin Reviewal, Revision Requested, Initial Admin Reviewal, Awaiting Rep. Approval, Final Admin Reviewal, Approved. These are the only statuses that should be in the donut chart, both in the dashboard and data analytics tab
+When updating a request status in admin side, the page redirects back to the main dashboard. make it so that admin user still stays on the request's page, for less hassle
+in an agreement request, when the admin approves and generates link for the representative, the link generated says "Link is not active, This signing link is no longer active (status: agreement_awaiting_rep_approval)."even though it just have been generated. fix this
+in student dashboard, when viewiing requests. the current filter option in the dashboard is pressing the button next the text of "MY REQUEST" to sort through all request statuses. revise this into a dropdown menu to sort through different document status. and update the statuses options, to the current updated statuses.
+the tracking of the password requirement warning when in registration, resetting password in admin user management, or self change password in user profile dont track the newpassword field properly, make the warning popup track the correct textfield and its location (beside the textfield at the left side)
+when registering a new account, It send an otp for email confirmation of the creation of the account. with after confirmation, auto login the user, dont go back to login. and also the ui of the registration in verify email page make it the same ui and look as with the previous page, which is the registration and login page (make it the same ui, form, styling, glasslook to the form, everything to keep it consistent)
+also add a resend otp function (wait for 1min again for resending to prevent spam) on every otp requests, (when loggin in a new IP, registration, or forget password)
+Check every UI/UX, make the websystem optimized althroughout. do every bit of optimization in front end and backend
