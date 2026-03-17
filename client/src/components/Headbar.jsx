@@ -12,10 +12,10 @@ const buildTitle = (pathname) => {
 
   if (pathname === "/admin/requests") return "Requests";
   if (pathname.startsWith("/admin/requests/")) return "Request Review";
-  if (pathname.startsWith("/admin/reports")) return "Reports";
+  if (pathname.startsWith("/admin/reports")) return "Transactional Reports";
   if (pathname.startsWith("/admin/users")) return "User Management";
   if (pathname.startsWith("/admin/archives")) return "Archives";
-  if (pathname.startsWith("/admin/audit")) return "Audit Trail";
+  if (pathname.startsWith("/admin/audit")) return "Audit Logs";
   if (pathname.startsWith("/admin/profile")) return "Profile";
 
   return "Dashboard";

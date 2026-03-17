@@ -137,7 +137,9 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const recentRequests = requests.slice(0, 4);
+  const recentRequests = requests
+    .filter((r) => PENDING_STATUSES.includes(r.status))
+    .slice(0, 4);
 
   // Filtered requests for charts based on date range
   const chartFilteredRequests = useMemo(() => {
@@ -216,7 +218,7 @@ export default function AdminDashboard() {
   const summaryCards = [
     { icon: FileText, label: "Total Requests", value: totalActive, color: "#3b82f6" },
     { icon: Clock, label: "Pending", value: totalPending, color: "#f59e0b" },
-    { icon: CheckCircle, label: "Approved/Completed", value: totalApproved, color: "#10b981" },
+    { icon: CheckCircle, label: "Approved", value: totalApproved, color: "#10b981" },
     { icon: Archive, label: "Archived", value: totalArchived, color: "#64748b" },
   ];
 
@@ -345,6 +347,12 @@ export default function AdminDashboard() {
                   align={isCompact ? "center" : "right"}
                   verticalAlign={isCompact ? "bottom" : "middle"}
                   wrapperStyle={{ fontSize: 12, paddingLeft: isCompact ? 0 : 24 }}
+                  formatter={(value) => {
+                    const total = statusData.reduce((sum, d) => sum + d.value, 0);
+                    const entry = statusData.find((d) => d.name === value);
+                    const pct = entry && total > 0 ? ((entry.value / total) * 100).toFixed(1) : 0;
+                    return `${value} (${pct}%)`;
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -379,88 +387,6 @@ export default function AdminDashboard() {
         </motion.div>
       </div>
 
-      {/* ── MIDDLE: Recent Requests ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
-        className="dashboard-card dashboard-section-gap"
-      >
-        <div className="table-scroll">
-        <table className="dashboard-table">
-          <thead>
-            <tr className="dashboard-table-title-row">
-              <th colSpan={5}>
-                <div className="dashboard-table-title-wrap">
-                  <span className="dashboard-table-title">Recent Requests</span>
-                  <Link
-                    to="/admin/requests"
-                    className="dashboard-view-all-link"
-                  >
-                    View All <ArrowRight size={13} />
-                  </Link>
-                </div>
-              </th>
-            </tr>
-            <tr>
-              <th>Student</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [1, 2, 3, 4].map((i) => (
-                <tr key={i}>
-                  <td><div className="skeleton-row" style={{ padding: 0, border: "none" }}><div className="skeleton-block skeleton-block--lg" /><div className="skeleton-block skeleton-block--md" style={{ height: 10 }} /></div></td>
-                  <td><div className="skeleton-block skeleton-block--md" /></td>
-                  <td><div className="skeleton-block skeleton-block--sm" style={{ borderRadius: 99 }} /></td>
-                  <td><div className="skeleton-block skeleton-block--sm" /></td>
-                  <td><div className="skeleton-block skeleton-block--sm" /></td>
-                </tr>
-              ))
-            ) : recentRequests.length === 0 ? (
-              <tr>
-                <td colSpan={5}>
-                  <div className="dashboard-empty">
-                    <FileText size={32} strokeWidth={1.5} color="var(--text-muted)" />
-                    <p className="dashboard-empty-title">No requests yet</p>
-                    <p className="dashboard-empty-text">Student requests will appear here once submitted.</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              recentRequests.map((r) => (
-                <tr key={r._id}>
-                  <td>
-                    <span className="dashboard-student-name">{r.userId?.name || "Unknown"}</span>
-                    <span className="dashboard-subtext">{r.userId?.email || ""}</span>
-                  </td>
-                  <td>
-                    {r.type === "nda"
-                      ? `NDA${r.formData?.ndaTypeLabel ? ` — ${r.formData.ndaTypeLabel}` : ""}`
-                      : "Agreement"}
-                  </td>
-                  <td>
-                    <span className={statusPillClass(r.status)}>{prettyStatus(r.status)}</span>
-                  </td>
-                  <td>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
-                  <td>
-                    <button
-                      className="dashboard-action"
-                      onClick={() => navigate(`/admin/requests/${r._id}`)}
-                    >
-                      Review
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-        </div>
-      </motion.div>
-
       {/* Monthly Trend Line Chart */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.49 }}
@@ -477,14 +403,14 @@ export default function AdminDashboard() {
             <Tooltip />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Total" />
-            <Line type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Approved/Completed" />
+            <Line type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="Approved" />
             <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} name="Pending" />
           </LineChart>
         </ResponsiveContainer>
         </div>
       </motion.div>
 
-      {/* ── BOTTOM: Recent Audit Logs (admin-only) ── */}
+      {/* ── Recent Audit Logs (admin-only) ── */}
       {user?.role === "admin" ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.56 }}
@@ -524,6 +450,82 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
       ) : null}
+
+      {/* ── BOTTOM: Most Recent Requests (reviewal only) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.63 }}
+        className="dashboard-card"
+        style={{ marginTop: 20 }}
+      >
+        <div className="table-scroll">
+        <table className="dashboard-table">
+          <thead>
+            <tr className="dashboard-table-title-row">
+              <th colSpan={5}>
+                <div className="dashboard-table-title-wrap">
+                  <span className="dashboard-table-title">Most Recent Requests</span>
+                  <Link
+                    to="/admin/requests"
+                    className="dashboard-view-all-link"
+                  >
+                    View All <ArrowRight size={13} />
+                  </Link>
+                </div>
+              </th>
+            </tr>
+            <tr>
+              <th>Student</th>
+              <th>Request ID</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              [1, 2, 3, 4].map((i) => (
+                <tr key={i}>
+                  <td><div className="skeleton-row" style={{ padding: 0, border: "none" }}><div className="skeleton-block skeleton-block--lg" /><div className="skeleton-block skeleton-block--md" style={{ height: 10 }} /></div></td>
+                  <td><div className="skeleton-block skeleton-block--sm" /></td>
+                  <td><div className="skeleton-block skeleton-block--md" /></td>
+                  <td><div className="skeleton-block skeleton-block--sm" style={{ borderRadius: 99 }} /></td>
+                  <td><div className="skeleton-block skeleton-block--sm" /></td>
+                </tr>
+              ))
+            ) : recentRequests.length === 0 ? (
+              <tr>
+                <td colSpan={5}>
+                  <div className="dashboard-empty">
+                    <FileText size={32} strokeWidth={1.5} color="var(--text-muted)" />
+                    <p className="dashboard-empty-title">No pending requests</p>
+                    <p className="dashboard-empty-text">Requests awaiting reviewal will appear here.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              recentRequests.map((r) => (
+                <tr key={r._id} onClick={() => navigate(`/admin/requests/${r._id}`)} style={{ cursor: "pointer" }}>
+                  <td>
+                    <span className="dashboard-student-name">{r.userId?.name || "Unknown"}</span>
+                    <span className="dashboard-subtext">{r.userId?.email || ""}</span>
+                  </td>
+                  <td><code style={{ fontSize: 12, color: "var(--text-secondary)" }}>{r._id?.slice(-7).toUpperCase()}</code></td>
+                  <td>
+                    {r.type === "nda"
+                      ? `NDA${r.formData?.ndaTypeLabel ? ` — ${r.formData.ndaTypeLabel}` : ""}`
+                      : "Agreement"}
+                  </td>
+                  <td>
+                    <span className={statusPillClass(r.status)}>{prettyStatus(r.status)}</span>
+                  </td>
+                  <td>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+        </div>
+      </motion.div>
     </div>
   );
 }

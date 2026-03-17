@@ -206,10 +206,10 @@ const StudentDashboard = () => {
               </th>
             </tr>
             <tr>
+              <th>Request ID</th>
               <th>Type</th>
               <th>Status</th>
               <th>Request Date</th>
-              <th></th>
             </tr>
           </thead>
 
@@ -218,9 +218,9 @@ const StudentDashboard = () => {
               [...Array(4)].map((_, i) => (
                 <tr key={`sk-${i}`}>
                   <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
                   <td><span className="skeleton-block skeleton-pill" /></td>
                   <td><span className="skeleton-block skeleton-text" /></td>
-                  <td><span className="skeleton-block skeleton-btn" /></td>
                 </tr>
               ))
             ) : filtered.length === 0 ? (
@@ -244,7 +244,8 @@ const StudentDashboard = () => {
               </tr>
             ) : (
               filtered.map((r) => (
-                <tr key={r._id}>
+                <tr key={r._id} onClick={() => navigate(`/student/requests/${r._id}`)} style={{ cursor: "pointer" }}>
+                  <td><code style={{ fontSize: 12, color: "var(--text-secondary)" }}>{r._id?.slice(-7).toUpperCase()}</code></td>
                   <td>
                     {r.type === "nda"
                       ? `NDA${r.formData?.ndaTypeLabel ? ` — ${r.formData.ndaTypeLabel}` : ""}`
@@ -258,15 +259,6 @@ const StudentDashboard = () => {
                   </td>
 
                   <td>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
-
-                  <td>
-                    <button
-                      className="dashboard-action"
-                      onClick={() => navigate(`/student/requests/${r._id}`)}
-                    >
-                      View
-                    </button>
-                  </td>
                 </tr>
               ))
             )}

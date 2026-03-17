@@ -263,10 +263,10 @@ export default function AdminRequests() {
             </tr>
             <tr>
               <th>Student</th>
+              <th>Request ID</th>
               <th>Type</th>
               <th>Status</th>
               <th>Request Date</th>
-              <th></th>
             </tr>
           </thead>
 
@@ -276,9 +276,9 @@ export default function AdminRequests() {
                 <tr key={`sk-${i}`}>
                   <td><span className="skeleton-block skeleton-text" /></td>
                   <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-text" /></td>
                   <td><span className="skeleton-block skeleton-pill" /></td>
                   <td><span className="skeleton-block skeleton-text" /></td>
-                  <td><span className="skeleton-block skeleton-btn" /></td>
                 </tr>
               ))
             ) : filtered.length === 0 ? (
@@ -293,7 +293,7 @@ export default function AdminRequests() {
               </tr>
             ) : (
               filtered.map((r) => (
-                <tr key={r._id}>
+                <tr key={r._id} onClick={() => navigate(`/admin/requests/${r._id}`)} style={{ cursor: "pointer" }}>
                   <td>
                     <span style={{ fontWeight: 600 }}>
                       {r.proxyRequestee?.isProxy ? (r.proxyRequestee?.fullName || "Proxy Requestee") : (r.userId?.name || "Unknown")}
@@ -305,6 +305,8 @@ export default function AdminRequests() {
                       <span className="dashboard-subtext">Submitted by staff: {r.userId?.name || "Unknown"}</span>
                     ) : null}
                   </td>
+
+                  <td><code style={{ fontSize: 12, color: "var(--text-secondary)" }}>{r._id?.slice(-7).toUpperCase()}</code></td>
 
                   <td>
                     {r.type === "nda"
@@ -319,15 +321,6 @@ export default function AdminRequests() {
                   </td>
 
                   <td>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
-
-                  <td>
-                    <button
-                      className="dashboard-action"
-                      onClick={() => navigate(`/admin/requests/${r._id}`)}
-                    >
-                      View
-                    </button>
-                  </td>
                 </tr>
               ))
             )}

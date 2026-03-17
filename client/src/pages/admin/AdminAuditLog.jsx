@@ -316,9 +316,7 @@ export default function AdminAuditLog() {
                         : "—"}
                     </td>
                     <td>
-                      <span className="tag-pill" style={{ background: style.bg, color: style.color }}>
-                        {prettyAction(log.action)}
-                      </span>
+                      {prettyAction(log.action)}
                     </td>
                     <td>
                       {log.userId ? (
@@ -331,11 +329,12 @@ export default function AdminAuditLog() {
                       )}
                     </td>
                     <td className="admin-cell-small-muted" style={{ color: "var(--text-secondary)" }}>
-                      {log.resourceType ? log.resourceType.charAt(0).toUpperCase() + log.resourceType.slice(1) : "—"}
-                      {log.resourceId ? <div className="admin-cell-mono">{String(log.resourceId).slice(-8)}</div> : null}
+                      {log.resourceId
+                        ? <code style={{ fontSize: 12 }}>{String(log.resourceId).slice(-7).toUpperCase()}</code>
+                        : (log.resourceType ? log.resourceType.charAt(0).toUpperCase() + log.resourceType.slice(1) : "—")}
                     </td>
                     <td className="admin-cell-small-muted" style={{ color: "var(--text-secondary)", maxWidth: 240 }}>
-                      <div className="admin-cell-ellipsis">
+                      <div className="admin-cell-ellipsis" title={formatAuditDetails(log)}>
                         {formatAuditDetails(log)}
                       </div>
                     </td>

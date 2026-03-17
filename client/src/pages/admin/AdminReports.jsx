@@ -290,9 +290,11 @@ export default function AdminReports() {
                 {[
                   { key: "createdAt", label: "Date" },
                   { key: "userId.name", label: "Requestee" },
+                  { key: null, label: "Request ID" },
                   { key: "type", label: "Type" },
                   { key: "status", label: "Status" },
                 ].map((col) => (
+                  col.key ? (
                   <th
                     key={col.key}
                     onClick={() => handleSort(col.key)}
@@ -303,8 +305,10 @@ export default function AdminReports() {
                       <SortIcon field={col.key} sortField={sortField} sortDir={sortDir} />
                     </span>
                   </th>
+                  ) : (
+                  <th key={col.label}>{col.label}</th>
+                  )
                 ))}
-                <th>Serial</th>
               </tr>
             </thead>
             <tbody>
@@ -335,11 +339,9 @@ export default function AdminReports() {
                           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Proxy (F2F)</div>
                         )}
                       </td>
+                      <td><code style={{ fontSize: 12, color: "var(--text-secondary)" }}>{r._id?.slice(-7).toUpperCase()}</code></td>
                       <td style={{ textTransform: "capitalize", fontSize: 13 }}>{r.type || "—"}</td>
                       <td><span className={statusPillClass(r.status)}>{prettyStatus(r.status)}</span></td>
-                      <td style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
-                        {r.serialNo || "—"}
-                      </td>
                     </tr>
                   );
                 })
