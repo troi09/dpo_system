@@ -59,7 +59,7 @@ export default function StudentResubmitRequest() {
     e.preventDefault();
     if (!reqData || !cfg) return;
 
-    if (!["nda_revision_requested", "revision_requested"].includes(reqData.status)) {
+    if (!["stud_revision_requested"].includes(reqData.status)) {
       notify("Only revision requested requests can be resubmitted.", { type: "warning" });
       return;
     }
@@ -169,7 +169,7 @@ export default function StudentResubmitRequest() {
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` — ${reqData.formData.ndaTypeLabel}` : ""}`;
 
-  if (!["nda_revision_requested", "revision_requested"].includes(reqData.status)) {
+  if (!["stud_revision_requested"].includes(reqData.status)) {
     return (
       <div className="review-page">
         <div className="review-card">

@@ -892,6 +892,18 @@ a,
 }
 
 .status-filter--revision {
+  background: #ffedd5;
+  color: #9a3412;
+  border-color: #ffedd5;
+}
+
+.status-filter--rep-revision {
+  background: #ede9fe;
+  color: #4c1d95;
+  border-color: #ede9fe;
+}
+
+.status-filter--declined {
   background: #fee2e2;
   color: #991b1b;
   border-color: #fee2e2;

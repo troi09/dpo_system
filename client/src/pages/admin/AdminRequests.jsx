@@ -4,45 +4,26 @@ import { Filter, RefreshCw, Search } from "lucide-react";
 import { getAllRequests } from "../../services/requestService";
 
 const statusClass = (s) => {
-  if (s === "nda_approved" || s === "agreement_approved" || s === "agr_approved") return "status-pill status-pill--green";
-  if (s === "nda_submitted" || s === "agreement_submitted") return "status-pill status-pill--orange";
-  if (s === "nda_admin_reviewal" || s === "agreement_initial_admin_reviewal" || s === "agreement_final_admin_reviewal") return "status-pill status-pill--yellow";
-  if (s === "nda_revision_requested" || s === "agreement_rep_revision_requested") return "status-pill status-pill--red";
-  if (s === "agreement_awaiting_rep_approval") return "status-pill status-pill--blue";
-  if (s === "agreement_rep_declined") return "status-pill status-pill--violet";
-
-  // Legacy status fallback
-  if (s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
-  if (s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
-  if (s === "agr_pending_1") return "status-pill status-pill--orange";
+  if (["nda_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
+  if (["nda_pending", "agr_pending_1", "agr_pending_2"].includes(s)) return "status-pill status-pill--yellow";
+  if (s === "stud_revision_requested") return "status-pill status-pill--orange";
+  if (s === "agr_rep_revision_requested") return "status-pill status-pill--violet";
   if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
-  if (s === "agr_rep_declined") return "status-pill status-pill--violet";
+  if (s === "agr_declined") return "status-pill status-pill--red";
   return "status-pill";
 };
 
 const prettyStatus = (s) => {
   const map = {
-    nda_submitted:              "Submitted",
-    nda_admin_reviewal:         "Admin Reviewal",
+    nda_pending:                "Reviewal",
     nda_approved:               "Approved",
-    nda_revision_requested:      "Revision Requested",
-    agreement_submitted:                "Submitted",
-    agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
-    agreement_awaiting_rep_approval:    "Awaiting Representative Approval",
-    agreement_final_admin_reviewal:     "Final Admin Reviewal",
-    agreement_approved:                 "Approved",
-    agreement_rep_declined:             "Representative Declined",
-    agreement_rep_revision_requested:   "Representative Revision Requested",
-
-    // Legacy fallback labels
-    nda_pending:                "Admin Reviewal",
-    revision_requested:         "Revision Requested",
-    agr_pending_1:              "Initial Admin Reviewal",
-    agr_awaiting_rep_signature: "Awaiting Representative Approval",
-    agr_pending_2:              "Final Admin Reviewal",
+    stud_revision_requested:    "Student Revisions",
+    agr_pending_1:              "Initial Reviewal",
+    agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+    agr_pending_2:              "Final Reviewal",
     agr_approved:               "Approved",
-    agr_rep_declined:           "Representative Declined",
-    agr_rep_revision_requested: "Representative Revision Requested",
+    agr_declined:               "Recipient Declined",
+    agr_rep_revision_requested: "Recipient Revisions",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
@@ -212,11 +193,12 @@ export default function AdminRequests() {
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="under_review">Under Review</option>
-          <option value="approved_completed">Approved/Completed</option>
-          <option value="revision">Revision Requested</option>
-          <option value="representative">Representative Flow</option>
+          <option value="reviewal">Reviewal</option>
+          <option value="approved">Approved</option>
+          <option value="stud_revision">Student Revisions</option>
+          <option value="rep_revision">Recipient Revisions</option>
+          <option value="rep_declined">Recipient Declined</option>
+          <option value="awaiting_rep">Awaiting Recipient Approval</option>
         </select>
 
         <select

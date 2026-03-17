@@ -10,17 +10,12 @@ const logAudit = (data) => {
 };
 
 const STATUS_GROUPS = {
-  pending: [
-    "nda_submitted",
-    "nda_admin_reviewal",
-    "agreement_submitted",
-    "agreement_initial_admin_reviewal",
-    "agreement_final_admin_reviewal",
-  ],
-  under_review: ["agreement_awaiting_rep_approval"],
-  approved_completed: ["nda_approved", "agreement_approved"],
-  revision: ["nda_revision_requested", "agreement_rep_revision_requested"],
-  representative: ["agreement_awaiting_rep_approval", "agreement_rep_declined", "agreement_rep_revision_requested"],
+  reviewal: ["nda_pending", "agr_pending_1", "agr_pending_2"],
+  approved: ["nda_approved", "agr_approved"],
+  stud_revision: ["stud_revision_requested"],
+  rep_revision: ["agr_rep_revision_requested"],
+  rep_declined: ["agr_declined"],
+  awaiting_rep: ["agr_awaiting_rep_signature"],
 };
 
 const resolveStatusFilter = (statusQuery) => {
@@ -103,7 +98,7 @@ exports.createRequest = async (req, res) => {
       return res.status(400).json({ message: "formData must be an object" });
     }
 
-    const initialStatus = type === "agreement" ? "agreement_submitted" : "nda_submitted";
+    const initialStatus = type === "agreement" ? "agr_pending_1" : "nda_pending";
     const isStaffProxy = req.user.role === "staff";
 
     if (isStaffProxy) {
@@ -219,14 +214,13 @@ exports.resubmitRequest = async (req, res) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    if (r.status !== "nda_revision_requested") {
-      return res.status(400).json({ message: "Only NDA revision-requested requests can be resubmitted" });
+    if (r.status !== "stud_revision_requested") {
+      return res.status(400).json({ message: "Only revision-requested requests can be resubmitted" });
     }
 
     r.formData = formData && typeof formData === "object" ? formData : r.formData;
     r.predocs = Array.isArray(predocs) ? predocs : [];
-    // Agreements go back to initial review stage, NDAs go back to admin review stage
-    r.status = r.type === "agreement" ? "agreement_initial_admin_reviewal" : "nda_admin_reviewal";
+    r.status = r.type === "agreement" ? "agr_pending_1" : "nda_pending";
     r.remarks = "";
     r.postdocs = { url: "", path: "", issuedAt: "", verificationUrl: "" };
 
@@ -392,11 +386,8 @@ exports.updateRequestStatus = async (req, res) => {
     const { status, remarks, adminSigUrl, adminSigPath } = req.body;
 
     const allowedStatuses = [
-      "nda_admin_reviewal",
       "nda_approved",
-      "nda_revision_requested",
-      "agreement_initial_admin_reviewal",
-      "agreement_rep_revision_requested",
+      "stud_revision_requested",
     ];
     if (!status || !allowedStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
@@ -413,25 +404,22 @@ exports.updateRequestStatus = async (req, res) => {
     const isAgreement = existing.type === "agreement";
 
     if (isNda) {
-      const allowedFrom = ["nda_submitted", "nda_admin_reviewal"];
+      const allowedFrom = ["nda_pending"];
       if (!allowedFrom.includes(existing.status)) {
-        return res.status(400).json({ message: "Only submitted NDA requests can be updated here" });
+        return res.status(400).json({ message: "Only pending NDA requests can be updated here" });
       }
-      const allowedTargets = ["nda_admin_reviewal", "nda_approved", "nda_revision_requested"];
+      const allowedTargets = ["nda_approved", "stud_revision_requested"];
       if (!allowedTargets.includes(status)) {
         return res.status(400).json({ message: "Invalid target status for NDA" });
-      }
-      if (status === "nda_approved" && existing.status === "nda_submitted") {
-        return res.status(400).json({ message: "Move request to Admin Reviewal before approval" });
       }
     }
 
     if (isAgreement) {
-      const allowedFrom = ["agreement_submitted", "agreement_initial_admin_reviewal"];
+      const allowedFrom = ["agr_pending_1"];
       if (!allowedFrom.includes(existing.status)) {
         return res.status(400).json({ message: "Use agreement-specific endpoints for this stage" });
       }
-      const allowedTargets = ["agreement_initial_admin_reviewal", "agreement_rep_revision_requested"];
+      const allowedTargets = ["stud_revision_requested"];
       if (!allowedTargets.includes(status)) {
         return res.status(400).json({ message: "Invalid target status for Agreement initial review" });
       }
@@ -454,7 +442,7 @@ exports.updateRequestStatus = async (req, res) => {
 
     logAudit({
       userId: req.user.id,
-      action: status === "nda_approved" ? "request_approved" : "request_forwarded",
+      action: status === "nda_approved" ? "request_approved" : "request_revision_required",
       resourceType: "request",
       resourceId: String(id),
       details: { newStatus: status, type: existing.type },
@@ -486,7 +474,7 @@ exports.saveApprovedDocument = async (req, res) => {
     const r = await Request.findById(id);
     if (!r) return res.status(404).json({ message: "Request not found" });
 
-    const validFinalStatuses = ["nda_approved", "agreement_approved"];
+    const validFinalStatuses = ["nda_approved", "agr_approved"];
     if (!validFinalStatuses.includes(r.status)) {
       return res.status(400).json({ message: "Request is not in a final approved state" });
     }
@@ -534,7 +522,7 @@ exports.generateSigningLink = async (req, res) => {
       return res.status(400).json({ message: "Only agreement requests use signing links" });
     }
 
-    const allowedFromStatuses = ["agreement_initial_admin_reviewal", "agreement_rep_revision_requested", "agreement_awaiting_rep_approval"];
+    const allowedFromStatuses = ["agr_pending_1", "agr_rep_revision_requested", "agr_awaiting_rep_signature"];
     if (!allowedFromStatuses.includes(r.status)) {
       return res.status(400).json({
         message: `Cannot generate signing link from status: ${r.status}`,
@@ -544,7 +532,7 @@ exports.generateSigningLink = async (req, res) => {
     r.signingToken = generateSigningTokenValue();
     r.signingTokenUsed = false;
     r.signingTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7-day TTL
-    r.status = "agreement_awaiting_rep_approval";
+    r.status = "agr_awaiting_rep_signature";
     r.remarks = "";
 
     await r.save();
@@ -613,7 +601,7 @@ exports.repSubmit = async (req, res) => {
       return res.status(410).json({ message: "This signing link has expired. Please request a new one." });
     }
 
-    const allowedStatuses = ["agreement_awaiting_rep_approval", "agreement_rep_revision_requested"];
+    const allowedStatuses = ["agr_awaiting_rep_signature", "agr_rep_revision_requested"];
     if (!allowedStatuses.includes(r.status)) {
       return res.status(400).json({ message: "This request is not awaiting representative signature" });
     }
@@ -635,7 +623,7 @@ exports.repSubmit = async (req, res) => {
     r.repSigUrl = repSigUrl;
     r.repSigPath = repSigPath || "";
     r.signingTokenUsed = true;
-    r.status = "agreement_final_admin_reviewal";
+    r.status = "agr_pending_2";
     r.remarks = "";
 
     await r.save();
@@ -667,13 +655,13 @@ exports.repReject = async (req, res) => {
       return res.status(400).json({ message: "This signing link has already been used" });
     }
 
-    const allowedStatuses = ["agreement_awaiting_rep_approval", "agreement_rep_revision_requested"];
+    const allowedStatuses = ["agr_awaiting_rep_signature", "agr_rep_revision_requested"];
     if (!allowedStatuses.includes(r.status)) {
       return res.status(400).json({ message: "This request is not awaiting representative signature" });
     }
 
     r.signingTokenUsed = true;
-    r.status = "agreement_rep_declined";
+    r.status = "agr_declined";
 
     await r.save();
 
@@ -709,19 +697,19 @@ exports.adminPhase3Action = async (req, res) => {
     if (r.type !== "agreement") {
       return res.status(400).json({ message: "Only agreement requests use this endpoint" });
     }
-    if (r.status !== "agreement_final_admin_reviewal") {
+    if (r.status !== "agr_pending_2") {
       return res.status(400).json({ message: `Cannot perform phase3 action from status: ${r.status}` });
     }
 
     if (action === "approve") {
-      r.status = "agreement_approved";
+      r.status = "agr_approved";
       if (!r.serialNo) r.serialNo = await generateUniqueSerialNo("agreement");
       r.remarks = "";
     } else {
       // rep_revision_requested: generate new signing token
       r.signingToken = generateSigningTokenValue();
       r.signingTokenUsed = false;
-      r.status = "agreement_rep_revision_requested";
+      r.status = "agr_rep_revision_requested";
       r.remarks = remarks || "";
     }
 
@@ -806,7 +794,7 @@ exports.verifyRequestCode = async (req, res) => {
 
     const isValid =
       (r.type === "nda" && r.status === "nda_approved") ||
-      (r.type === "agreement" && r.status === "agreement_approved");
+      (r.type === "agreement" && r.status === "agr_approved");
 
     return res.json({
       valid: isValid,

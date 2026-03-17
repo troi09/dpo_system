@@ -26,27 +26,15 @@ import SignaturePad from "../../components/SignaturePad";
 
 const prettyStatus = (s) => {
   const map = {
-    nda_submitted:              "Submitted",
-    nda_admin_reviewal:         "Admin Reviewal",
+    nda_pending:                "Reviewal",
     nda_approved:               "Approved",
-    nda_revision_requested:      "Revision Requested",
-    agreement_submitted:                "Submitted",
-    agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
-    agreement_awaiting_rep_approval:    "Awaiting Representative Approval",
-    agreement_final_admin_reviewal:     "Final Admin Reviewal",
-    agreement_approved:                 "Approved",
-    agreement_rep_declined:             "Declined by Representative",
-    agreement_rep_revision_requested:   "Representative Revision Requested",
-
-    // Legacy fallback labels
-    nda_pending:                "Admin Reviewal",
-    revision_requested:         "Revision Requested",
-    agr_pending_1:              "Initial Admin Reviewal",
-    agr_awaiting_rep_signature: "Awaiting Representative Approval",
-    agr_pending_2:              "Final Admin Reviewal",
+    stud_revision_requested:    "Student Revisions",
+    agr_pending_1:              "Initial Reviewal",
+    agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+    agr_pending_2:              "Final Reviewal",
     agr_approved:               "Approved",
-    agr_rep_declined:           "Declined by Representative",
-    agr_rep_revision_requested: "Representative Revision Requested",
+    agr_declined:               "Recipient Declined",
+    agr_rep_revision_requested: "Recipient Revisions",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
@@ -75,9 +63,8 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
     return null;
   }, [reqData]);
 
-  const isSubmitted = reqData?.status === "nda_submitted";
-  const isAdminReviewal = reqData?.status === "nda_admin_reviewal" || reqData?.status === "nda_pending";
-  const isRevision = reqData?.status === "nda_revision_requested" || reqData?.status === "revision_requested";
+  const isPending = reqData?.status === "nda_pending";
+  const isRevision = reqData?.status === "stud_revision_requested";
   const isApproved = reqData?.status === "nda_approved";
 
 
@@ -90,19 +77,13 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         return;
       }
     }
-    if (status === "nda_revision_requested" || status === "revision_requested") {
+    if (status === "stud_revision_requested") {
       if (!remarks.trim()) {
         notify("Please enter remarks before requesting a revision.", { type: "warning" });
         return;
       }
     }
-    setActiveAction(
-      status === "nda_admin_reviewal"
-        ? "forward"
-        : status === "nda_approved"
-          ? "approve"
-          : "revision"
-    );
+    setActiveAction(status === "nda_approved" ? "approve" : "revision");
     try {
       if (status === "nda_approved") {
         // For F2F proxy requests, skip digital signatures (wet signature will be applied on print)
@@ -258,7 +239,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         )}
       </div>
 
-      {canProgress && (isSubmitted || isAdminReviewal) && (
+      {canProgress && isPending && (
         <div className="review-section">
           <h4 className="review-section-title">Remarks</h4>
           <textarea
@@ -306,7 +287,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         </div>
       )}
 
-      {canProgress && isAdminReviewal && !isProxy && (
+      {canProgress && isPending && !isProxy && (
         <div className="review-section">
           <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
           <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
@@ -323,26 +304,14 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         </div>
       )}
 
-      {canProgress && isAdminReviewal && isProxy && (
+      {canProgress && isPending && isProxy && (
         <div className="info-banner info-banner--info">
           <strong>F2F Walk-in (Proxy)</strong>
           <p>This is a face-to-face proxy request. Digital signatures are bypassed. The document will be printed for a physical wet signature.</p>
         </div>
       )}
 
-      {canProgress && isSubmitted && (
-        <div className="review-actions">
-          <button
-            onClick={() => handleUpdate("nda_admin_reviewal")}
-            disabled={!!activeAction}
-            className="review-btn-primary"
-          >
-            {activeAction === "forward" ? "Updating..." : "Forward to Admin Reviewal"}
-          </button>
-        </div>
-      )}
-
-      {canProgress && isAdminReviewal && (
+      {canProgress && isPending && (
         <div className="review-actions">
           <button
             onClick={() => handleUpdate("nda_approved")}
@@ -352,11 +321,11 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
             {activeAction === "approve" ? "Generating..." : "Approve"}
           </button>
           <button
-            onClick={() => handleUpdate("nda_revision_requested")}
+            onClick={() => handleUpdate("stud_revision_requested")}
             disabled={!!activeAction}
             className="review-btn-secondary"
           >
-            {activeAction === "revision" ? "Submitting..." : "Request Revision"}
+            {activeAction === "revision" ? "Submitting..." : "Request Student Revision"}
           </button>
         </div>
       )}
@@ -600,7 +569,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       )}
 
       {/* Remarks display */}
-      {(status === "nda_revision_requested" || status === "agreement_rep_revision_requested" || status === "revision_requested" || status === "agr_rep_revision_requested") &&
+      {(status === "stud_revision_requested" || status === "agr_rep_revision_requested") &&
         reqData.remarks && (
           <div className="review-section">
             <h4 className="review-section-title">Remarks</h4>
@@ -609,7 +578,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         )}
 
       {/* Final approved document */}
-      {status === "agreement_approved" && (
+      {status === "agr_approved" && (
         <div className="review-section">
           <h4 className="review-section-title">Approved Agreement</h4>
           {reqData.postdocs?.url ? (
@@ -625,15 +594,15 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       )}
 
       {/* Rep rejected */}
-      {status === "agreement_rep_declined" && (
+      {status === "agr_declined" && (
         <div className="info-banner info-banner--danger">
-          <strong>Representative Declined</strong>
-          <p>The representative declined to sign. This request lifecycle has ended.</p>
+          <strong>Recipient Declined</strong>
+          <p>The recipient declined to sign. This request lifecycle has ended.</p>
         </div>
       )}
 
-      {/* Generated signing link (always visible once generated) */}
-      {signingLink && (
+      {/* Generated signing link (visible only while awaiting rep action) */}
+      {signingLink && (status === "agr_awaiting_rep_signature" || status === "agr_rep_revision_requested") && (
         <div className="signing-link-box">
           <p className="signing-link-title">Representative Signing Link</p>
           <p className="signing-link-desc">
@@ -661,9 +630,10 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           {canProgress && (
             <button
               onClick={handleRegenerateLink}
-              disabled={regenerating}
+              disabled={regenerating || !signingLinkExpiry || new Date(signingLinkExpiry) >= new Date()}
               className="review-btn-secondary"
-              style={{ marginTop: 10 }}
+              style={{ marginTop: 10, opacity: (!signingLinkExpiry || new Date(signingLinkExpiry) >= new Date()) ? 0.5 : 1 }}
+              title={(!signingLinkExpiry || new Date(signingLinkExpiry) >= new Date()) ? "Link is still active" : "Regenerate expired link"}
             >
               {regenerating ? "Regenerating…" : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><RefreshCw size={14} strokeWidth={1.8} />Regenerate Link</span>}
             </button>
@@ -672,26 +642,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       )}
 
       {/* ── Phase 1 actions ── */}
-      {canProgress && status === "agreement_submitted" && (
-        <div className="review-actions">
-          <button
-            onClick={async () => {
-              try {
-                await updateRequestStatus(reqData._id, { status: "agreement_initial_admin_reviewal" });
-                notify("Request moved to Initial Admin Reviewal.", { type: "success" });
-                await onRequestUpdated?.({ withToast: true });
-              } catch (err) {
-                notify(err.response?.data?.message || "Failed", { type: "error" });
-              }
-            }}
-            className="review-btn-primary"
-          >
-            Forward to Initial Admin Reviewal
-          </button>
-        </div>
-      )}
-
-      {canProgress && status === "agreement_initial_admin_reviewal" && !signingLink && (
+      {canProgress && status === "agr_pending_1" && !signingLink && (
         <>
           <div className="review-section">
             <h4 className="review-section-title">Remarks</h4>
@@ -711,12 +662,34 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
             >
               {generating ? "Generating link..." : "Approve & Generate Signing Link"}
             </button>
+            <button
+              onClick={async () => {
+                if (!remarks.trim()) {
+                  notify("Please enter remarks before requesting a revision.", { type: "warning" });
+                  return;
+                }
+                setPhase1Revising(true);
+                try {
+                  await updateRequestStatus(reqData._id, { status: "stud_revision_requested", remarks });
+                  notify("Student revision requested.", { type: "success" });
+                  await onRequestUpdated?.({ withToast: true });
+                } catch (err) {
+                  notify(err.response?.data?.message || "Failed", { type: "error" });
+                } finally {
+                  setPhase1Revising(false);
+                }
+              }}
+              disabled={generating || phase1Revising}
+              className="review-btn-secondary"
+            >
+              {phase1Revising ? "Submitting..." : "Request Student Revision"}
+            </button>
           </div>
         </>
       )}
 
       {/* ── Phase 2: waiting on rep ── */}
-      {status === "agreement_awaiting_rep_approval" && !signingLink && (
+      {status === "agr_awaiting_rep_signature" && !signingLink && (
         <div className="info-banner info-banner--info">
           <strong>Waiting for Representative</strong>
           <p>
@@ -727,7 +700,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       )}
 
       {/* ── Phase 3 actions ── */}
-      {canProgress && status === "agreement_final_admin_reviewal" && (
+      {canProgress && status === "agr_pending_2" && (
         <>
           <div className="review-section">
             <h4 className="review-section-title">Your E-Signature (Admin) *</h4>
@@ -768,16 +741,16 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
               disabled={approving || phase3Revising}
               className="review-btn-secondary"
             >
-              {phase3Revising ? "Submitting..." : "Request Representative Revision"}
+              {phase3Revising ? "Submitting..." : "Request Recipient Revision"}
             </button>
           </div>
         </>
       )}
 
       {/* ── Rep revision requested ── */}
-      {status === "agreement_rep_revision_requested" && !signingLink && (
+      {status === "agr_rep_revision_requested" && !signingLink && (
         <div className="info-banner info-banner--warning">
-          <strong>Representative Revision Pending</strong>
+          <strong>Recipient Revision Pending</strong>
           <p>
             A new signing link has been generated. Send it to the representative so they can
             resubmit.

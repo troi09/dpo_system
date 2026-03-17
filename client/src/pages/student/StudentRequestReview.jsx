@@ -8,27 +8,15 @@ import { notify } from "../../utils/inPageFeedback";
 
 const prettyStatus = (s) => {
   const map = {
-    nda_submitted:              "Submitted",
-    nda_admin_reviewal:         "Admin Reviewal",
+    nda_pending:                "Reviewal",
     nda_approved:               "Approved",
-    nda_revision_requested:      "Revision Requested",
-    agreement_submitted:                "Submitted",
-    agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
-    agreement_awaiting_rep_approval:    "Awaiting Representative Signature",
-    agreement_final_admin_reviewal:     "Pending Final Admin Review",
-    agreement_approved:                 "Approved",
-    agreement_rep_declined:             "Declined by Representative",
-    agreement_rep_revision_requested:   "Representative Revision Requested",
-
-    // Legacy fallback
-    nda_pending:                "Admin Reviewal",
-    revision_requested:         "Revision Requested",
-    agr_pending_1:              "Initial Admin Reviewal",
-    agr_awaiting_rep_signature: "Awaiting Representative Signature",
-    agr_pending_2:              "Pending Final Admin Review",
+    stud_revision_requested:    "Student Revisions",
+    agr_pending_1:              "Initial Reviewal",
+    agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+    agr_pending_2:              "Final Reviewal",
     agr_approved:               "Approved",
-    agr_rep_declined:           "Declined by Representative",
-    agr_rep_revision_requested: "Representative Revision Requested",
+    agr_declined:               "Recipient Declined",
+    agr_rep_revision_requested: "Recipient Revisions",
   };
   return map[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 };
@@ -46,7 +34,7 @@ export default function StudentRequestReview() {
       const r = await getRequestById(id);
 
       // Redirect to resubmit page if revision is requested from student
-      if (r.status === "nda_revision_requested" || r.status === "revision_requested") {
+      if (r.status === "stud_revision_requested") {
         navigate(`/student/resubmit/${id}`, { replace: true });
         return;
       }
@@ -79,7 +67,7 @@ export default function StudentRequestReview() {
       ? "Agreement Request"
       : `NDA Request${reqData.formData?.ndaTypeLabel ? ` — ${reqData.formData.ndaTypeLabel}` : ""}`;
 
-  const isApproved = reqData.status === "nda_approved" || reqData.status === "agreement_approved" || reqData.status === "agr_approved";
+  const isApproved = reqData.status === "nda_approved" || reqData.status === "agr_approved";
   const isAgreement = reqData.type === "agreement";
 
   return (
@@ -172,7 +160,7 @@ export default function StudentRequestReview() {
         </div>
 
         {/* Agreement-specific status banners */}
-        {isAgreement && (reqData.status === "agreement_awaiting_rep_approval" || reqData.status === "agr_awaiting_rep_signature") && (
+        {isAgreement && reqData.status === "agr_awaiting_rep_signature" && (
           <div className="info-banner info-banner--info">
             <strong>Awaiting Representative</strong>
             <p>
@@ -182,8 +170,8 @@ export default function StudentRequestReview() {
           </div>
         )}
 
-        {/* Signing link visibility (always shown once generated) */}
-        {isAgreement && reqData.signingToken && (
+        {/* Signing link visibility (only while awaiting rep action) */}
+        {isAgreement && reqData.signingToken && (reqData.status === "agr_awaiting_rep_signature" || reqData.status === "agr_rep_revision_requested") && (
           <div className="review-section">
             <h4 className="review-section-title">Representative Signing Link</h4>
             <div className="review-info-box" style={{ wordBreak: "break-all", fontSize: 13 }}>
@@ -206,7 +194,7 @@ export default function StudentRequestReview() {
           </div>
         )}
 
-        {isAgreement && (reqData.status === "agreement_final_admin_reviewal" || reqData.status === "agr_pending_2") && (
+        {isAgreement && reqData.status === "agr_pending_2" && (
           <div className="info-banner info-banner--success">
             <strong>Representative Signed</strong>
             <p>
@@ -215,18 +203,18 @@ export default function StudentRequestReview() {
           </div>
         )}
 
-        {isAgreement && (reqData.status === "agreement_rep_declined" || reqData.status === "agr_rep_declined") && (
+        {isAgreement && reqData.status === "agr_declined" && (
           <div className="info-banner info-banner--danger">
-            <strong>Representative Declined</strong>
-            <p>The representative declined to sign this agreement.</p>
+            <strong>Recipient Declined</strong>
+            <p>The recipient declined to sign this agreement.</p>
           </div>
         )}
 
-        {isAgreement && (reqData.status === "agreement_rep_revision_requested" || reqData.status === "agr_rep_revision_requested") && (
+        {isAgreement && reqData.status === "agr_rep_revision_requested" && (
           <div className="info-banner info-banner--warning">
-            <strong>Representative Revision Requested</strong>
+            <strong>Recipient Revisions Requested</strong>
             <p>
-              The admin has requested the representative to revise and resubmit their information.
+              The admin has requested the recipient to revise and resubmit their information.
             </p>
           </div>
         )}

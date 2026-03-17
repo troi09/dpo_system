@@ -20,7 +20,7 @@ export const FIELDS_FILE_SLOTS_CONFIG = {
       ],
       fileSlots: [
         { label: "Letter of Intent", required: true },
-        { label: "Copy of Questionnaire with Data Privacy Consent Form", required: false },
+        { label: "Questionnaire with Data Privacy Consent Form", required: false },
         { label: "School Id", required: false },
         { label: "Registration Form", required: false },
       ],
@@ -33,7 +33,7 @@ export const FIELDS_FILE_SLOTS_CONFIG = {
       { name: "repFirstName", label: "Representative First Name", required: true },
       { name: "repMiddleInitial", label: "Representative Middle Initial", required: false },
       { name: "repLastName", label: "Representative Last Name", required: true },
-      { name: "repEmail", label: "Email of Representative", required: false },
+      { name: "repEmail", label: "Email of Representative", required: true},
     ],
     // Note: Representative's Government Issued Valid ID is now collected directly
     // from the representative on the signing page, not from the student.

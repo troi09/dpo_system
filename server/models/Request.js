@@ -31,14 +31,15 @@ const requestSchema = new mongoose.Schema(
       type: String,
       enum: [
         // NDA workflow
-        "nda_submitted", "nda_admin_reviewal", "nda_approved", "nda_revision_requested",
+        "nda_pending", "nda_approved",
+        // Shared NDA & Agreement revision
+        "stud_revision_requested",
         // Agreement workflow
-        "agreement_submitted", "agreement_initial_admin_reviewal", "agreement_awaiting_rep_approval",
-        "agreement_final_admin_reviewal", "agreement_approved",
+        "agr_pending_1", "agr_awaiting_rep_signature", "agr_pending_2", "agr_approved",
         // Agreement exception statuses
-        "agreement_rep_declined", "agreement_rep_revision_requested",
+        "agr_declined", "agr_rep_revision_requested",
       ],
-      default: "nda_submitted",
+      default: "nda_pending",
     },
 
     proxyRequestee: {

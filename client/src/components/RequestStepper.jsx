@@ -2,50 +2,36 @@ import { Check, X } from "lucide-react";
 import { motion } from "framer-motion";
 import "./RequestStepper.css";
 
-const NDA_STEPS = ["Submitted", "Admin Reviewal", "Approved"];
+const NDA_STEPS = ["Reviewal", "Approved"];
 const AGREEMENT_STEPS = [
-  "Submitted",
-  "Initial Admin Reviewal",
-  "Awaiting Representative Approval",
-  "Final Admin Reviewal",
+  "Initial Reviewal",
+  "Awaiting Recipient Approval",
+  "Final Reviewal",
   "Approved",
 ];
 
 const STATUS_TO_INDEX = {
-  nda_submitted: 0,
-  nda_admin_reviewal: 1,
-  nda_revision_requested: 1,
-  nda_approved: 2,
+  // NDA workflow
+  nda_pending: 0,
+  stud_revision_requested: 0,
+  nda_approved: 1,
 
-  agreement_submitted: 0,
-  agreement_initial_admin_reviewal: 1,
-  agreement_awaiting_rep_approval: 2,
-  agreement_rep_revision_requested: 2,
-  agreement_final_admin_reviewal: 3,
-  agreement_approved: 4,
-  agreement_rep_declined: 4,
-
-  // Legacy fallback mapping for old records
-  nda_pending: 1,
-  revision_requested: 1,
-  agr_pending_1: 1,
-  agr_awaiting_rep_signature: 2,
-  agr_rep_revision_requested: 2,
-  agr_pending_2: 3,
-  agr_approved: 4,
-  agr_rep_declined: 4,
+  // Agreement workflow
+  agr_pending_1: 0,
+  agr_awaiting_rep_signature: 1,
+  agr_rep_revision_requested: 1,
+  agr_pending_2: 2,
+  agr_approved: 3,
+  agr_declined: 3,
 };
 
 export default function RequestStepper({ status, type }) {
   const steps = type === "agreement" ? AGREEMENT_STEPS : NDA_STEPS;
-  const isDeclined = status === "agreement_rep_declined" || status === "agr_rep_declined" || status === "declined";
+  const isDeclined = status === "agr_declined";
   const finalStepIndex = steps.length - 1;
-  const declinedIndex = type === "agreement" ? 2 : 1;
+  const declinedIndex = type === "agreement" ? 1 : 0;
   const activeIndex = isDeclined ? declinedIndex : (STATUS_TO_INDEX[status] ?? 0);
-  const isFinalApproved = ["nda_approved", "agreement_approved", "agr_approved", "approved", "approved_completed"].includes(String(status || "").toLowerCase())
-    || status === "nda_approved"
-    || status === "agreement_approved"
-    || status === "agr_approved";
+  const isFinalApproved = ["nda_approved", "agr_approved", "agreement_approved"].includes(status);
 
   return (
     <div className="request-stepper-wrap">

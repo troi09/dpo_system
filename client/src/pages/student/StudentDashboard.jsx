@@ -5,62 +5,48 @@ import { getMyRequests } from "../../services/requestService";
 import { notify } from "../../utils/inPageFeedback";
 
 const STATUS_LABEL = {
-  nda_submitted:              "Submitted",
-  nda_admin_reviewal:         "Admin Reviewal",
+  nda_pending:                "Reviewal",
   nda_approved:               "Approved",
-  nda_revision_requested:      "Revision Requested",
-  agreement_submitted:                "Submitted",
-  agreement_initial_admin_reviewal:   "Initial Admin Reviewal",
-  agreement_awaiting_rep_approval:    "Awaiting Representative Approval",
-  agreement_final_admin_reviewal:     "Final Admin Reviewal",
-  agreement_approved:                 "Approved",
-  agreement_rep_declined:             "Representative Declined",
-  agreement_rep_revision_requested:   "Representative Revision Requested",
-
-  // Legacy fallback labels
-  nda_pending:                "Admin Reviewal",
-  revision_requested:         "Revision Requested",
-  agr_pending_1:              "Initial Admin Reviewal",
-  agr_awaiting_rep_signature: "Awaiting Representative Approval",
-  agr_pending_2:              "Final Admin Reviewal",
+  stud_revision_requested:    "Student Revisions",
+  agr_pending_1:              "Initial Reviewal",
+  agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+  agr_pending_2:              "Final Reviewal",
   agr_approved:               "Approved",
-  agr_rep_declined:           "Representative Declined",
-  agr_rep_revision_requested: "Representative Revision Requested",
+  agr_declined:               "Recipient Declined",
+  agr_rep_revision_requested: "Recipient Revisions",
 };
 
 const STATUS_FILTER_OPTIONS = [
   { value: "all", label: "All Statuses" },
-  { value: "submitted", label: "Submitted" },
-  { value: "admin_reviewal", label: "Admin Reviewal" },
-  { value: "revision_requested", label: "Revision Requested" },
-  { value: "initial_admin_reviewal", label: "Initial Admin Reviewal" },
-  { value: "awaiting_rep_approval", label: "Awaiting Representative Approval" },
-  { value: "final_admin_reviewal", label: "Final Admin Reviewal" },
+  { value: "reviewal", label: "Reviewal" },
   { value: "approved", label: "Approved" },
+  { value: "stud_revision", label: "Student Revisions" },
+  { value: "rep_revision", label: "Recipient Revisions" },
+  { value: "rep_declined", label: "Recipient Declined" },
+  { value: "awaiting_rep", label: "Awaiting Recipient Approval" },
 ];
 
 const prettyStatus = (s) =>
   STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
 const statusClass = (s) => {
-  if (s === "nda_approved" || s === "agreement_approved" || s === "agr_approved") return "status-pill status-pill--green";
-  if (s === "nda_submitted" || s === "agreement_submitted" || s === "agr_pending_1") return "status-pill status-pill--orange";
-  if (s === "nda_admin_reviewal" || s === "agreement_initial_admin_reviewal" || s === "agreement_final_admin_reviewal" || s === "nda_pending" || s === "agr_pending_2") return "status-pill status-pill--yellow";
-  if (s === "nda_revision_requested" || s === "agreement_rep_revision_requested" || s === "revision_requested" || s === "agr_rep_revision_requested") return "status-pill status-pill--red";
-  if (s === "agreement_awaiting_rep_approval" || s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
-  if (s === "agreement_rep_declined" || s === "agr_rep_declined") return "status-pill status-pill--violet";
+  if (["nda_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
+  if (["nda_pending", "agr_pending_1", "agr_pending_2"].includes(s)) return "status-pill status-pill--yellow";
+  if (s === "stud_revision_requested") return "status-pill status-pill--orange";
+  if (s === "agr_rep_revision_requested") return "status-pill status-pill--violet";
+  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agr_declined") return "status-pill status-pill--red";
   return "status-pill";
 };
 
 const normalizeStatusForStudentFilter = (status) => {
-  if (["nda_submitted", "agreement_submitted"].includes(status)) return "submitted";
-  if (["nda_admin_reviewal", "nda_pending"].includes(status)) return "admin_reviewal";
-  if (["nda_revision_requested", "agreement_rep_revision_requested", "revision_requested", "agr_rep_revision_requested", "agreement_rep_declined", "agr_rep_declined"].includes(status)) return "revision_requested";
-  if (["agreement_initial_admin_reviewal", "agr_pending_1"].includes(status)) return "initial_admin_reviewal";
-  if (["agreement_awaiting_rep_approval", "agr_awaiting_rep_signature"].includes(status)) return "awaiting_rep_approval";
-  if (["agreement_final_admin_reviewal", "agr_pending_2"].includes(status)) return "final_admin_reviewal";
-  if (["nda_approved", "agreement_approved", "agr_approved"].includes(status)) return "approved";
-  return "admin_reviewal";
+  if (["nda_pending", "agr_pending_1", "agr_pending_2"].includes(status)) return "reviewal";
+  if (["nda_approved", "agr_approved"].includes(status)) return "approved";
+  if (status === "stud_revision_requested") return "stud_revision";
+  if (status === "agr_rep_revision_requested") return "rep_revision";
+  if (status === "agr_declined") return "rep_declined";
+  if (status === "agr_awaiting_rep_signature") return "awaiting_rep";
+  return "reviewal";
 };
 
 const StudentDashboard = () => {
@@ -69,6 +55,13 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
+
+  // Date filter state
+  const [dateMode, setDateMode] = useState("preset");
+  const [preset, setPreset] = useState("all");
+  const [singleDate, setSingleDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const loadRequests = async ({ withToast = false } = {}) => {
     if (withToast) setRefreshing(true);
@@ -88,25 +81,108 @@ const StudentDashboard = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    if (activeFilter === "all") return requests;
-    return requests.filter((r) => normalizeStatusForStudentFilter(r.status) === activeFilter);
-  }, [requests, activeFilter]);
+    let result = requests;
 
-  const selectedFilterLabel = useMemo(() => {
-    const found = STATUS_FILTER_OPTIONS.find((option) => option.value === activeFilter);
-    return found ? found.label : "All Statuses";
-  }, [activeFilter]);
+    // Status filter
+    if (activeFilter !== "all") {
+      result = result.filter((r) => normalizeStatusForStudentFilter(r.status) === activeFilter);
+    }
 
-  const filterBadgeClass = useMemo(() => {
-    if (activeFilter === "approved") return "status-filter status-filter--approved";
-    if (["submitted", "admin_reviewal", "initial_admin_reviewal", "final_admin_reviewal"].includes(activeFilter)) return "status-filter status-filter--pending";
-    if (activeFilter === "revision_requested") return "status-filter status-filter--revision";
-    if (activeFilter === "awaiting_rep_approval") return "status-filter status-filter--rep";
-    return "status-filter status-filter--all";
-  }, [activeFilter]);
+    // Date filter
+    if (dateMode === "preset") {
+      if (preset === "thisMonth") {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        result = result.filter((r) => new Date(r.createdAt) >= monthStart);
+      } else if (preset === "thisYear") {
+        const yearStart = new Date(new Date().getFullYear(), 0, 1);
+        result = result.filter((r) => new Date(r.createdAt) >= yearStart);
+      }
+    } else if (dateMode === "single" && singleDate) {
+      const dayStart = new Date(singleDate);
+      const dayEnd = new Date(singleDate + "T23:59:59");
+      result = result.filter((r) => {
+        const d = new Date(r.createdAt);
+        return d >= dayStart && d <= dayEnd;
+      });
+    } else if (dateMode === "range") {
+      if (startDate) {
+        const s = new Date(startDate);
+        result = result.filter((r) => new Date(r.createdAt) >= s);
+      }
+      if (endDate) {
+        const e = new Date(endDate + "T23:59:59");
+        result = result.filter((r) => new Date(r.createdAt) <= e);
+      }
+    }
+
+    return result;
+  }, [requests, activeFilter, dateMode, preset, singleDate, startDate, endDate]);
 
   return (
     <div className="dashboard-page">
+      {/* Filter bar */}
+      <div className="request-filter-bar is-open" style={{ marginBottom: 10 }}>
+        <select
+          className="ui-input"
+          value={activeFilter}
+          onChange={(e) => setActiveFilter(e.target.value)}
+          aria-label="Filter requests by status"
+        >
+          {STATUS_FILTER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+
+        <select
+          className="ui-input"
+          value={dateMode}
+          onChange={(e) => setDateMode(e.target.value)}
+        >
+          <option value="preset">Preset</option>
+          <option value="single">Specific Date</option>
+          <option value="range">Date Range</option>
+        </select>
+
+        {dateMode === "preset" ? (
+          <select
+            className="ui-input"
+            value={preset}
+            onChange={(e) => setPreset(e.target.value)}
+          >
+            <option value="all">All Dates</option>
+            <option value="thisMonth">This Month</option>
+            <option value="thisYear">This Year</option>
+          </select>
+        ) : null}
+
+        {dateMode === "single" ? (
+          <input
+            className="ui-input"
+            type="date"
+            value={singleDate}
+            onChange={(e) => setSingleDate(e.target.value)}
+          />
+        ) : null}
+
+        {dateMode === "range" ? (
+          <>
+            <input
+              className="ui-input"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <input
+              className="ui-input"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </>
+        ) : null}
+      </div>
+
       <div className="dashboard-card">
         <div className="table-scroll">
         <table className="dashboard-table">
@@ -121,21 +197,11 @@ const StudentDashboard = () => {
                     onClick={() => loadRequests({ withToast: true })}
                     disabled={refreshing}
                     title="Refresh"
+                    style={{ marginLeft: "auto" }}
                   >
                     <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
                     Refresh
                   </button>
-                  <div className={filterBadgeClass}>{selectedFilterLabel}</div>
-                  <select
-                    className="ui-input dashboard-status-select"
-                    value={activeFilter}
-                    onChange={(e) => setActiveFilter(e.target.value)}
-                    aria-label="Filter requests by status"
-                  >
-                    {STATUS_FILTER_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
                 </div>
               </th>
             </tr>

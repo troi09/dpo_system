@@ -2,17 +2,15 @@ const NOTIFY_EVENT = "dpo:notify";
 const CONFIRM_EVENT = "dpo:confirm";
 
 const STATUS_LABELS = {
-  nda_submitted: "Submitted",
-  nda_admin_reviewal: "Admin Review",
+  nda_pending: "Reviewal",
   nda_approved: "Approved",
-  nda_revision_requested: "Revision Requested",
-  agreement_submitted: "Submitted",
-  agreement_initial_admin_reviewal: "Initial Admin Review",
-  agreement_awaiting_rep_approval: "Awaiting Representative Approval",
-  agreement_final_admin_reviewal: "Final Admin Review",
-  agreement_approved: "Approved",
-  agreement_rep_declined: "Declined by Representative",
-  agreement_rep_revision_requested: "Representative Revision Requested",
+  stud_revision_requested: "Student Revisions",
+  agr_pending_1: "Initial Reviewal",
+  agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+  agr_pending_2: "Final Reviewal",
+  agr_approved: "Approved",
+  agr_declined: "Recipient Declined",
+  agr_rep_revision_requested: "Recipient Revisions",
 };
 
 const toTitleCase = (value) => String(value || "")

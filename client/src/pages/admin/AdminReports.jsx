@@ -4,48 +4,38 @@ import { RefreshCw, Search, ChevronUp, ChevronDown, ChevronsUpDown } from "lucid
 import { getAllRequests } from "../../services/requestService";
 
 const STATUS_LABEL = {
-  nda_submitted: "Submitted",
-  nda_admin_reviewal: "Admin Reviewal",
+  nda_pending: "Reviewal",
   nda_approved: "Approved",
-  nda_revision_requested: "Revision Requested",
-  agreement_submitted: "Submitted",
-  agreement_initial_admin_reviewal: "Initial Admin Reviewal",
-  agreement_awaiting_rep_approval: "Awaiting Representative Approval",
-  agreement_final_admin_reviewal: "Final Admin Reviewal",
-  agreement_approved: "Approved",
-  agreement_rep_declined: "Declined by Representative",
-  agreement_rep_revision_requested: "Representative Revision Requested",
-  nda_pending: "Admin Reviewal",
-  revision_requested: "Revision Requested",
-  agr_pending_1: "Initial Admin Reviewal",
-  agr_awaiting_rep_signature: "Awaiting Representative Approval",
-  agr_pending_2: "Final Admin Reviewal",
+  stud_revision_requested: "Student Revisions",
+  agr_pending_1: "Initial Reviewal",
+  agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+  agr_pending_2: "Final Reviewal",
   agr_approved: "Approved",
-  agr_rep_declined: "Declined by Representative",
-  agr_rep_revision_requested: "Representative Revision Requested",
+  agr_declined: "Recipient Declined",
+  agr_rep_revision_requested: "Recipient Revisions",
 };
 
 const prettyStatus = (s) =>
   STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
 const statusPillClass = (s) => {
-  if (["nda_approved", "agreement_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
-  if (["nda_submitted", "agreement_submitted", "agr_pending_1"].includes(s)) return "status-pill status-pill--orange";
-  if (["nda_admin_reviewal", "agreement_initial_admin_reviewal", "agreement_final_admin_reviewal", "nda_pending", "agr_pending_2"].includes(s)) return "status-pill status-pill--yellow";
-  if (["nda_revision_requested", "agreement_rep_revision_requested", "revision_requested", "agr_rep_revision_requested"].includes(s)) return "status-pill status-pill--red";
-  if (["agreement_awaiting_rep_approval", "agr_awaiting_rep_signature"].includes(s)) return "status-pill status-pill--blue";
-  if (["agreement_rep_declined", "agr_rep_declined"].includes(s)) return "status-pill status-pill--violet";
+  if (["nda_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
+  if (["nda_pending", "agr_pending_1", "agr_pending_2"].includes(s)) return "status-pill status-pill--yellow";
+  if (s === "stud_revision_requested") return "status-pill status-pill--orange";
+  if (s === "agr_rep_revision_requested") return "status-pill status-pill--violet";
+  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agr_declined") return "status-pill status-pill--red";
   return "status-pill";
 };
 
 const STATUS_FILTER_OPTIONS = [
   { value: "", label: "All Statuses" },
-  { value: "nda_submitted,agreement_submitted", label: "Submitted" },
-  { value: "nda_admin_reviewal,agreement_initial_admin_reviewal,agreement_final_admin_reviewal", label: "Admin Reviewal" },
-  { value: "nda_approved,agreement_approved", label: "Approved" },
-  { value: "nda_revision_requested,agreement_rep_revision_requested", label: "Revision Requested" },
-  { value: "agreement_awaiting_rep_approval", label: "Awaiting Representative" },
-  { value: "agreement_rep_declined", label: "Declined" },
+  { value: "nda_pending,agr_pending_1,agr_pending_2", label: "Reviewal" },
+  { value: "nda_approved,agr_approved", label: "Approved" },
+  { value: "stud_revision_requested", label: "Student Revisions" },
+  { value: "agr_rep_revision_requested", label: "Recipient Revisions" },
+  { value: "agr_declined", label: "Recipient Declined" },
+  { value: "agr_awaiting_rep_signature", label: "Awaiting Recipient Approval" },
 ];
 
 const TYPE_OPTIONS = [

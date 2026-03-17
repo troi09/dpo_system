@@ -92,9 +92,6 @@ export default function RepSigningPage() {
 
   // Guard: wrong status
   const signingStatuses = [
-    "agreement_awaiting_rep_approval",
-    "agreement_rep_revision_requested",
-    // Legacy compatibility
     "agr_awaiting_rep_signature",
     "agr_rep_revision_requested",
   ];
@@ -109,7 +106,7 @@ export default function RepSigningPage() {
     );
   }
 
-  const isRevision = reqData.status === "agreement_rep_revision_requested" || reqData.status === "agr_rep_revision_requested";
+  const isRevision = reqData.status === "agr_rep_revision_requested";
   const student = reqData.userId || {};
   const fd = reqData.formData || {};
   const requestedRepName = [fd.repFirstName, fd.repMiddleInitial, fd.repLastName]
