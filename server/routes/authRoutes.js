@@ -1,6 +1,15 @@
 
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many authentication attempts. Please try again later." },
+});
 
 const {
   register,
@@ -25,18 +34,18 @@ const {
 } = require("../controllers/authController");
 const { protect, authorizeAdmin } = require("../middleware/authMiddleware");
 
-// Public
-router.post("/register", register);
-router.post("/login", login);
-router.post("/verify-login-otp", verifyLoginOtp);
-router.post("/resend-login-otp", resendLoginOtp);
-router.post("/verify-email", verifyEmail);
-router.post("/resend-verification-otp", resendVerificationOtp);
-router.post("/activate-account", activateAccount);
-router.post("/forgot-password", forgotPassword);
-router.post("/resend-reset-otp", resendResetOtp);
-router.post("/verify-reset-otp", verifyResetOtp);
-router.post("/reset-password", resetPassword);
+// Public (rate-limited)
+router.post("/register", authLimiter, register);
+router.post("/login", authLimiter, login);
+router.post("/verify-login-otp", authLimiter, verifyLoginOtp);
+router.post("/resend-login-otp", authLimiter, resendLoginOtp);
+router.post("/verify-email", authLimiter, verifyEmail);
+router.post("/resend-verification-otp", authLimiter, resendVerificationOtp);
+router.post("/activate-account", authLimiter, activateAccount);
+router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/resend-reset-otp", authLimiter, resendResetOtp);
+router.post("/verify-reset-otp", authLimiter, verifyResetOtp);
+router.post("/reset-password", authLimiter, resetPassword);
 
 // Authenticated
 router.post("/refresh-token", protect, refreshToken);

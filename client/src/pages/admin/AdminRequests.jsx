@@ -19,7 +19,7 @@ const prettyStatus = (s) => {
     nda_approved:               "Approved",
     stud_revision_requested:    "Student Revisions",
     agr_pending_1:              "Initial Reviewal",
-    agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+    agr_awaiting_rep_signature: "Recipient Reviewal",
     agr_pending_2:              "Final Reviewal",
     agr_approved:               "Approved",
     agr_declined:               "Recipient Declined",
@@ -34,19 +34,18 @@ export default function AdminRequests() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.innerWidth >= 768;
   });
 
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [dateMode, setDateMode] = useState("preset");
-  const [preset, setPreset] = useState("thisMonth");
+  const [preset, setPreset] = useState("all");
   const [singleDate, setSingleDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   const buildFilterParams = () => {
@@ -56,13 +55,30 @@ export default function AdminRequests() {
       params.status = statusFilter;
     }
 
-    if (searchTerm) {
-      params.search = searchTerm;
+    if (typeFilter !== "all") {
+      if (typeFilter === "agreement") {
+        params.type = "agreement";
+      } else if (typeFilter === "nda_orgactivities") {
+        params.type = "nda";
+        params.ndaType = "orgactivities";
+      } else if (typeFilter === "nda_research") {
+        params.type = "nda";
+        params.ndaType = "research";
+      }
     }
+
 
     if (dateMode === "preset") {
       const now = new Date();
-      if (preset === "thisMonth") {
+      if (preset === "today") {
+        params.startDate = now.toISOString().slice(0, 10);
+        params.endDate = now.toISOString().slice(0, 10);
+      } else if (preset === "thisWeek") {
+        const day = now.getDay();
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - ((day + 6) % 7));
+        params.startDate = monday.toISOString().slice(0, 10);
+      } else if (preset === "thisMonth") {
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
         params.startDate = start.toISOString().slice(0, 10);
       } else if (preset === "thisYear") {
@@ -92,10 +108,6 @@ export default function AdminRequests() {
       const data = await getAllRequests(buildFilterParams());
       setRequests(data);
 
-      if (withToast) {
-        setNotice("Data updated");
-        setTimeout(() => setNotice(""), 1800);
-      }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load requests");
     } finally {
@@ -107,7 +119,7 @@ export default function AdminRequests() {
   useEffect(() => {
     loadRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, dateMode, preset, singleDate, startDate, endDate, searchTerm]);
+  }, [statusFilter, typeFilter, dateMode, preset, singleDate, startDate, endDate]);
 
   useEffect(() => {
     const onResize = () => {
@@ -118,37 +130,32 @@ export default function AdminRequests() {
   }, []);
 
   const filtered = useMemo(() => {
-    return requests;
-  }, [requests]);
+    if (!searchTerm.trim()) return requests;
+    const term = searchTerm.toLowerCase();
+    return requests.filter((r) => {
+      const name = (r.userId?.name || r.proxyRequestee?.fullName || "").toLowerCase();
+      const email = (r.userId?.email || r.proxyRequestee?.email || "").toLowerCase();
+      const id = (r._id || "").slice(-7).toLowerCase();
+      return name.includes(term) || email.includes(term) || id.includes(term);
+    });
+  }, [requests, searchTerm]);
 
-  const applySearch = () => {
-    setSearchTerm(searchInput.trim());
-  };
+  const clearSearch = () => setSearchTerm("");
 
-  const clearSearch = () => {
-    setSearchInput("");
+  const resetAndRefresh = () => {
     setSearchTerm("");
+    setTypeFilter("all");
+    setStatusFilter("all");
+    setDateMode("preset");
+    setPreset("all");
+    setSingleDate("");
+    setStartDate("");
+    setEndDate("");
+    loadRequests({ withToast: true });
   };
 
   return (
     <div className="dashboard-page page-shell">
-      <div className="page-header-row" style={{ marginBottom: 12 }}>
-        <button
-          onClick={() => loadRequests({ withToast: true })}
-          className="ui-btn ui-btn--secondary"
-          type="button"
-          disabled={refreshing}
-        >
-          <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
-          Refresh
-        </button>
-      </div>
-
-      {notice ? (
-        <div className="info-banner info-banner--success" style={{ marginBottom: 12 }}>
-          <strong>{notice}</strong>
-        </div>
-      ) : null}
 
       {error ? (
         <div className="info-banner info-banner--danger" style={{ marginBottom: 12 }}>
@@ -156,98 +163,147 @@ export default function AdminRequests() {
         </div>
       ) : null}
 
-      <div className="request-search-wrap" style={{ marginBottom: 10 }}>
-        <div className="request-search-box">
-          <Search size={14} className="request-search-icon" />
-          <input
-            type="text"
-            className="ui-input request-search-input"
-            placeholder="Search by student, serial number, purpose, organization..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applySearch();
-            }}
-          />
-        </div>
-        <button type="button" className="ui-btn ui-btn--primary" onClick={applySearch}>
-          Search
-        </button>
-        <button type="button" className="ui-btn ui-btn--secondary" onClick={clearSearch}>
-          Clear
-        </button>
-        <button
-          type="button"
-          className="ui-btn ui-btn--secondary request-filter-toggle"
-          onClick={() => setIsFilterOpen((prev) => !prev)}
-        >
-          <Filter size={14} />
-          Filters
-        </button>
-      </div>
-
-      <div className={`request-filter-bar${isFilterOpen ? " is-open" : ""}`}>
-        <select
-          className="ui-input"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Statuses</option>
-          <option value="reviewal">Reviewal</option>
-          <option value="approved">Approved</option>
-          <option value="stud_revision">Student Revisions</option>
-          <option value="rep_revision">Recipient Revisions</option>
-          <option value="rep_declined">Recipient Declined</option>
-          <option value="awaiting_rep">Awaiting Recipient Approval</option>
-        </select>
-
-        <select
-          className="ui-input"
-          value={dateMode}
-          onChange={(e) => setDateMode(e.target.value)}
-        >
-          <option value="preset">Preset</option>
-          <option value="single">Specific Date</option>
-          <option value="range">Date Range</option>
-        </select>
-
-        {dateMode === "preset" ? (
-          <select
-            className="ui-input"
-            value={preset}
-            onChange={(e) => setPreset(e.target.value)}
+      {/* ── Search + Filter toolbar ── */}
+      <div className="req-toolbar">
+        {/* Search row */}
+        <div className="req-toolbar__search-row">
+          <div className="req-toolbar__search-box">
+            <input
+              type="text"
+              className="req-toolbar__search-input"
+              placeholder="Search by requestee, email, or request ID…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm ? (
+              <button type="button" className="req-toolbar__search-clear" onClick={clearSearch} aria-label="Clear search">
+                ×
+              </button>
+            ) : null}
+            <span className="req-toolbar__search-inline-btn" style={{ pointerEvents: "none" }}>
+              <Search size={14} />
+            </span>
+          </div>
+          <button
+            type="button"
+            className="ui-btn ui-btn--secondary req-toolbar__filter-toggle"
+            onClick={() => setIsFilterOpen((prev) => !prev)}
+            aria-expanded={isFilterOpen}
           >
-            <option value="thisMonth">This Month</option>
-            <option value="thisYear">This Year</option>
-            <option value="all">All Dates</option>
-          </select>
-        ) : null}
+            <Filter size={13} />
+            Filters
+            {isFilterOpen ? null : <span className="req-toolbar__filter-badge" />}
+          </button>
+        </div>
 
-        {dateMode === "single" ? (
-          <input
-            className="ui-input"
-            type="date"
-            value={singleDate}
-            onChange={(e) => setSingleDate(e.target.value)}
-          />
-        ) : null}
+        {/* Filter chips row */}
+        <div className={`req-toolbar__filters${isFilterOpen ? " req-toolbar__filters--open" : ""}`}>
+          <div className="req-toolbar__filter-group">
+            <label className="req-toolbar__filter-label">Type</label>
+            <select
+              className="req-toolbar__filter-select"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="all">All Types</option>
+              <option value="nda_orgactivities">NDA — Student Organization Activities</option>
+              <option value="nda_research">NDA — Conduct of Research</option>
+              <option value="agreement">Agreement</option>
+            </select>
+          </div>
 
-        {dateMode === "range" ? (
-          <>
-            <input
-              className="ui-input"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <input
-              className="ui-input"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </>
-        ) : null}
+          <div className="req-toolbar__filter-group">
+            <label className="req-toolbar__filter-label">Status</label>
+            <select
+              className="req-toolbar__filter-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              <option value="reviewal">Reviewal</option>
+              <option value="approved">Approved</option>
+              <option value="stud_revision">Student Revisions</option>
+              <option value="rep_revision">Recipient Revisions</option>
+              <option value="rep_declined">Recipient Declined</option>
+              <option value="awaiting_rep">Recipient Reviewal</option>
+            </select>
+          </div>
+
+          <div className="req-toolbar__filter-group">
+            <label className="req-toolbar__filter-label">Date</label>
+            <select
+              className="req-toolbar__filter-select"
+              value={dateMode}
+              onChange={(e) => setDateMode(e.target.value)}
+            >
+              <option value="preset">Preset</option>
+              <option value="single">Specific Date</option>
+              <option value="range">Date Range</option>
+            </select>
+          </div>
+
+          {dateMode === "preset" ? (
+            <div className="req-toolbar__filter-group">
+              <label className="req-toolbar__filter-label">Period</label>
+              <select
+                className="req-toolbar__filter-select"
+                value={preset}
+                onChange={(e) => setPreset(e.target.value)}
+              >
+                <option value="today">Today</option>
+                <option value="thisWeek">This Week</option>
+                <option value="thisMonth">This Month</option>
+                <option value="thisYear">This Year</option>
+                <option value="all">All Dates</option>
+              </select>
+            </div>
+          ) : null}
+
+          {dateMode === "single" ? (
+            <div className="req-toolbar__filter-group">
+              <label className="req-toolbar__filter-label">Date</label>
+              <input
+                className="req-toolbar__filter-select"
+                type="date"
+                value={singleDate}
+                onChange={(e) => setSingleDate(e.target.value)}
+              />
+            </div>
+          ) : null}
+
+          {dateMode === "range" ? (
+            <>
+              <div className="req-toolbar__filter-group">
+                <label className="req-toolbar__filter-label">From</label>
+                <input
+                  className="req-toolbar__filter-select"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="req-toolbar__filter-group">
+                <label className="req-toolbar__filter-label">To</label>
+                <input
+                  className="req-toolbar__filter-select"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            className="req-toolbar__reset-btn"
+            onClick={resetAndRefresh}
+            disabled={refreshing}
+            title="Reset filters and refresh"
+          >
+            <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+          </button>
+        </div>
       </div>
 
       <div className="dashboard-card">
@@ -255,18 +311,19 @@ export default function AdminRequests() {
         <table className="dashboard-table">
           <thead>
             <tr className="dashboard-table-title-row">
-              <th colSpan={5}>
+              <th colSpan={6}>
                 <div className="dashboard-table-title-wrap">
                   <span className="dashboard-table-title">Requests</span>
                 </div>
               </th>
             </tr>
             <tr>
-              <th>Student</th>
+              <th>Request Date</th>
+              <th>Requestee</th>
               <th>Request ID</th>
               <th>Type</th>
               <th>Status</th>
-              <th>Request Date</th>
+              <th />
             </tr>
           </thead>
 
@@ -277,13 +334,14 @@ export default function AdminRequests() {
                   <td><span className="skeleton-block skeleton-text" /></td>
                   <td><span className="skeleton-block skeleton-text" /></td>
                   <td><span className="skeleton-block skeleton-text" /></td>
-                  <td><span className="skeleton-block skeleton-pill" /></td>
                   <td><span className="skeleton-block skeleton-text" /></td>
+                  <td><span className="skeleton-block skeleton-pill" /></td>
+                  <td />
                 </tr>
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={5}>
+                <td colSpan={6}>
                   <div className="dashboard-empty">
                     <span className="dashboard-empty-icon">🔍</span>
                     <p className="dashboard-empty-title">No requests found</p>
@@ -294,6 +352,8 @@ export default function AdminRequests() {
             ) : (
               filtered.map((r) => (
                 <tr key={r._id} onClick={() => navigate(`/admin/requests/${r._id}`)} style={{ cursor: "pointer" }}>
+                  <td style={{ whiteSpace: "nowrap", color: "var(--text-secondary)" }}>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
+
                   <td>
                     <span style={{ fontWeight: 600 }}>
                       {r.proxyRequestee?.isProxy ? (r.proxyRequestee?.fullName || "Proxy Requestee") : (r.userId?.name || "Unknown")}
@@ -306,7 +366,7 @@ export default function AdminRequests() {
                     ) : null}
                   </td>
 
-                  <td><code style={{ fontSize: 12, color: "var(--text-secondary)" }}>{r._id?.slice(-7).toUpperCase()}</code></td>
+                  <td><span style={{ color: "var(--text-secondary)" }}>{r._id?.slice(-7).toUpperCase()}</span></td>
 
                   <td>
                     {r.type === "nda"
@@ -320,7 +380,7 @@ export default function AdminRequests() {
                     </span>
                   </td>
 
-                  <td>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
+                  <td className="row-caret">›</td>
                 </tr>
               ))
             )}

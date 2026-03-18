@@ -19,7 +19,7 @@ export const CHART_LABELS = {
   chart_stud_revision: "Student Revisions",
   chart_rep_revision: "Recipient Revisions",
   chart_rep_declined: "Recipient Declined",
-  chart_awaiting_rep: "Awaiting Recipient Approval",
+  chart_awaiting_rep: "Recipient Reviewal",
 };
 
 export const CHART_COLORS = {

@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const compression = require("compression");
-const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const mongoose = require("mongoose");
@@ -84,18 +83,11 @@ app.use((req, res, next) => {
   next();
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 50,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many authentication attempts. Please try again later." },
-});
 
 // DB Connection
 connectDB();
 
-app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/audit", auditRoutes);
 

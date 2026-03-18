@@ -7,10 +7,11 @@ const authHeader = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-export const getAuditLogs = async ({ page = 1, limit = 50, action = "", userId = "" } = {}) => {
+export const getAuditLogs = async ({ page = 1, limit = 50, action = "", userId = "", resourceId = "" } = {}) => {
   const params = new URLSearchParams({ page, limit });
   if (action) params.set("action", action);
   if (userId) params.set("userId", userId);
+  if (resourceId) params.set("resourceId", resourceId);
   const res = await axios.get(`${API_URL}?${params}`, { headers: authHeader() });
   return res.data;
 };

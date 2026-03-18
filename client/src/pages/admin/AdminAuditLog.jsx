@@ -330,7 +330,7 @@ export default function AdminAuditLog() {
                     </td>
                     <td className="admin-cell-small-muted" style={{ color: "var(--text-secondary)" }}>
                       {log.resourceId
-                        ? <code style={{ fontSize: 12 }}>{String(log.resourceId).slice(-7).toUpperCase()}</code>
+                        ? <span>{String(log.resourceId).slice(-7).toUpperCase()}</span>
                         : (log.resourceType ? log.resourceType.charAt(0).toUpperCase() + log.resourceType.slice(1) : "—")}
                     </td>
                     <td className="admin-cell-small-muted" style={{ color: "var(--text-secondary)", maxWidth: 240 }}>

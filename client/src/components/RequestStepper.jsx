@@ -5,7 +5,7 @@ import "./RequestStepper.css";
 const NDA_STEPS = ["Reviewal", "Approved"];
 const AGREEMENT_STEPS = [
   "Initial Reviewal",
-  "Awaiting Recipient Approval",
+  "Recipient Reviewal",
   "Final Reviewal",
   "Approved",
 ];

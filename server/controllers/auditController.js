@@ -6,11 +6,12 @@ exports.getAuditLogs = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const skip = (page - 1) * limit;
-    const { action, userId } = req.query;
+    const { action, userId, resourceId } = req.query;
 
     const filter = {};
     if (action) filter.action = action;
     if (userId) filter.userId = userId;
+    if (resourceId) filter.resourceId = resourceId;
 
     const [logs, total] = await Promise.all([
       AuditLog.find(filter)

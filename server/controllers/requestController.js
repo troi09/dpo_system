@@ -254,7 +254,7 @@ exports.resubmitRequest = async (req, res) => {
 
 exports.getAllRequests = async (req, res) => {
   try {
-    const { startDate, endDate, status, includeArchived, search } = req.query;
+    const { startDate, endDate, status, includeArchived, search, type, ndaType } = req.query;
 
     const query = {};
 
@@ -266,6 +266,13 @@ exports.getAllRequests = async (req, res) => {
     const resolvedStatuses = resolveStatusFilter(status);
     if (resolvedStatuses.length) {
       query.status = { $in: resolvedStatuses };
+    }
+
+    if (type) {
+      query.type = type;
+    }
+    if (ndaType) {
+      query["formData.ndaType"] = ndaType;
     }
 
     if (startDate || endDate) {
@@ -335,6 +342,17 @@ exports.getAllRequests = async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(term)) {
         searchClauses.push({ _id: term });
       }
+
+      // Partial Request ID match (last 7 chars of hex _id, case-insensitive)
+      searchClauses.push({
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$_id" },
+            regex: term,
+            options: "i",
+          },
+        },
+      });
 
       query.$or = searchClauses;
     }

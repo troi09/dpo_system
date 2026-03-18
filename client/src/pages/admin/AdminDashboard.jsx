@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -21,32 +21,8 @@ import {
   normalizeStatusForChart,
 } from "../../utils/requestStatusCharts";
 
-const STATUS_LABEL = {
-  nda_pending:                "Reviewal",
-  nda_approved:               "Approved",
-  stud_revision_requested:    "Student Revisions",
-  agr_pending_1:              "Initial Reviewal",
-  agr_awaiting_rep_signature: "Awaiting Recipient Approval",
-  agr_pending_2:              "Final Reviewal",
-  agr_approved:               "Approved",
-  agr_declined:               "Recipient Declined",
-  agr_rep_revision_requested: "Recipient Revisions",
-};
-
 const DONUT_COLORS = ["#059669", "#ea580c", "#7c3aed", "#ca8a04", "#2563eb", "#dc2626", "#64748b", "#3b82f6"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-const prettyStatus = (s) => STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
-
-const statusPillClass = (s) => {
-  if (["nda_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
-  if (["nda_pending", "agr_pending_1", "agr_pending_2"].includes(s)) return "status-pill status-pill--yellow";
-  if (s === "stud_revision_requested") return "status-pill status-pill--orange";
-  if (s === "agr_rep_revision_requested") return "status-pill status-pill--violet";
-  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
-  if (s === "agr_declined") return "status-pill status-pill--red";
-  return "status-pill";
-};
 
 const ACTION_LABEL = {
   login: "User logged in",
@@ -70,23 +46,22 @@ const cardVariants = {
 };
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [requests, setRequests] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const [notice, setNotice] = useState("");
   const [isCompact, setIsCompact] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
   });
 
-  // Date range filter for charts
-  const [chartStartDate, setChartStartDate] = useState("");
-  const [chartEndDate, setChartEndDate] = useState("");
-  const hasDateFilter = Boolean(chartStartDate || chartEndDate);
+  // Date filter for charts
+  const [dateMode, setDateMode] = useState("preset");
+  const [preset, setPreset] = useState("all");
+  const [singleDate, setSingleDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     const onResize = () => setIsCompact(window.innerWidth < 768);
@@ -124,11 +99,6 @@ export default function AdminDashboard() {
       }
 
       if (errors.length) setError(errors.join(" | "));
-      if (withToast && errors.length === 0) {
-        setNotice("Data updated");
-        setTimeout(() => setNotice(""), 1800);
-      }
-      setLoading(false);
       setRefreshing(false);
     };
 
@@ -137,20 +107,47 @@ export default function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const recentRequests = requests
-    .filter((r) => PENDING_STATUSES.includes(r.status))
-    .slice(0, 4);
-
-  // Filtered requests for charts based on date range
+  // Filtered requests for charts based on date filter
   const chartFilteredRequests = useMemo(() => {
-    if (!chartStartDate && !chartEndDate) return requests;
-    return requests.filter((r) => {
-      const d = new Date(r.createdAt);
-      if (chartStartDate && d < new Date(chartStartDate)) return false;
-      if (chartEndDate && d > new Date(chartEndDate + "T23:59:59")) return false;
-      return true;
-    });
-  }, [requests, chartStartDate, chartEndDate]);
+    const now = new Date();
+    if (dateMode === "preset") {
+      if (preset === "all") return requests;
+      if (preset === "today") {
+        const s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const e = new Date(s.getTime() + 86400000 - 1);
+        return requests.filter((r) => { const d = new Date(r.createdAt); return d >= s && d <= e; });
+      }
+      if (preset === "thisWeek") {
+        const day = now.getDay();
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - ((day + 6) % 7));
+        monday.setHours(0, 0, 0, 0);
+        return requests.filter((r) => new Date(r.createdAt) >= monday);
+      }
+      if (preset === "thisMonth") {
+        const s = new Date(now.getFullYear(), now.getMonth(), 1);
+        return requests.filter((r) => new Date(r.createdAt) >= s);
+      }
+      if (preset === "thisYear") {
+        const s = new Date(now.getFullYear(), 0, 1);
+        return requests.filter((r) => new Date(r.createdAt) >= s);
+      }
+    }
+    if (dateMode === "single" && singleDate) {
+      const s = new Date(singleDate);
+      const e = new Date(singleDate + "T23:59:59");
+      return requests.filter((r) => { const d = new Date(r.createdAt); return d >= s && d <= e; });
+    }
+    if (dateMode === "range") {
+      return requests.filter((r) => {
+        const d = new Date(r.createdAt);
+        if (startDate && d < new Date(startDate)) return false;
+        if (endDate && d > new Date(endDate + "T23:59:59")) return false;
+        return true;
+      });
+    }
+    return requests;
+  }, [requests, dateMode, preset, singleDate, startDate, endDate]);
 
   // Derived chart data (same approach as Reports page)
   const statusData = useMemo(() => {
@@ -168,27 +165,10 @@ export default function AdminDashboard() {
     }));
   }, [chartFilteredRequests]);
 
-  const typeData = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-    const dataset = hasDateFilter
-      ? chartFilteredRequests
-      : requests.filter((r) => {
-          const created = new Date(r.createdAt);
-          return created >= monthStart && created <= monthEnd;
-        });
-
-    return [
-      { name: "NDA", count: dataset.filter((r) => r.type === "nda").length },
-      { name: "Agreement", count: dataset.filter((r) => r.type === "agreement").length },
-    ];
-  }, [chartFilteredRequests, hasDateFilter, requests]);
-
-  const documentTypesTitle = useMemo(() => {
-    if (hasDateFilter) return "Document Types";
-    return `Document Types - Month of ${new Date().toLocaleString("en-US", { month: "long" })}`;
-  }, [hasDateFilter]);
+  const typeData = useMemo(() => [
+    { name: "NDA", count: chartFilteredRequests.filter((r) => r.type === "nda").length },
+    { name: "Agreement", count: chartFilteredRequests.filter((r) => r.type === "agreement").length },
+  ], [chartFilteredRequests]);
 
   // Monthly trend (last 6 months)
   const trendData = useMemo(() => {
@@ -224,53 +204,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="dashboard-page">
-      <div className="dashboard-topbar">
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {/* Date Range Picker for chart filtering */}
-          <input
-            type="date"
-            className="ui-input"
-            value={chartStartDate}
-            onChange={(e) => setChartStartDate(e.target.value)}
-            style={{ height: 32, fontSize: 12, padding: "0 8px" }}
-            title="Chart Start Date"
-          />
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>–</span>
-          <input
-            type="date"
-            className="ui-input"
-            value={chartEndDate}
-            onChange={(e) => setChartEndDate(e.target.value)}
-            style={{ height: 32, fontSize: 12, padding: "0 8px" }}
-            title="Chart End Date"
-          />
-          {(chartStartDate || chartEndDate) && (
-            <button
-              type="button"
-              className="ui-btn ui-btn--secondary ui-btn--compact"
-              onClick={() => { setChartStartDate(""); setChartEndDate(""); }}
-              style={{ fontSize: 11 }}
-            >
-              Clear
-            </button>
-          )}
-          <button
-            className="dashboard-action ui-btn--compact"
-            type="button"
-            onClick={() => load({ withToast: true })}
-            disabled={refreshing}
-          >
-            <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {notice ? (
-        <div className="info-banner info-banner--success mb-12">
-          <strong>{notice}</strong>
-        </div>
-      ) : null}
 
       {/* ── Error Banner ── */}
       {error && <div className="admin-flash-banner admin-flash-banner--error">{error}</div>}
@@ -311,81 +244,141 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* ── TOP: Analytics Charts ── */}
-      <div className="responsive-grid-2 dashboard-section-gap">
-        {/* Donut Chart – Status Distribution */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          className="admin-chart-card dashboard-chart-card"
-        >
-          <div className="dashboard-chart-title">
-            Request Status Distribution
-          </div>
-          <div className="dashboard-chart-subtitle">Current active requests by status</div>
-          {statusData.length > 0 ? (
-            <div className="dashboard-chart-canvas">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 8, right: 12, bottom: isCompact ? 32 : 8, left: 12 }}>
-                <Pie
-                  data={statusData}
-                  cx={isCompact ? "50%" : "36%"}
-                  cy={isCompact ? "45%" : "50%"}
-                  innerRadius={isCompact ? 45 : 55}
-                  outerRadius={isCompact ? 68 : 85}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [value, name]} />
-                <Legend
-                  iconType="circle"
-                  iconSize={8}
-                  layout={isCompact ? "horizontal" : "vertical"}
-                  align={isCompact ? "center" : "right"}
-                  verticalAlign={isCompact ? "bottom" : "middle"}
-                  wrapperStyle={{ fontSize: 12, paddingLeft: isCompact ? 0 : 24 }}
-                  formatter={(value) => {
-                    const total = statusData.reduce((sum, d) => sum + d.value, 0);
-                    const entry = statusData.find((d) => d.name === value);
-                    const pct = entry && total > 0 ? ((entry.value / total) * 100).toFixed(1) : 0;
-                    return `${value} (${pct}%)`;
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+      {/* ── Filtered Charts Container ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+        className="dashboard-card dashboard-section-gap"
+        style={{ padding: "16px 20px 20px" }}
+      >
+        {/* Toolbar */}
+        <div className="req-toolbar" style={{ marginBottom: 16, boxShadow: "none", border: "none", padding: 0, background: "transparent" }}>
+          <div className="req-toolbar__filters req-toolbar__filters--open" style={{ borderTop: "none", paddingTop: 0 }}>
+            <div className="req-toolbar__filter-group">
+              <label className="req-toolbar__filter-label">Date</label>
+              <select className="req-toolbar__filter-select" value={dateMode} onChange={(e) => setDateMode(e.target.value)}>
+                <option value="preset">Preset</option>
+                <option value="single">Specific Date</option>
+                <option value="range">Date Range</option>
+              </select>
             </div>
-          ) : (
-            <div className="dashboard-chart-canvas dashboard-chart-empty">
-              No data available
-            </div>
-          )}
-        </motion.div>
 
-        {/* Bar Chart – Document Types */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
-          className="admin-chart-card dashboard-chart-card"
-        >
-          <div className="dashboard-chart-title">
-            {documentTypesTitle}
+            {dateMode === "preset" && (
+              <div className="req-toolbar__filter-group">
+                <label className="req-toolbar__filter-label">Period</label>
+                <select className="req-toolbar__filter-select" value={preset} onChange={(e) => setPreset(e.target.value)}>
+                  <option value="all">All Dates</option>
+                  <option value="today">Today</option>
+                  <option value="thisWeek">This Week</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="thisYear">This Year</option>
+                </select>
+              </div>
+            )}
+
+            {dateMode === "single" && (
+              <div className="req-toolbar__filter-group">
+                <label className="req-toolbar__filter-label">Date</label>
+                <input className="req-toolbar__filter-select" type="date" value={singleDate} onChange={(e) => setSingleDate(e.target.value)} />
+              </div>
+            )}
+
+            {dateMode === "range" && (
+              <>
+                <div className="req-toolbar__filter-group">
+                  <label className="req-toolbar__filter-label">From</label>
+                  <input className="req-toolbar__filter-select" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                </div>
+                <div className="req-toolbar__filter-group">
+                  <label className="req-toolbar__filter-label">To</label>
+                  <input className="req-toolbar__filter-select" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
+              </>
+            )}
+
+            <button
+              type="button"
+              className="req-toolbar__reset-btn"
+              onClick={() => {
+                setDateMode("preset");
+                setPreset("all");
+                setSingleDate("");
+                setStartDate("");
+                setEndDate("");
+                load({ withToast: true });
+              }}
+              disabled={refreshing}
+              title="Reset filters and refresh"
+              style={{ alignSelf: "flex-start" }}
+            >
+              <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+            </button>
           </div>
-          <div className="dashboard-chart-subtitle">NDA vs Agreement requests submitted</div>
-          <div className="dashboard-chart-canvas">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={typeData} barSize={40}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip cursor={{ fill: "var(--primary-light)" }} />
-              <Bar dataKey="count" name="Requests" fill="var(--primary)" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        </div>
+
+        {/* Charts */}
+        <div className="responsive-grid-2">
+          {/* Donut Chart – Status Distribution */}
+          <div className="admin-chart-card dashboard-chart-card" style={{ boxShadow: "none", border: "1px solid var(--border)" }}>
+            <div className="dashboard-chart-title">Request Status Distribution</div>
+            <div className="dashboard-chart-subtitle">Current active requests by status</div>
+            {statusData.length > 0 ? (
+              <div className="dashboard-chart-canvas">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart margin={{ top: 8, right: 12, bottom: isCompact ? 32 : 8, left: 12 }}>
+                    <Pie
+                      data={statusData}
+                      cx={isCompact ? "50%" : "36%"}
+                      cy={isCompact ? "45%" : "50%"}
+                      innerRadius={isCompact ? 45 : 55}
+                      outerRadius={isCompact ? 68 : 85}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[entry.id] || DONUT_COLORS[index % DONUT_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [value, name]} />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      layout={isCompact ? "horizontal" : "vertical"}
+                      align={isCompact ? "center" : "right"}
+                      verticalAlign={isCompact ? "bottom" : "middle"}
+                      wrapperStyle={{ fontSize: 12, paddingLeft: isCompact ? 0 : 24 }}
+                      formatter={(value) => {
+                        const total = statusData.reduce((sum, d) => sum + d.value, 0);
+                        const entry = statusData.find((d) => d.name === value);
+                        const pct = entry && total > 0 ? ((entry.value / total) * 100).toFixed(1) : 0;
+                        return `${value} (${pct}%)`;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="dashboard-chart-canvas dashboard-chart-empty">No data available</div>
+            )}
           </div>
-        </motion.div>
-      </div>
+
+          {/* Bar Chart – Document Types */}
+          <div className="admin-chart-card dashboard-chart-card" style={{ boxShadow: "none", border: "1px solid var(--border)" }}>
+            <div className="dashboard-chart-title">Document Types</div>
+            <div className="dashboard-chart-subtitle">NDA vs Agreement requests submitted</div>
+            <div className="dashboard-chart-canvas">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={typeData} barSize={40}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip cursor={{ fill: "var(--primary-light)" }} />
+                  <Bar dataKey="count" name="Requests" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Monthly Trend Line Chart */}
       <motion.div
@@ -451,81 +444,6 @@ export default function AdminDashboard() {
         </motion.div>
       ) : null}
 
-      {/* ── BOTTOM: Most Recent Requests (reviewal only) ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.63 }}
-        className="dashboard-card"
-        style={{ marginTop: 20 }}
-      >
-        <div className="table-scroll">
-        <table className="dashboard-table">
-          <thead>
-            <tr className="dashboard-table-title-row">
-              <th colSpan={5}>
-                <div className="dashboard-table-title-wrap">
-                  <span className="dashboard-table-title">Most Recent Requests</span>
-                  <Link
-                    to="/admin/requests"
-                    className="dashboard-view-all-link"
-                  >
-                    View All <ArrowRight size={13} />
-                  </Link>
-                </div>
-              </th>
-            </tr>
-            <tr>
-              <th>Student</th>
-              <th>Request ID</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [1, 2, 3, 4].map((i) => (
-                <tr key={i}>
-                  <td><div className="skeleton-row" style={{ padding: 0, border: "none" }}><div className="skeleton-block skeleton-block--lg" /><div className="skeleton-block skeleton-block--md" style={{ height: 10 }} /></div></td>
-                  <td><div className="skeleton-block skeleton-block--sm" /></td>
-                  <td><div className="skeleton-block skeleton-block--md" /></td>
-                  <td><div className="skeleton-block skeleton-block--sm" style={{ borderRadius: 99 }} /></td>
-                  <td><div className="skeleton-block skeleton-block--sm" /></td>
-                </tr>
-              ))
-            ) : recentRequests.length === 0 ? (
-              <tr>
-                <td colSpan={5}>
-                  <div className="dashboard-empty">
-                    <FileText size={32} strokeWidth={1.5} color="var(--text-muted)" />
-                    <p className="dashboard-empty-title">No pending requests</p>
-                    <p className="dashboard-empty-text">Requests awaiting reviewal will appear here.</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              recentRequests.map((r) => (
-                <tr key={r._id} onClick={() => navigate(`/admin/requests/${r._id}`)} style={{ cursor: "pointer" }}>
-                  <td>
-                    <span className="dashboard-student-name">{r.userId?.name || "Unknown"}</span>
-                    <span className="dashboard-subtext">{r.userId?.email || ""}</span>
-                  </td>
-                  <td><code style={{ fontSize: 12, color: "var(--text-secondary)" }}>{r._id?.slice(-7).toUpperCase()}</code></td>
-                  <td>
-                    {r.type === "nda"
-                      ? `NDA${r.formData?.ndaTypeLabel ? ` — ${r.formData.ndaTypeLabel}` : ""}`
-                      : "Agreement"}
-                  </td>
-                  <td>
-                    <span className={statusPillClass(r.status)}>{prettyStatus(r.status)}</span>
-                  </td>
-                  <td>{new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-        </div>
-      </motion.div>
     </div>
   );
 }

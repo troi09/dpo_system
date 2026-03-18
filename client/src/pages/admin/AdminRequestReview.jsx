@@ -30,7 +30,7 @@ const prettyStatus = (s) => {
     nda_approved:               "Approved",
     stud_revision_requested:    "Student Revisions",
     agr_pending_1:              "Initial Reviewal",
-    agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+    agr_awaiting_rep_signature: "Recipient Reviewal",
     agr_pending_2:              "Final Reviewal",
     agr_approved:               "Approved",
     agr_declined:               "Recipient Declined",
@@ -778,17 +778,12 @@ export default function AdminRequestReview() {
 
   const [reqData, setReqData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [notice, setNotice] = useState("");
 
   const loadRequest = async ({ withToast = false } = {}) => {
     if (withToast) setRefreshing(true);
     try {
       const r = await getRequestById(id);
       setReqData(r);
-      if (withToast) {
-        setNotice("Data updated");
-        setTimeout(() => setNotice(""), 1800);
-      }
     } catch (err) {
       notify(err.response?.data?.message || "Failed to load request", { type: "error" });
       navigate("/admin/requests");
@@ -838,11 +833,6 @@ export default function AdminRequestReview() {
           </button>
         </div>
 
-        {notice ? (
-          <div className="info-banner info-banner--success">
-            <strong>{notice}</strong>
-          </div>
-        ) : null}
 
         <div className="review-header">
           <div className="review-meta">

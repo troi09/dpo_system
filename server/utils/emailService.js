@@ -131,7 +131,7 @@ exports.sendStatusUpdateEmail = (email, name, requestType, newStatus, remarks) =
     nda_approved: "Approved",
     stud_revision_requested: "Student Revisions",
     agr_pending_1: "Initial Reviewal",
-    agr_awaiting_rep_signature: "Awaiting Recipient Approval",
+    agr_awaiting_rep_signature: "Recipient Reviewal",
     agr_pending_2: "Final Reviewal",
     agr_approved: "Approved",
     agr_declined: "Recipient Declined",
