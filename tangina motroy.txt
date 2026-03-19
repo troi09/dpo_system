@@ -5,6 +5,6 @@ No laziness: Find root causes. No temporary fixes. Senior developer standards.
 Minimal impact: changes hould only touch what's necessary. avoid introducing bugs.
 
 Notes
--Both cater the changes and the requirements to be able to not just run on the local, but also on vercel as a deployed websystem
+-Both cater the changes and the requirements to be able to not just run on the local, but also on vercel and render as a deployed websystem
 -Check the whole system if there are requiements need to be changed or replace for being able to run in vercel (include .env files, since its in gitignore and the changes would need be maually added)
 -At the end of this, Make a read me or any explnation that makes me instructions or guides for me to implement, to do, to replace, to install depndencies, or any requirement at all after implementing the changes

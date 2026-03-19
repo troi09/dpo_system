@@ -1,4 +1,5 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle } from "react";
+import { Paintbrush2 } from "lucide-react";
 
 /**
  * Canvas-based signature pad.
@@ -75,29 +76,65 @@ const SignaturePad = forwardRef(function SignaturePad(
     drawing.current = false;
   };
 
+  const handleClear = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+  };
+
   return (
-    <canvas
-      ref={canvasRef}
-      width={600}
-      height={height}
-      style={{
-        border: "1px solid #ccc",
-        borderRadius: 4,
-        cursor: disabled ? "default" : "crosshair",
-        touchAction: "none",
-        width: "100%",
-        display: "block",
-        background: "#fafafa",
-        ...style,
-      }}
-      onMouseDown={onStart}
-      onMouseMove={onMove}
-      onMouseUp={onEnd}
-      onMouseLeave={onEnd}
-      onTouchStart={onStart}
-      onTouchMove={onMove}
-      onTouchEnd={onEnd}
-    />
+    <div style={{ position: "relative", display: "inline-block", width: "100%" }}>
+      <canvas
+        ref={canvasRef}
+        width={600}
+        height={height}
+        style={{
+          border: "1px solid #ccc",
+          borderRadius: 4,
+          cursor: disabled ? "default" : "crosshair",
+          touchAction: "none",
+          width: "100%",
+          display: "block",
+          background: "#fafafa",
+          ...style,
+        }}
+        onMouseDown={onStart}
+        onMouseMove={onMove}
+        onMouseUp={onEnd}
+        onMouseLeave={onEnd}
+        onTouchStart={onStart}
+        onTouchMove={onMove}
+        onTouchEnd={onEnd}
+      />
+      {!disabled && (
+        <button
+          type="button"
+          onClick={handleClear}
+          title="Clear signature"
+          style={{
+            position: "absolute",
+            top: 6,
+            right: 6,
+            width: 28,
+            height: 28,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#fafafa",
+            border: "none",
+            borderRadius: 4,
+            cursor: "pointer",
+            color: "#64748b",
+            padding: 0,
+            transition: "background 0.15s ease, color 0.15s ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.color = "#dc2626"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.85)"; e.currentTarget.style.color = "#64748b"; }}
+        >
+          <Paintbrush2 size={14} strokeWidth={1.8} style={{ transform: "scaleY(-1)" }} />
+        </button>
+      )}
+    </div>
   );
 });
 

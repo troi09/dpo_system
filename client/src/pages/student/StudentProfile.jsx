@@ -122,15 +122,15 @@ const StudentProfile = () => {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             <div>
               <label style={labelStyle}>First Name</label>
-              <input value={firstName} onChange={(e) => setFirstName(e.target.value)} style={fieldStyle} placeholder="Juan" required />
+              <input value={firstName} onChange={(e) => setFirstName(e.target.value)} style={fieldStyle} required />
             </div>
             <div>
               <label style={labelStyle}>Middle Name</label>
-              <input value={middleName} onChange={(e) => setMiddleName(e.target.value)} style={fieldStyle} placeholder="Santos" />
+              <input value={middleName} onChange={(e) => setMiddleName(e.target.value)} style={fieldStyle} />
             </div>
             <div>
               <label style={labelStyle}>Last Name</label>
-              <input value={lastName} onChange={(e) => setLastName(e.target.value)} style={fieldStyle} placeholder="Dela Cruz" required />
+              <input value={lastName} onChange={(e) => setLastName(e.target.value)} style={fieldStyle} required />
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -139,7 +139,7 @@ const StudentProfile = () => {
               background: "var(--primary)", color: "#fff", fontWeight: 600, fontSize: 13,
               fontFamily: "inherit", cursor: loading ? "not-allowed" : "pointer",
               opacity: loading ? 0.7 : 1, whiteSpace: "nowrap",
-            }}>Save</button>
+            }}>Change</button>
           </div>
         </form>
       </div>
@@ -155,7 +155,7 @@ const StudentProfile = () => {
           <div>
             <label style={labelStyle}>Current Password</label>
             <div style={{ position: "relative" }}>
-              <input type={showCurrentPw ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" style={{ ...fieldStyle, paddingRight: 42 }} />
+              <input type={showCurrentPw ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ ...fieldStyle, paddingRight: 42 }} />
               <button type="button" onClick={() => setShowCurrentPw((v) => !v)} tabIndex={-1} aria-label={showCurrentPw ? "Hide password" : "Show password"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
                 {showCurrentPw ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
@@ -164,7 +164,7 @@ const StudentProfile = () => {
           <div className="password-hint-anchor" style={{ position: "relative" }}>
             <label style={labelStyle}>New Password</label>
             <div style={{ position: "relative" }}>
-              <input type={showNewPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" minLength={8} style={{ ...fieldStyle, paddingRight: 42 }} />
+              <input type={showNewPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} style={{ ...fieldStyle, paddingRight: 42 }} />
               <button type="button" onClick={() => setShowNewPw((v) => !v)} tabIndex={-1} aria-label={showNewPw ? "Hide password" : "Show password"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
                 {showNewPw ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
@@ -174,7 +174,7 @@ const StudentProfile = () => {
           <div>
             <label style={labelStyle}>Confirm New Password</label>
             <div style={{ position: "relative" }}>
-              <input type={showConfirmPw ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" style={{ ...fieldStyle, paddingRight: 42 }} />
+              <input type={showConfirmPw ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ ...fieldStyle, paddingRight: 42 }} />
               <button type="button" onClick={() => setShowConfirmPw((v) => !v)} tabIndex={-1} aria-label={showConfirmPw ? "Hide password" : "Show password"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
                 {showConfirmPw ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
@@ -185,7 +185,7 @@ const StudentProfile = () => {
             background: "var(--primary)", color: "#fff", fontWeight: 600, fontSize: 13,
             fontFamily: "inherit", cursor: loading ? "not-allowed" : "pointer",
             opacity: loading ? 0.7 : 1, alignSelf: "flex-end",
-          }}>Change Password</button>
+          }}>Change</button>
         </form>
       </div>
     </div>

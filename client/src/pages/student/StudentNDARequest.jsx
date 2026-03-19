@@ -234,14 +234,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
                   <p className="request-sig-hint">
                     Draw your signature below. It will be embedded in the NDA document.
                   </p>
-                  <SignaturePad ref={sigPadRef} height={250} />
-                  <button
-                    type="button"
-                    className="request-sig-clear"
-                    onClick={() => sigPadRef.current?.clear()}
-                  >
-                    Clear Signature
-                  </button>
+                  <SignaturePad ref={sigPadRef} height={320} />
                 </>
               )}
             </div>

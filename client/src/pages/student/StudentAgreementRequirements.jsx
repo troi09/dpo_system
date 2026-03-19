@@ -37,8 +37,8 @@ export default function StudentAgreementRequirements({
             <li>Notarized Authorization Letter</li>
             <li>Government Issued Valid ID</li>
           </ul>
-          <span className="type-chooser-req-title">Recipient Requirements:</span>
-          <ul className="type-chooser-req-list" aria-label="Recipient requirements">
+          <span className="type-chooser-req-title">Representative Requirements:</span>
+          <ul className="type-chooser-req-list" aria-label="Representative requirements">
             <li>Government Issued Valid ID</li>
           </ul>
           <span className="type-chooser-card-subtext" style={{ marginTop: 8, fontStyle: "italic" }}>

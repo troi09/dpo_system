@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, Paperclip, RefreshCw } from "lucide-react";
+import { AlertTriangle, Copy, Paperclip, RefreshCw } from "lucide-react";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { AuthContext } from "../../context/AuthContext";
@@ -239,19 +239,6 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         )}
       </div>
 
-      {canProgress && isPending && (
-        <div className="review-section">
-          <h4 className="review-section-title">Remarks</h4>
-          <textarea
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-            rows={4}
-            className="review-textarea"
-            placeholder="Optional remarks..."
-          />
-        </div>
-      )}
-
       {isRevision && (
         <div className="review-section">
           <h4 className="review-section-title">Remarks</h4>
@@ -293,14 +280,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
             Draw your signature below to sign off on the NDA approval.
           </p>
-          <SignaturePad ref={adminSigRef} height={150} />
-          <button
-            type="button"
-            className="review-btn-clear"
-            onClick={() => adminSigRef.current?.clear()}
-          >
-            Clear Signature
-          </button>
+          <SignaturePad ref={adminSigRef} height={160} />
         </div>
       )}
 
@@ -308,6 +288,18 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         <div className="info-banner info-banner--info">
           <strong>F2F Walk-in (Proxy)</strong>
           <p>This is a face-to-face proxy request. Digital signatures are bypassed. The document will be printed for a physical wet signature.</p>
+        </div>
+      )}
+
+      {canProgress && isPending && (
+        <div className="review-section">
+          <h4 className="review-section-title">Remarks</h4>
+          <textarea
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            rows={4}
+            className="review-textarea"
+          />
         </div>
       )}
 
@@ -605,19 +597,17 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       {signingLink && (status === "agr_awaiting_rep_signature" || status === "agr_rep_revision_requested") && (
         <div className="signing-link-box">
           <p className="signing-link-title">Representative Signing Link</p>
-          <p className="signing-link-desc">
-            Copy and send this link to the representative:
-          </p>
           <div className="signing-link-row">
-            <code className="signing-link-code">{signingLink}</code>
+            <span className="signing-link-code">Representative signing link ready — click to copy</span>
             <button
               className="signing-link-copy-btn"
               onClick={() => {
                 navigator.clipboard.writeText(signingLink);
                 notify("Copied!", { type: "success" });
               }}
+              title="Copy link"
             >
-              Copy
+              <Copy size={14} strokeWidth={2} />
             </button>
           </div>
           {signingLinkExpiry && (
@@ -707,14 +697,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
             <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 8px 0" }}>
               Draw your signature below to sign off on the final approval.
             </p>
-            <SignaturePad ref={adminSigRef} height={150} />
-            <button
-              type="button"
-              className="review-btn-clear"
-              onClick={() => adminSigRef.current?.clear()}
-            >
-              Clear Signature
-            </button>
+            <SignaturePad ref={adminSigRef} height={160} />
           </div>
 
           <div className="review-section">
@@ -741,7 +724,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
               disabled={approving || phase3Revising}
               className="review-btn-secondary"
             >
-              {phase3Revising ? "Submitting..." : "Request Recipient Revision"}
+              {phase3Revising ? "Submitting..." : "Request Representative Revision"}
             </button>
           </div>
         </>

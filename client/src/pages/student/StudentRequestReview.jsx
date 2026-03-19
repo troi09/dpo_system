@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, Paperclip, RefreshCw } from "lucide-react";
+import { AlertTriangle, Copy, Paperclip, RefreshCw } from "lucide-react";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById } from "../../services/requestService";
@@ -174,15 +174,20 @@ export default function StudentRequestReview() {
         {isAgreement && reqData.signingToken && (reqData.status === "agr_awaiting_rep_signature" || reqData.status === "agr_rep_revision_requested") && (
           <div className="review-section">
             <h4 className="review-section-title">Representative Signing Link</h4>
-            <div className="review-info-box" style={{ wordBreak: "break-all", fontSize: 13 }}>
-              <a
-                href={`${window.location.origin}/sign/${reqData.signingToken}`}
-                target="_blank"
-                rel="noreferrer"
-                className="review-file-link"
-              >
-                {window.location.origin}/sign/{reqData.signingToken}
-              </a>
+            <div className="review-info-box" style={{ fontSize: 13 }}>
+              <div className="signing-link-row">
+                <span className="signing-link-code">Representative signing link ready — click to copy</span>
+                <button
+                  className="signing-link-copy-btn"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/sign/${reqData.signingToken}`);
+                    notify("Copied!", { type: "success" });
+                  }}
+                  title="Copy link"
+                >
+                  <Copy size={14} strokeWidth={2} />
+                </button>
+              </div>
               {reqData.signingTokenExpiresAt && (
                 <div style={{ marginTop: 6, fontSize: 12, color: new Date(reqData.signingTokenExpiresAt) < new Date() ? "#dc2626" : "var(--text-muted)" }}>
                   {new Date(reqData.signingTokenExpiresAt) < new Date()

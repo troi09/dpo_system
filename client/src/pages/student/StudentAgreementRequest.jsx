@@ -298,23 +298,16 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
                 <p className="request-sig-hint">
                   Draw your signature below. It will be embedded in the agreement document.
                 </p>
-                <SignaturePad ref={sigPadRef} height={150} />
-                <button
-                  type="button"
-                  className="request-sig-clear"
-                  onClick={() => sigPadRef.current?.clear()}
-                >
-                  Clear Signature
-                </button>
+                <SignaturePad ref={sigPadRef} height={320} />
               </>
             )}
           </div>
-        </div>
 
-        <div className="request-form-actions">
-          <button type="submit" className="request-form-submit" disabled={submitting}>
-            {submitting ? "Submitting..." : "Submit Request"}
-          </button>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
+            <button type="submit" className="request-form-submit" disabled={submitting}>
+              {submitting ? "Submitting..." : "Submit Request"}
+            </button>
+          </div>
         </div>
       </form>
     </div>

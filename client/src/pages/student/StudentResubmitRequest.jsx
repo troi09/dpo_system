@@ -244,14 +244,7 @@ export default function StudentResubmitRequest() {
               <p className="request-sig-hint">
                 Please draw your signature again for this resubmission.
               </p>
-              <SignaturePad ref={sigPadRef} height={250} />
-              <button
-                type="button"
-                className="request-sig-clear"
-                onClick={() => sigPadRef.current?.clear()}
-              >
-                Clear Signature
-              </button>
+              <SignaturePad ref={sigPadRef} height={320} />
             </div>
           </div>
 

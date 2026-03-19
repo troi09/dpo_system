@@ -299,14 +299,7 @@ export default function RepSigningPage() {
           <div className="rep-signing-field">
             <label className="rep-signing-label">Your E-Signature *</label>
             <p className="rep-signing-sig-hint">Draw your signature in the box below.</p>
-            <SignaturePad ref={sigPadRef} height={150} />
-            <button
-              type="button"
-              className="rep-signing-clear-btn"
-              onClick={() => sigPadRef.current?.clear()}
-            >
-              Clear Signature
-            </button>
+            <SignaturePad ref={sigPadRef} height={160} />
           </div>
 
           <label className="rep-signing-accept">

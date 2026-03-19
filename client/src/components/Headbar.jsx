@@ -1,15 +1,23 @@
 import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import "./Headbar.css";
 
 const Headbar = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   if (!user) return null;
 
+  const dashboardPath = user.role === "student" ? "/student" : "/admin";
+
   return (
     <div className="headbar">
-      <div className="headbar-brand">
+      <div
+        className="headbar-brand"
+        onClick={() => navigate(dashboardPath)}
+        style={{ cursor: "pointer" }}
+      >
         <img
           src="/dpo-logo.webp"
           alt="DPO Logo"
