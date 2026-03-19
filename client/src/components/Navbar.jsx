@@ -2,10 +2,10 @@ import { NavLink } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import {
-  LayoutDashboard,
   FilePlus,
   ClipboardList,
   BarChart2,
+  History,
   Users,
   Archive,
   Activity,
@@ -26,26 +26,12 @@ const Navbar = () => {
 
   return (
     <nav className="navbar">
-      {/* Brand */}
-      <div className="navbar-brand">
-        <img
-          src="/dpo-logo.webp"
-          alt="DPO Logo"
-          className="navbar-brand-logo"
-          width="40"
-          height="40"
-          loading="eager"
-          decoding="async"
-        />
-        <span className="navbar-brand-name">DPO Portal</span>
-      </div>
-
       {/* Navigation links */}
       <div className="navbar-links">
         {user?.role === "student" && (
           <>
             <NavLink to="/student" className={linkClass} end>
-              <LayoutDashboard size={16} className="nav-icon" />
+              <ClipboardList size={16} className="nav-icon" />
               Dashboard
             </NavLink>
             <NavLink to="/student/new-request" className={linkClass}>
@@ -62,7 +48,7 @@ const Navbar = () => {
         {(user?.role === "admin" || user?.role === "staff") && (
           <>
             <NavLink to="/admin" className={linkClass} end>
-              <LayoutDashboard size={16} className="nav-icon" />
+              <BarChart2 size={16} className="nav-icon" />
               Dashboard
             </NavLink>
             <NavLink to="/admin/requests" className={linkClass}>
@@ -76,9 +62,15 @@ const Navbar = () => {
               </NavLink>
             )}
             <NavLink to="/admin/reports" className={linkClass}>
-              <BarChart2 size={16} className="nav-icon" />
-              Transactional Reports
+              <History size={16} className="nav-icon" />
+              Transaction Trails
             </NavLink>
+            {user?.role === "admin" && (
+              <NavLink to="/admin/audit" className={linkClass}>
+                <Activity size={16} className="nav-icon" />
+                Audit Logs
+              </NavLink>
+            )}
             {user?.role === "admin" && (
               <NavLink to="/admin/users" className={linkClass}>
                 <Users size={16} className="nav-icon" />
@@ -89,12 +81,6 @@ const Navbar = () => {
               <Archive size={16} className="nav-icon" />
               Archives
             </NavLink>
-            {user?.role === "admin" && (
-              <NavLink to="/admin/audit" className={linkClass}>
-                <Activity size={16} className="nav-icon" />
-                Audit Logs
-              </NavLink>
-            )}
             <NavLink to="/admin/profile" className={linkClass}>
               <UserCircle size={16} className="nav-icon" />
               Profile

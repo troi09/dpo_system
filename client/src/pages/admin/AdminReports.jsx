@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, Search, Filter, X } from "lucide-react";
 import { getAllRequests } from "../../services/requestService";
+import FilterSelect from "../../components/FilterSelect";
 import { getAuditLogs } from "../../services/auditService";
 
 const STATUS_LABEL = {
@@ -250,58 +251,58 @@ export default function AdminReports() {
         <div className={`req-toolbar__filters${isFilterOpen ? " req-toolbar__filters--open" : ""}`}>
           <div className="req-toolbar__filter-group">
             <label className="req-toolbar__filter-label">Type</label>
-            <select
-              className="req-toolbar__filter-select"
+            <FilterSelect
               value={typeFilter}
-              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            >
-              <option value="all">All Types</option>
-              <option value="nda_orgactivities">NDA — Student Organization Activities</option>
-              <option value="nda_research">NDA — Conduct of Research</option>
-              <option value="agreement">Agreement</option>
-            </select>
+              onChange={(v) => { setTypeFilter(v); setPage(1); }}
+              className="filter-select--type"
+              options={[
+                { value: "all", label: "All Types" },
+                { value: "nda_orgactivities", label: "NDA — Student Organization Activities" },
+                { value: "nda_research", label: "NDA — Conduct of Research" },
+                { value: "agreement", label: "Agreement" },
+              ]}
+            />
           </div>
 
           <div className="req-toolbar__filter-group">
             <label className="req-toolbar__filter-label">Status</label>
-            <select
-              className="req-toolbar__filter-select"
+            <FilterSelect
               value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            >
-              {STATUS_FILTER_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+              onChange={(v) => { setStatusFilter(v); setPage(1); }}
+              className="filter-select--status"
+              options={STATUS_FILTER_OPTIONS}
+              defaultValue=""
+            />
           </div>
 
           <div className="req-toolbar__filter-group">
             <label className="req-toolbar__filter-label">Date</label>
-            <select
-              className="req-toolbar__filter-select"
+            <FilterSelect
               value={dateMode}
-              onChange={(e) => setDateMode(e.target.value)}
-            >
-              <option value="preset">Preset</option>
-              <option value="single">Specific Date</option>
-              <option value="range">Date Range</option>
-            </select>
+              onChange={setDateMode}
+              options={[
+                { value: "preset", label: "Preset" },
+                { value: "single", label: "Specific Date" },
+                { value: "range", label: "Date Range" },
+              ]}
+              defaultValue="preset"
+            />
           </div>
 
           {dateMode === "preset" ? (
             <div className="req-toolbar__filter-group">
               <label className="req-toolbar__filter-label">Period</label>
-              <select
-                className="req-toolbar__filter-select"
+              <FilterSelect
                 value={preset}
-                onChange={(e) => setPreset(e.target.value)}
-              >
-                <option value="today">Today</option>
-                <option value="thisWeek">This Week</option>
-                <option value="thisMonth">This Month</option>
-                <option value="thisYear">This Year</option>
-                <option value="all">All Dates</option>
-              </select>
+                onChange={setPreset}
+                options={[
+                  { value: "all", label: "All Time" },
+                  { value: "today", label: "Today" },
+                  { value: "thisWeek", label: "This Week" },
+                  { value: "thisMonth", label: "This Month" },
+                  { value: "thisYear", label: "This Year" },
+                ]}
+              />
             </div>
           ) : null}
 
@@ -309,7 +310,7 @@ export default function AdminReports() {
             <div className="req-toolbar__filter-group">
               <label className="req-toolbar__filter-label">Date</label>
               <input
-                className="req-toolbar__filter-select"
+                className={`req-toolbar__filter-select${singleDate !== "" ? " req-toolbar__filter-select--active" : ""}`}
                 type="date"
                 value={singleDate}
                 onChange={(e) => setSingleDate(e.target.value)}
@@ -322,7 +323,7 @@ export default function AdminReports() {
               <div className="req-toolbar__filter-group">
                 <label className="req-toolbar__filter-label">From</label>
                 <input
-                  className="req-toolbar__filter-select"
+                  className={`req-toolbar__filter-select${startDate !== "" ? " req-toolbar__filter-select--active" : ""}`}
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
@@ -331,7 +332,7 @@ export default function AdminReports() {
               <div className="req-toolbar__filter-group">
                 <label className="req-toolbar__filter-label">To</label>
                 <input
-                  className="req-toolbar__filter-select"
+                  className={`req-toolbar__filter-select${endDate !== "" ? " req-toolbar__filter-select--active" : ""}`}
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
@@ -485,7 +486,7 @@ export default function AdminReports() {
                   </div>
                 </div>
                 <button
-                  className="req-timeline-modal__close"
+                  className="user-edit-modal__close user-edit-modal__close--danger"
                   onClick={() => setTimelineRequest(null)}
                   aria-label="Close"
                 >
@@ -539,10 +540,6 @@ export default function AdminReports() {
                 )}
               </div>
 
-              {/* Footer */}
-              <div className="req-timeline-modal__footer">
-                <button className="ui-btn ui-btn--secondary" onClick={() => setTimelineRequest(null)}>Close</button>
-              </div>
 
             </motion.div>
           </motion.div>

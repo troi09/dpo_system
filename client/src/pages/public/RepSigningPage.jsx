@@ -15,7 +15,7 @@ export default function RepSigningPage() {
   const [done, setDone] = useState(""); // success message
 
   const [repFirstName, setRepFirstName] = useState("");
-  const [repMiddleInitial, setRepMiddleInitial] = useState("");
+  const [repMiddleName, setRepMiddleName] = useState("");
   const [repLastName, setRepLastName] = useState("");
   const [govIdFile, setGovIdFile] = useState(null);
   const [accepted, setAccepted] = useState(false);
@@ -49,7 +49,7 @@ export default function RepSigningPage() {
 
     if (first || middle || last) {
       setRepFirstName(sanitizeNamePart(first));
-      setRepMiddleInitial(sanitizeNamePart(middle).replace(/\s+/g, "").slice(0, 1).toUpperCase());
+      setRepMiddleName(sanitizeNamePart(middle));
       setRepLastName(sanitizeNamePart(last));
     }
   }, [reqData]);
@@ -109,15 +109,17 @@ export default function RepSigningPage() {
   const isRevision = reqData.status === "agr_rep_revision_requested";
   const student = reqData.userId || {};
   const fd = reqData.formData || {};
-  const requestedRepName = [fd.repFirstName, fd.repMiddleInitial, fd.repLastName]
+  const storedMiddle = sanitizeNamePart(fd.repMiddleInitial || "").trim();
+  const storedMiddleInitial = storedMiddle ? `${storedMiddle[0].toUpperCase()}.` : "";
+  const requestedRepName = [fd.repFirstName, storedMiddleInitial, fd.repLastName]
     .filter(Boolean)
     .join(" ")
     .replace(/\s+/g, " ")
     .trim() || fd.repName || "—";
-  const normalizedMiddleInitial = sanitizeNamePart(repMiddleInitial).replace(/\./g, "").trim();
+  const normalizedMiddleName = sanitizeNamePart(repMiddleName).replace(/\./g, "").trim();
   const representativeFullName = [
     sanitizeNamePart(repFirstName).trim(),
-    normalizedMiddleInitial ? `${normalizedMiddleInitial[0].toUpperCase()}.` : "",
+    normalizedMiddleName ? `${normalizedMiddleName[0].toUpperCase()}.` : "",
     sanitizeNamePart(repLastName).trim(),
   ]
     .filter(Boolean)
@@ -211,7 +213,7 @@ export default function RepSigningPage() {
         {/* Agreement summary */}
         <div className="rep-signing-summary">
           <div className="rep-signing-summary-row">
-            <strong>Requestor / Authorizer:</strong> {student.name || "—"}
+            <strong>Requestee / Authorizer:</strong> {student.name || "—"}
           </div>
           <div className="rep-signing-summary-row">
             <strong>Representative Named:</strong> {requestedRepName}
@@ -243,27 +245,32 @@ export default function RepSigningPage() {
           <div className="rep-signing-field">
             <label className="rep-signing-label">Representative Name *</label>
             <div className="rep-signing-name-grid">
-              <input
-                className="rep-signing-input"
-                value={repFirstName}
-                onChange={(e) => setRepFirstName(sanitizeNamePart(e.target.value))}
-                placeholder="First Name"
-                required
-              />
-              <input
-                className="rep-signing-input"
-                value={repMiddleInitial}
-                onChange={(e) => setRepMiddleInitial(sanitizeNamePart(e.target.value).replace(/\s+/g, "").slice(0, 1).toUpperCase())}
-                placeholder="M.I."
-                maxLength={1}
-              />
-              <input
-                className="rep-signing-input"
-                value={repLastName}
-                onChange={(e) => setRepLastName(sanitizeNamePart(e.target.value))}
-                placeholder="Last Name"
-                required
-              />
+              <div className="rep-signing-name-col">
+                <label className="rep-signing-name-sublabel">First Name</label>
+                <input
+                  className="rep-signing-input"
+                  value={repFirstName}
+                  onChange={(e) => setRepFirstName(sanitizeNamePart(e.target.value))}
+                  required
+                />
+              </div>
+              <div className="rep-signing-name-col">
+                <label className="rep-signing-name-sublabel">Middle Name</label>
+                <input
+                  className="rep-signing-input"
+                  value={repMiddleName}
+                  onChange={(e) => setRepMiddleName(sanitizeNamePart(e.target.value))}
+                />
+              </div>
+              <div className="rep-signing-name-col">
+                <label className="rep-signing-name-sublabel">Last Name</label>
+                <input
+                  className="rep-signing-input"
+                  value={repLastName}
+                  onChange={(e) => setRepLastName(sanitizeNamePart(e.target.value))}
+                  required
+                />
+              </div>
             </div>
             <p className="rep-signing-name-note">Please ensure the name entered matches the name shown on your government-issued ID.</p>
           </div>

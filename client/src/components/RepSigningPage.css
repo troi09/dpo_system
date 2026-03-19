@@ -186,8 +186,22 @@
 
 .rep-signing-name-grid {
   display: grid;
-  grid-template-columns: 1fr 0.34fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+
+.rep-signing-name-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rep-signing-name-sublabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .rep-signing-name-note {

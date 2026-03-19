@@ -7,9 +7,10 @@ import {
   LineChart, Line,
 } from "recharts";
 import {
-  FileText, Clock, CheckCircle, Archive, Activity,
+  FileText, Clock, CheckCircle, Archive,
   ArrowRight, RefreshCw,
 } from "lucide-react";
+import FilterSelect from "../../components/FilterSelect";
 import { getAllRequests } from "../../services/requestService";
 import { getRecentAuditLogs } from "../../services/auditService";
 import { AuthContext } from "../../context/AuthContext";
@@ -255,30 +256,39 @@ export default function AdminDashboard() {
           <div className="req-toolbar__filters req-toolbar__filters--open" style={{ borderTop: "none", paddingTop: 0 }}>
             <div className="req-toolbar__filter-group">
               <label className="req-toolbar__filter-label">Date</label>
-              <select className="req-toolbar__filter-select" value={dateMode} onChange={(e) => setDateMode(e.target.value)}>
-                <option value="preset">Preset</option>
-                <option value="single">Specific Date</option>
-                <option value="range">Date Range</option>
-              </select>
+              <FilterSelect
+                value={dateMode}
+                onChange={setDateMode}
+                options={[
+                  { value: "preset", label: "Preset" },
+                  { value: "single", label: "Specific Date" },
+                  { value: "range", label: "Date Range" },
+                ]}
+                defaultValue="preset"
+              />
             </div>
 
             {dateMode === "preset" && (
               <div className="req-toolbar__filter-group">
                 <label className="req-toolbar__filter-label">Period</label>
-                <select className="req-toolbar__filter-select" value={preset} onChange={(e) => setPreset(e.target.value)}>
-                  <option value="all">All Dates</option>
-                  <option value="today">Today</option>
-                  <option value="thisWeek">This Week</option>
-                  <option value="thisMonth">This Month</option>
-                  <option value="thisYear">This Year</option>
-                </select>
+                <FilterSelect
+                  value={preset}
+                  onChange={setPreset}
+                  options={[
+                    { value: "all", label: "All Time" },
+                    { value: "today", label: "Today" },
+                    { value: "thisWeek", label: "This Week" },
+                    { value: "thisMonth", label: "This Month" },
+                    { value: "thisYear", label: "This Year" },
+                  ]}
+                />
               </div>
             )}
 
             {dateMode === "single" && (
               <div className="req-toolbar__filter-group">
                 <label className="req-toolbar__filter-label">Date</label>
-                <input className="req-toolbar__filter-select" type="date" value={singleDate} onChange={(e) => setSingleDate(e.target.value)} />
+                <input className={`req-toolbar__filter-select${singleDate !== "" ? " req-toolbar__filter-select--active" : ""}`} type="date" value={singleDate} onChange={(e) => setSingleDate(e.target.value)} />
               </div>
             )}
 
@@ -286,11 +296,11 @@ export default function AdminDashboard() {
               <>
                 <div className="req-toolbar__filter-group">
                   <label className="req-toolbar__filter-label">From</label>
-                  <input className="req-toolbar__filter-select" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <input className={`req-toolbar__filter-select${startDate !== "" ? " req-toolbar__filter-select--active" : ""}`} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
                 <div className="req-toolbar__filter-group">
                   <label className="req-toolbar__filter-label">To</label>
-                  <input className="req-toolbar__filter-select" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                  <input className={`req-toolbar__filter-select${endDate !== "" ? " req-toolbar__filter-select--active" : ""}`} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
               </>
             )}
@@ -411,7 +421,6 @@ export default function AdminDashboard() {
         >
           <div className="dashboard-audit-header">
             <div className="dashboard-audit-header-title">
-              <Activity size={16} color="var(--primary)" />
               <span className="dashboard-audit-title-text">Most Recent Activity</span>
             </div>
             <Link to="/admin/audit" className="dashboard-view-all-link">

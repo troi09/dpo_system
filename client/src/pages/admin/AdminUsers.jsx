@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserPlus, RefreshCw, Search, X } from "lucide-react";
+import { UserPlus, RefreshCw, Search, X, Eye, EyeOff } from "lucide-react";
+import FilterSelect from "../../components/FilterSelect";
 import {
   getAllUsers,
   adminCreateUser,
@@ -33,7 +34,8 @@ export default function AdminUsers() {
   const [deletingUser, setDeletingUser] = useState(null);
   const [editForm, setEditForm] = useState({ role: "student", isActive: true });
 
-  const [form, setForm] = useState({ name: "", email: "", role: "student", password: "" });
+  const [form, setForm] = useState({ firstName: "", middleName: "", lastName: "", email: "", role: "student", password: "" });
+  const [showCreatePw, setShowCreatePw] = useState(false);
 
   const load = useCallback(async ({ withSpinner = false } = {}) => {
     setLoading(true);
@@ -58,8 +60,8 @@ export default function AdminUsers() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) {
-      showFlash("error", "Name and email are required.");
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
+      showFlash("error", "First name, last name, and email are required.");
       return;
     }
     if (!isStrongPassword(form.password)) {
@@ -68,9 +70,12 @@ export default function AdminUsers() {
     }
     setCreating(true);
     try {
-      await adminCreateUser(form);
+      const mi = form.middleName.trim() ? form.middleName.trim().charAt(0).toUpperCase() + "." : "";
+      const composedName = `${form.firstName.trim()}${mi ? " " + mi : ""} ${form.lastName.trim()}`;
+      await adminCreateUser({ name: composedName, email: form.email, role: form.role, password: form.password });
       showFlash("success", `User created. Temporary password and verification OTP were sent to ${form.email}.`);
-      setForm({ name: "", email: "", role: "student", password: "" });
+      setForm({ firstName: "", middleName: "", lastName: "", email: "", role: "student", password: "" });
+      setShowCreatePw(false);
       setShowCreate(false);
       await load();
     } catch (err) {
@@ -137,6 +142,16 @@ export default function AdminUsers() {
 
   return (
     <div className="page-shell">
+      <div className="page-shell__header">
+        <button
+          type="button"
+          onClick={() => { setForm({ firstName: "", middleName: "", lastName: "", email: "", role: "student", password: "" }); setShowCreate(true); }}
+          className="req-toolbar__action-btn"
+        >
+          <UserPlus size={14} />
+          Create User
+        </button>
+      </div>
 
       {/* Flash message */}
       <AnimatePresence>
@@ -178,21 +193,29 @@ export default function AdminUsers() {
         <div className="req-toolbar__filters req-toolbar__filters--open">
           <div className="req-toolbar__filter-group">
             <label className="req-toolbar__filter-label">Role</label>
-            <select className="req-toolbar__filter-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-              <option value="all">All Roles</option>
-              <option value="student">Student</option>
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
-            </select>
+            <FilterSelect
+              value={roleFilter}
+              onChange={setRoleFilter}
+              options={[
+                { value: "all", label: "All Roles" },
+                { value: "student", label: "Student" },
+                { value: "staff", label: "Staff" },
+                { value: "admin", label: "Admin" },
+              ]}
+            />
           </div>
 
           <div className="req-toolbar__filter-group">
             <label className="req-toolbar__filter-label">Status</label>
-            <select className="req-toolbar__filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <FilterSelect
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: "all", label: "All Statuses" },
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+            />
           </div>
 
           <button
@@ -211,7 +234,7 @@ export default function AdminUsers() {
       <AnimatePresence>
         {showCreate && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={(e) => { if (e.target === e.currentTarget) { setShowCreate(false); setForm({ name: "", email: "", role: "student", password: "" }); } }}
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowCreate(false); setShowCreatePw(false); setForm({ name: "", email: "", role: "student", password: "" }); } }}
           >
             <motion.div className="user-edit-modal" initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}>
 
@@ -221,7 +244,7 @@ export default function AdminUsers() {
                 <button
                   type="button"
                   className="user-edit-modal__close user-edit-modal__close--danger"
-                  onClick={() => { setShowCreate(false); setForm({ name: "", email: "", role: "student", password: "" }); }}
+                  onClick={() => { setShowCreate(false); setShowCreatePw(false); setForm({ name: "", email: "", role: "student", password: "" }); }}
                   aria-label="Close"
                 >
                   <X size={16} />
@@ -233,15 +256,36 @@ export default function AdminUsers() {
               {/* Form */}
               <form onSubmit={handleCreate}>
                 <div className="user-edit-modal__fields" style={{ gridTemplateColumns: "1fr" }}>
-                  <div className="user-edit-modal__field">
-                    <label className="user-edit-modal__label">Full Name</label>
-                    <input
-                      className="ui-input"
-                      value={form.name}
-                      onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                      required
-                      placeholder="Juan Dela Cruz"
-                    />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                    <div className="user-edit-modal__field">
+                      <label className="user-edit-modal__label">First Name</label>
+                      <input
+                        className="ui-input"
+                        value={form.firstName}
+                        onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))}
+                        required
+                        placeholder="Juan"
+                      />
+                    </div>
+                    <div className="user-edit-modal__field">
+                      <label className="user-edit-modal__label">Middle Name</label>
+                      <input
+                        className="ui-input"
+                        value={form.middleName}
+                        onChange={(e) => setForm((p) => ({ ...p, middleName: e.target.value }))}
+                        placeholder="Santos"
+                      />
+                    </div>
+                    <div className="user-edit-modal__field">
+                      <label className="user-edit-modal__label">Last Name</label>
+                      <input
+                        className="ui-input"
+                        value={form.lastName}
+                        onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))}
+                        required
+                        placeholder="Dela Cruz"
+                      />
+                    </div>
                   </div>
                   <div className="user-edit-modal__field">
                     <label className="user-edit-modal__label">Email</label>
@@ -265,15 +309,21 @@ export default function AdminUsers() {
                     </div>
                     <div className="user-edit-modal__field password-hint-anchor">
                       <label className="user-edit-modal__label">Temporary Password</label>
-                      <input
-                        className="ui-input"
-                        type="password"
-                        value={form.password}
-                        onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                        required
-                        minLength={8}
-                        placeholder="Min. 8 characters"
-                      />
+                      <div style={{ position: "relative" }}>
+                        <input
+                          className="ui-input"
+                          type={showCreatePw ? "text" : "password"}
+                          value={form.password}
+                          onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                          required
+                          minLength={8}
+                          placeholder="Min. 8 characters"
+                          style={{ paddingRight: 42 }}
+                        />
+                        <button type="button" onClick={() => setShowCreatePw((v) => !v)} tabIndex={-1} aria-label={showCreatePw ? "Hide password" : "Show password"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
+                          {showCreatePw ? <Eye size={18} /> : <EyeOff size={18} />}
+                        </button>
+                      </div>
                       {form.password && !isStrongPassword(form.password) ? (
                         <PasswordChecklist password={form.password} popup side="left" />
                       ) : null}
@@ -303,16 +353,6 @@ export default function AdminUsers() {
               <th colSpan={5}>
                 <div className="dashboard-table-title-wrap">
                   <span className="dashboard-table-title">Users</span>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{filtered.length}</span>
-                  <button
-                    type="button"
-                    onClick={() => { setForm({ name: "", email: "", role: "student", password: "" }); setShowCreate(true); }}
-                    className="req-toolbar__action-btn"
-                    style={{ marginLeft: "auto" }}
-                  >
-                    <UserPlus size={14} />
-                    Create User
-                  </button>
                 </div>
               </th>
             </tr>

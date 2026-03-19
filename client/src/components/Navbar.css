@@ -1,39 +1,13 @@
 .navbar {
   display: flex;
   flex-direction: column;
-  width: 240px;
-  min-width: 240px;
-  height: 100vh;
+  width: 220px;
+  min-width: 220px;
+  height: 100%;
   box-sizing: border-box;
   background: var(--surface);
   border-right: 1px solid var(--border);
   overflow: hidden;
-}
-
-/* ── Brand ── */
-.navbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 20px;
-  height: 64px;
-  min-height: 64px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.navbar-brand-logo {
-  width: 30px;
-  height: 30px;
-  object-fit: contain;
-  border-radius: 6px;
-}
-
-.navbar-brand-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--primary);
-  letter-spacing: -0.01em;
 }
 
 /* ── Nav Links ── */
@@ -178,12 +152,6 @@
     height: auto;
     border-right: none;
     border-bottom: 1px solid var(--border);
-  }
-
-  .navbar-brand {
-    height: 56px;
-    min-height: 56px;
-    padding: 0 14px;
   }
 
   .navbar-links {

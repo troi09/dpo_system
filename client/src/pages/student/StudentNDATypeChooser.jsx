@@ -40,6 +40,9 @@ export default function StudentNDATypeChooser({
             <li>Registration Form</li>
             <li>Sample Forms or Collaterals (if applicable)</li>
           </ul>
+          <span className="type-chooser-card-subtext" style={{ marginTop: 8, fontStyle: "italic" }}>
+            Click to continue to the form →
+          </span>
         </button>
 
         <button
@@ -59,6 +62,9 @@ export default function StudentNDATypeChooser({
             <li>School ID</li>
             <li>Registration Form</li>
           </ul>
+          <span className="type-chooser-card-subtext" style={{ marginTop: 8, fontStyle: "italic" }}>
+            Click to continue to the form →
+          </span>
         </button>
       </div>
     </div>

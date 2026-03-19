@@ -508,7 +508,7 @@
 /* ── Name Input Grid (Registration) ── */
 .landing-name-grid {
   display: grid;
-  grid-template-columns: 1fr 0.55fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
   width: 100%;
 }

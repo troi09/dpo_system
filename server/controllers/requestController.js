@@ -127,9 +127,10 @@ exports.createRequest = async (req, res) => {
     // Compute proxy requestee full name from structured or legacy fields
     const buildProxyFullName = (pr) => {
       const fn = String(pr.firstName || "").trim();
-      const mi = String(pr.middleInitial || "").trim();
+      const miRaw = String(pr.middleInitial || "").trim();
+      const mi = miRaw ? miRaw.charAt(0).toUpperCase() + "." : "";
       const ln = String(pr.lastName || "").trim();
-      if (fn && ln) return `${fn}${mi ? " " + mi + "." : ""} ${ln}`;
+      if (fn && ln) return `${fn}${mi ? " " + mi : ""} ${ln}`;
       return String(pr.fullName || "").trim();
     };
 

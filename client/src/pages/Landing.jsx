@@ -32,6 +32,8 @@ function ForgotPasswordFlow({ onCancel }) {
   const [error, setError] = useState("");
   const [passwordAttempted, setPasswordAttempted] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   useEffect(() => {
     if (resendSeconds <= 0) return undefined;
@@ -122,7 +124,7 @@ function ForgotPasswordFlow({ onCancel }) {
           {error && <div className="landing-error">{error}</div>}
           <div className="landing-field-group">
             <label className="landing-label">Email address</label>
-            <input type="email" className="landing-field" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@rtu.edu.ph" required />
+            <input type="email" className="landing-field" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <button type="submit" className="landing-submit" disabled={loading}>
             {loading ? "Sending…" : "Send OTP"}
@@ -138,7 +140,7 @@ function ForgotPasswordFlow({ onCancel }) {
           {error && <div className="landing-error">{error}</div>}
           <div className="landing-field-group">
             <label className="landing-label">OTP Code</label>
-            <input type="text" className="landing-field" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" maxLength={6} required />
+            <input type="text" className="landing-field" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} required />
           </div>
           <button type="submit" className="landing-submit" disabled={loading}>
             {loading ? "Verifying…" : "Verify OTP"}
@@ -153,12 +155,22 @@ function ForgotPasswordFlow({ onCancel }) {
           {error && <div className="landing-error">{error}</div>}
           <div className="landing-field-group">
             <label className="landing-label">New Password</label>
-            <input type="password" className="landing-field" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" minLength={8} required />
+            <div className="landing-password-wrap">
+              <input type={showNewPass ? "text" : "password"} className="landing-field" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} required />
+              <button type="button" className="landing-password-toggle" onClick={() => setShowNewPass((v) => !v)} tabIndex={-1} aria-label={showNewPass ? "Hide password" : "Show password"}>
+                {showNewPass ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            </div>
             {passwordAttempted ? <PasswordChecklist password={newPassword} /> : null}
           </div>
           <div className="landing-field-group">
             <label className="landing-label">Confirm Password</label>
-            <input type="password" className="landing-field" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required />
+            <div className="landing-password-wrap">
+              <input type={showConfirmPass ? "text" : "password"} className="landing-field" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+              <button type="button" className="landing-password-toggle" onClick={() => setShowConfirmPass((v) => !v)} tabIndex={-1} aria-label={showConfirmPass ? "Hide password" : "Show password"}>
+                {showConfirmPass ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            </div>
           </div>
           <button type="submit" className="landing-submit" disabled={loading}>
             {loading ? "Resetting…" : "Reset Password"}
@@ -393,7 +405,6 @@ const Landing = () => {
                     className="landing-field"
                     value={loginOtp}
                     onChange={(e) => setLoginOtp(e.target.value)}
-                    placeholder="123456"
                     maxLength={6}
                     autoFocus
                     required
@@ -465,7 +476,6 @@ const Landing = () => {
                       <input
                         id="landing-firstname"
                         type="text"
-                        placeholder="Juan"
                         value={form.firstName}
                         onChange={onChange("firstName")}
                         required
@@ -473,14 +483,12 @@ const Landing = () => {
                       />
                     </div>
                     <div className="landing-field-group">
-                      <label className="landing-label" htmlFor="landing-mi">M.I.</label>
+                      <label className="landing-label" htmlFor="landing-mi">Middle Name</label>
                       <input
                         id="landing-mi"
                         type="text"
-                        placeholder="D."
                         value={form.middleInitial}
                         onChange={onChange("middleInitial")}
-                        maxLength={3}
                         className="landing-field"
                       />
                     </div>
@@ -489,7 +497,6 @@ const Landing = () => {
                       <input
                         id="landing-lastname"
                         type="text"
-                        placeholder="Dela Cruz"
                         value={form.lastName}
                         onChange={onChange("lastName")}
                         required
@@ -504,7 +511,6 @@ const Landing = () => {
                   <input
                     id="landing-email"
                     type="email"
-                    placeholder="you@rtu.edu.ph"
                     value={form.email}
                     onChange={onChange("email")}
                     required
@@ -518,7 +524,6 @@ const Landing = () => {
                     <input
                       id="landing-password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
                       value={form.password}
                       onChange={onChange("password")}
                       required
@@ -531,7 +536,7 @@ const Landing = () => {
                       tabIndex={-1}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
                   </div>
                   {!isLogin && form.password && !isStrongPassword(form.password) ? (

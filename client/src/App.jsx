@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
-import { Suspense, lazy, useContext } from "react";
+import { Suspense, lazy, useContext, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AuthContext } from "./context/AuthContext";
 
@@ -21,6 +21,7 @@ const StudentNewRequest = lazy(() => import("./pages/student/StudentNewRequest")
 const StudentNDATypeChooser = lazy(() => import("./pages/student/StudentNDATypeChooser"));
 const StudentNDAOrgActivities = lazy(() => import("./pages/student/StudentNDAOrgActivities"));
 const StudentNDAResearch = lazy(() => import("./pages/student/StudentNDAResearch"));
+const StudentAgreementRequirements = lazy(() => import("./pages/student/StudentAgreementRequirements"));
 const StudentAgreementRequest = lazy(() => import("./pages/student/StudentAgreementRequest"));
 const StudentRequestReview = lazy(() => import("./pages/student/StudentRequestReview"));
 const StudentProfile = lazy(() => import("./pages/student/StudentProfile"));
@@ -67,17 +68,37 @@ function GlobalLoader() {
   );
 }
 
+const buildTitle = (pathname) => {
+  if (pathname === "/student" || pathname === "/admin") return "Dashboard";
+  if (pathname.startsWith("/student/new-request")) return "Create Request";
+  if (pathname.startsWith("/student/requests")) return "Request Details";
+  if (pathname.startsWith("/student/resubmit")) return "Resubmit Request";
+  if (pathname.startsWith("/student/profile")) return "Profile";
+  if (pathname === "/admin/requests") return "Request Management";
+  if (pathname.startsWith("/admin/requests/")) return "Request Review";
+  if (pathname.startsWith("/admin/reports")) return "Transaction Trails";
+  if (pathname.startsWith("/admin/users")) return "User Management";
+  if (pathname.startsWith("/admin/archives")) return "Archives";
+  if (pathname.startsWith("/admin/audit")) return "Audit Logs";
+  if (pathname.startsWith("/admin/profile")) return "Profile";
+  if (pathname.startsWith("/admin/proxy-request")) return "Proxy Request";
+  return "Dashboard";
+};
+
 function AppLayout() {
   const { user, showSessionWarning, extendSession } = useContext(AuthContext);
   const location = useLocation();
+  const title = useMemo(() => buildTitle(location.pathname), [location.pathname]);
 
   return (
     <div className="app-container">
-      {user && <Navbar />}
+      {user && <Headbar />}
 
-      <div className="page-container">
-        {user && <Headbar />}
+      <div className="app-body">
+        {user && <Navbar />}
+
         <div className="page-content">
+          {user && <h1 className="page-title">{title}</h1>}
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -168,6 +189,14 @@ function App() {
             />
             <Route
               path="/student/new-request/agreement"
+              element={
+                <RequireRole allowedRoles={["student"]}>
+                  <StudentAgreementRequirements />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student/new-request/agreement/form"
               element={
                 <RequireRole allowedRoles={["student"]}>
                   <StudentAgreementRequest />

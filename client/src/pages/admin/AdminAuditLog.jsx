@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { getAuditLogs } from "../../services/auditService";
+import FilterSelect from "../../components/FilterSelect";
 
 const ACTION_COLORS = {
   CREATE: { bg: "#d1fae5", color: "#065f46" },
@@ -126,13 +127,14 @@ export default function AdminAuditLog() {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("");
   const [error, setError] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.innerWidth >= 768;
-  });
+  const [isPillsOpen, setIsPillsOpen] = useState(false);
+  const [dateMode, setDateMode] = useState("preset");
+  const [preset, setPreset] = useState("all");
+  const [singleDate, setSingleDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const load = useCallback(async (p = page, action = actionFilter, withToast = false) => {
     setLoading(true);
@@ -162,23 +164,41 @@ export default function AdminAuditLog() {
   };
 
   const filtered = useMemo(() => {
-    if (!search) return logs;
-    const normalized = search.toLowerCase();
-    return logs.filter(
-      (l) =>
-        l.action?.toLowerCase().includes(normalized) ||
-        (l.userId?.name || "").toLowerCase().includes(normalized) ||
-        (l.userId?.email || "").toLowerCase().includes(normalized) ||
-        (l.resourceType || "").toLowerCase().includes(normalized)
-    );
-  }, [logs, search]);
+    let result = logs;
+
+    if (dateMode === "preset" && preset !== "all") {
+      const now = new Date();
+      let from = null;
+      if (preset === "today") {
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (preset === "thisWeek") {
+        const day = now.getDay();
+        from = new Date(now); from.setDate(now.getDate() - ((day + 6) % 7)); from.setHours(0,0,0,0);
+      } else if (preset === "thisMonth") {
+        from = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else if (preset === "thisYear") {
+        from = new Date(now.getFullYear(), 0, 1);
+      }
+      if (from) result = result.filter((l) => new Date(l.createdAt) >= from);
+    }
+    if (dateMode === "single" && singleDate) {
+      const d = new Date(singleDate);
+      const next = new Date(d); next.setDate(d.getDate() + 1);
+      result = result.filter((l) => { const t = new Date(l.createdAt); return t >= d && t < next; });
+    }
+    if (dateMode === "range") {
+      if (startDate) result = result.filter((l) => new Date(l.createdAt) >= new Date(startDate));
+      if (endDate) { const end = new Date(endDate); end.setDate(end.getDate() + 1); result = result.filter((l) => new Date(l.createdAt) < end); }
+    }
+
+    return result;
+  }, [logs, dateMode, preset, singleDate, startDate, endDate]);
 
   const ACTION_TYPES = [
     { label: "All Actions", value: "" },
     { label: "Login", value: "login" },
     { label: "Login Failed", value: "login_failed" },
     { label: "Account Created", value: "account_created" },
-    { label: "Account Activated", value: "account_activated" },
     { label: "Request Created", value: "request_created" },
     { label: "Request Approved", value: "request_approved" },
     { label: "Revision Requested", value: "request_revision_required" },
@@ -195,24 +215,6 @@ export default function AdminAuditLog() {
 
   return (
     <div className="page-shell">
-      {/* Header */}
-      <div className="page-header-row" style={{ marginBottom: 16 }}>
-        <div>
-          <p className="admin-subtitle">
-            Full system activity log — immutable record of all user and admin actions
-          </p>
-        </div>
-        <button
-          onClick={() => load(page, actionFilter, true)}
-          title="Refresh"
-          className="ui-btn ui-btn--secondary"
-          style={{ padding: "8px 10px" }}
-          disabled={refreshing}
-        >
-          <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
-        </button>
-      </div>
-
       {/* Error Banner */}
       {error && (
         <div className="info-banner info-banner--danger" style={{ marginBottom: 16 }}>
@@ -220,94 +222,148 @@ export default function AdminAuditLog() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="admin-controls-row">
-        <div className="admin-search-wrap">
-          <Search size={14} className="admin-search-icon" />
-          <input
-            className="ui-input"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter in current page…"
-            style={{ width: "100%", paddingLeft: 34 }}
-          />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 220 }}>
-          <button
-            onClick={() => setFiltersOpen((prev) => !prev)}
-            className="ui-btn ui-btn--secondary"
-            style={{ justifyContent: "space-between", width: "100%" }}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-              <SlidersHorizontal size={14} />
-              Filter Options
-            </span>
-            {filtersOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
+      {/* Toolbar */}
+      <div className="req-toolbar" style={{ borderTop: "none" }}>
+        {/* Filters row: Action + date filters + refresh */}
+        <div className="req-toolbar__filters">
+          <div className="req-toolbar__filter-group">
+            <label className="req-toolbar__filter-label">Action</label>
+            <button
+              type="button"
+              className="req-toolbar__filter-btn"
+              data-open={isPillsOpen}
+              onClick={() => setIsPillsOpen((p) => !p)}
+            >
+              <span>{ACTION_TYPES.find((a) => a.value === actionFilter)?.label ?? "All Actions"}</span>
+            </button>
+          </div>
 
-          {filtersOpen ? (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {ACTION_TYPES.map((a) => (
-                <button
-                  key={a.value || "all"}
-                  onClick={() => handleActionFilter(a.value)}
-                  className={`ui-btn ${actionFilter === a.value ? "ui-btn--primary" : "ui-btn--secondary"}`}
-                  style={{ padding: "7px 10px", fontSize: 11 }}
-                >
-                  {a.label}
-                </button>
-              ))}
+          <div className="req-toolbar__filter-group">
+            <label className="req-toolbar__filter-label">Date</label>
+            <FilterSelect
+              value={dateMode}
+              onChange={setDateMode}
+              options={[
+                { value: "preset", label: "Preset" },
+                { value: "single", label: "Specific Date" },
+                { value: "range", label: "Date Range" },
+              ]}
+              defaultValue="preset"
+            />
+          </div>
+
+          {dateMode === "preset" && (
+            <div className="req-toolbar__filter-group">
+              <label className="req-toolbar__filter-label">Period</label>
+              <FilterSelect
+                value={preset}
+                onChange={setPreset}
+                options={[
+                  { value: "all", label: "All Time" },
+                  { value: "today", label: "Today" },
+                  { value: "thisWeek", label: "This Week" },
+                  { value: "thisMonth", label: "This Month" },
+                  { value: "thisYear", label: "This Year" },
+                ]}
+              />
             </div>
-          ) : null}
+          )}
+
+          {dateMode === "single" && (
+            <div className="req-toolbar__filter-group">
+              <label className="req-toolbar__filter-label">Date</label>
+              <input className={`req-toolbar__filter-select${singleDate !== "" ? " req-toolbar__filter-select--active" : ""}`} type="date" value={singleDate} onChange={(e) => setSingleDate(e.target.value)} />
+            </div>
+          )}
+
+          {dateMode === "range" && (
+            <>
+              <div className="req-toolbar__filter-group">
+                <label className="req-toolbar__filter-label">From</label>
+                <input className={`req-toolbar__filter-select${startDate !== "" ? " req-toolbar__filter-select--active" : ""}`} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
+              <div className="req-toolbar__filter-group">
+                <label className="req-toolbar__filter-label">To</label>
+                <input className={`req-toolbar__filter-select${endDate !== "" ? " req-toolbar__filter-select--active" : ""}`} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+            </>
+          )}
+
+          <button
+            type="button"
+            className="req-toolbar__reset-btn"
+            onClick={() => { load(page, actionFilter, true); setPreset("all"); setDateMode("preset"); setSingleDate(""); setStartDate(""); setEndDate(""); }}
+            disabled={refreshing}
+            title="Reset filters and refresh"
+          >
+            <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
+          </button>
         </div>
+
+        {/* Row 3: Action pills */}
+        {isPillsOpen && (
+          <div className="req-toolbar__pills-row" style={{ borderTop: "1px solid var(--border)", paddingTop: "12px" }}>
+            {ACTION_TYPES.map((a) => (
+              <button
+                key={a.value || "all"}
+                type="button"
+                onClick={() => handleActionFilter(a.value)}
+                className={`req-toolbar__pill ${actionFilter === a.value ? "req-toolbar__pill--active" : ""}`}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Table */}
-      <div className="admin-table-card" style={{ marginBottom: 16 }}>
-        {loading ? (
-          <table className="admin-table admin-table--min-960">
+      <div className="dashboard-card">
+        <div className="table-scroll">
+          <table className="dashboard-table">
             <thead>
+              <tr className="dashboard-table-title-row">
+                <th colSpan={5}>
+                  <div className="dashboard-table-title-wrap">
+                    <span className="dashboard-table-title">Logs</span>
+                  </div>
+                </th>
+              </tr>
               <tr>
-                {["Timestamp", "Action", "User", "Resource", "Details"].map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>User</th>
+                <th>Resource</th>
+                <th>Details</th>
               </tr>
             </thead>
             <tbody>
-              {[...Array(6)].map((_, i) => (
-                <tr key={`sk-${i}`}>
-                  <td><span className="skeleton-block skeleton-text" /></td>
-                  <td><span className="skeleton-block skeleton-pill" /></td>
-                  <td><span className="skeleton-block skeleton-text" /></td>
-                  <td><span className="skeleton-block skeleton-text" /></td>
-                  <td><span className="skeleton-block skeleton-text" /></td>
+              {loading ? (
+                [...Array(6)].map((_, i) => (
+                  <tr key={`sk-${i}`}>
+                    <td><span className="skeleton-block skeleton-text" /></td>
+                    <td><span className="skeleton-block skeleton-pill" /></td>
+                    <td><span className="skeleton-block skeleton-text" /></td>
+                    <td><span className="skeleton-block skeleton-text" /></td>
+                    <td><span className="skeleton-block skeleton-text" /></td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <div className="dashboard-empty">
+                      <p className="dashboard-empty-title">No audit logs found</p>
+                      <p className="dashboard-empty-text">No logs match the current filters.</p>
+                    </div>
+                  </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : filtered.length === 0 ? (
-          <div className="admin-table-empty">
-            <Activity size={32} color="var(--border-strong)" className="admin-table-empty-icon" />
-            No audit logs found.
-          </div>
-        ) : (
-          <table className="admin-table admin-table--min-960">
-            <thead>
-              <tr>
-                {["Timestamp", "Action", "User", "Resource", "Details"].map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((log, i) => {
-                const style = actionStyle(log.action);
-                return (
+              ) : (
+                filtered.map((log, i) => (
                   <motion.tr
                     key={log._id}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.015 }}
                   >
-                    <td className="admin-cell-small-muted" style={{ whiteSpace: "nowrap" }}>
+                    <td style={{ whiteSpace: "nowrap", color: "var(--text-secondary)", fontSize: 13 }}>
                       {log.createdAt
                         ? new Date(log.createdAt).toLocaleString("en-US", {
                             month: "short", day: "numeric", year: "numeric",
@@ -315,35 +371,33 @@ export default function AdminAuditLog() {
                           })
                         : "—"}
                     </td>
-                    <td>
-                      {prettyAction(log.action)}
-                    </td>
+                    <td style={{ fontWeight: 500 }}>{prettyAction(log.action)}</td>
                     <td>
                       {log.userId ? (
                         <>
-                          <div className="admin-cell-strong">{log.userId.name || "—"}</div>
-                          <div className="admin-cell-mono">{log.userId.email || ""}</div>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>{log.userId.name || "—"}</div>
+                          <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{log.userId.email || ""}</div>
                         </>
                       ) : (
-                        <span className="admin-cell-small-muted" style={{ fontStyle: "italic" }}>System</span>
+                        <span style={{ fontStyle: "italic", color: "var(--text-muted)", fontSize: 13 }}>System</span>
                       )}
                     </td>
-                    <td className="admin-cell-small-muted" style={{ color: "var(--text-secondary)" }}>
+                    <td style={{ color: "var(--text-secondary)", fontSize: 13 }}>
                       {log.resourceId
                         ? <span>{String(log.resourceId).slice(-7).toUpperCase()}</span>
                         : (log.resourceType ? log.resourceType.charAt(0).toUpperCase() + log.resourceType.slice(1) : "—")}
                     </td>
-                    <td className="admin-cell-small-muted" style={{ color: "var(--text-secondary)", maxWidth: 240 }}>
-                      <div className="admin-cell-ellipsis" title={formatAuditDetails(log)}>
+                    <td style={{ color: "var(--text-secondary)", fontSize: 13, maxWidth: 260 }}>
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={formatAuditDetails(log)}>
                         {formatAuditDetails(log)}
                       </div>
                     </td>
                   </motion.tr>
-                );
-              })}
+                ))
+              )}
             </tbody>
           </table>
-        )}
+        </div>
       </div>
 
       {/* Pagination */}

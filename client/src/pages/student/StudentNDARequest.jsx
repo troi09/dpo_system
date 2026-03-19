@@ -84,7 +84,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
       const user = JSON.parse(localStorage.getItem("user") || "null");
       // Build full name from proxy structured fields
       const proxyFullName = proxyMode
-        ? `${proxyRequestee.firstName}${proxyRequestee.middleInitial ? " " + proxyRequestee.middleInitial + "." : ""} ${proxyRequestee.lastName}`.trim()
+        ? `${proxyRequestee.firstName}${proxyRequestee.middleInitial?.trim() ? " " + proxyRequestee.middleInitial.trim().charAt(0).toUpperCase() + "." : ""} ${proxyRequestee.lastName}`.trim()
         : "";
       const requestSubjectName = proxyMode
         ? proxyFullName || user?.name || "Proxy Requestee"
@@ -193,10 +193,9 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
                       />
                       <input
                         className="request-input"
-                        placeholder="M.I."
+                        placeholder="Middle Name"
                         value={proxyRequestee.middleInitial}
                         onChange={(e) => onChangeProxy("middleInitial", e.target.value)}
-                        maxLength={3}
                       />
                       <input
                         className="request-input"

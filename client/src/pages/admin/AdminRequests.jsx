@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Filter, RefreshCw, Search } from "lucide-react";
 import { getAllRequests } from "../../services/requestService";
+import FilterSelect from "../../components/FilterSelect";
 
 const statusClass = (s) => {
   if (["nda_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
@@ -130,13 +131,21 @@ export default function AdminRequests() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!searchTerm.trim()) return requests;
-    const term = searchTerm.toLowerCase();
-    return requests.filter((r) => {
-      const name = (r.userId?.name || r.proxyRequestee?.fullName || "").toLowerCase();
-      const email = (r.userId?.email || r.proxyRequestee?.email || "").toLowerCase();
-      const id = (r._id || "").slice(-7).toLowerCase();
-      return name.includes(term) || email.includes(term) || id.includes(term);
+    const APPROVED = ["nda_approved", "agr_approved"];
+    let result = requests;
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter((r) => {
+        const name = (r.userId?.name || r.proxyRequestee?.fullName || "").toLowerCase();
+        const email = (r.userId?.email || r.proxyRequestee?.email || "").toLowerCase();
+        const id = (r._id || "").slice(-7).toLowerCase();
+        return name.includes(term) || email.includes(term) || id.includes(term);
+      });
+    }
+    return [...result].sort((a, b) => {
+      const aApproved = APPROVED.includes(a.status) ? 1 : 0;
+      const bApproved = APPROVED.includes(b.status) ? 1 : 0;
+      return aApproved - bApproved;
     });
   }, [requests, searchTerm]);
 
@@ -200,62 +209,65 @@ export default function AdminRequests() {
         <div className={`req-toolbar__filters${isFilterOpen ? " req-toolbar__filters--open" : ""}`}>
           <div className="req-toolbar__filter-group">
             <label className="req-toolbar__filter-label">Type</label>
-            <select
-              className="req-toolbar__filter-select"
+            <FilterSelect
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              <option value="all">All Types</option>
-              <option value="nda_orgactivities">NDA — Student Organization Activities</option>
-              <option value="nda_research">NDA — Conduct of Research</option>
-              <option value="agreement">Agreement</option>
-            </select>
+              onChange={setTypeFilter}
+              className="filter-select--type"
+              options={[
+                { value: "all", label: "All Types" },
+                { value: "nda_orgactivities", label: "NDA — Student Organization Activities" },
+                { value: "nda_research", label: "NDA — Conduct of Research" },
+                { value: "agreement", label: "Agreement" },
+              ]}
+            />
           </div>
 
           <div className="req-toolbar__filter-group">
             <label className="req-toolbar__filter-label">Status</label>
-            <select
-              className="req-toolbar__filter-select"
+            <FilterSelect
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">All Statuses</option>
-              <option value="reviewal">Reviewal</option>
-              <option value="approved">Approved</option>
-              <option value="stud_revision">Student Revisions</option>
-              <option value="rep_revision">Recipient Revisions</option>
-              <option value="rep_declined">Recipient Declined</option>
-              <option value="awaiting_rep">Recipient Reviewal</option>
-            </select>
+              onChange={setStatusFilter}
+              className="filter-select--status"
+              options={[
+                { value: "all", label: "All Statuses" },
+                { value: "reviewal", label: "Reviewal" },
+                { value: "approved", label: "Approved" },
+                { value: "stud_revision", label: "Student Revisions" },
+                { value: "rep_revision", label: "Recipient Revisions" },
+                { value: "rep_declined", label: "Recipient Declined" },
+                { value: "awaiting_rep", label: "Recipient Reviewal" },
+              ]}
+            />
           </div>
 
           <div className="req-toolbar__filter-group">
             <label className="req-toolbar__filter-label">Date</label>
-            <select
-              className="req-toolbar__filter-select"
+            <FilterSelect
               value={dateMode}
-              onChange={(e) => setDateMode(e.target.value)}
-            >
-              <option value="preset">Preset</option>
-              <option value="single">Specific Date</option>
-              <option value="range">Date Range</option>
-            </select>
+              onChange={setDateMode}
+              options={[
+                { value: "preset", label: "Preset" },
+                { value: "single", label: "Specific Date" },
+                { value: "range", label: "Date Range" },
+              ]}
+              defaultValue="preset"
+            />
           </div>
 
           {dateMode === "preset" ? (
             <div className="req-toolbar__filter-group">
               <label className="req-toolbar__filter-label">Period</label>
-              <select
-                className="req-toolbar__filter-select"
+              <FilterSelect
                 value={preset}
-                onChange={(e) => setPreset(e.target.value)}
-              >
-                <option value="today">Today</option>
-                <option value="thisWeek">This Week</option>
-                <option value="thisMonth">This Month</option>
-                <option value="thisYear">This Year</option>
-                <option value="all">All Dates</option>
-              </select>
+                onChange={setPreset}
+                options={[
+                  { value: "all", label: "All Time" },
+                  { value: "today", label: "Today" },
+                  { value: "thisWeek", label: "This Week" },
+                  { value: "thisMonth", label: "This Month" },
+                  { value: "thisYear", label: "This Year" },
+                ]}
+              />
             </div>
           ) : null}
 
@@ -263,7 +275,7 @@ export default function AdminRequests() {
             <div className="req-toolbar__filter-group">
               <label className="req-toolbar__filter-label">Date</label>
               <input
-                className="req-toolbar__filter-select"
+                className={`req-toolbar__filter-select${singleDate !== "" ? " req-toolbar__filter-select--active" : ""}`}
                 type="date"
                 value={singleDate}
                 onChange={(e) => setSingleDate(e.target.value)}
@@ -276,7 +288,7 @@ export default function AdminRequests() {
               <div className="req-toolbar__filter-group">
                 <label className="req-toolbar__filter-label">From</label>
                 <input
-                  className="req-toolbar__filter-select"
+                  className={`req-toolbar__filter-select${startDate !== "" ? " req-toolbar__filter-select--active" : ""}`}
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
@@ -285,7 +297,7 @@ export default function AdminRequests() {
               <div className="req-toolbar__filter-group">
                 <label className="req-toolbar__filter-label">To</label>
                 <input
-                  className="req-toolbar__filter-select"
+                  className={`req-toolbar__filter-select${endDate !== "" ? " req-toolbar__filter-select--active" : ""}`}
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
@@ -343,7 +355,6 @@ export default function AdminRequests() {
               <tr>
                 <td colSpan={6}>
                   <div className="dashboard-empty">
-                    <span className="dashboard-empty-icon">🔍</span>
                     <p className="dashboard-empty-title">No requests found</p>
                     <p className="dashboard-empty-text">No requests match the current filter.</p>
                   </div>

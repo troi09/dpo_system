@@ -11,7 +11,7 @@ import SignaturePad from "../../components/SignaturePad";
 import { notify } from "../../utils/inPageFeedback";
 import "../../components/RequestForm.css";
 
-export default function StudentAgreementRequest({ proxyMode = false, fallbackPath = "/student" }) {
+export default function StudentAgreementRequest({ proxyMode = false, fallbackPath = "/student/new-request/agreement" }) {
   const navigate = useNavigate();
   const cfg = useMemo(() => FIELDS_FILE_SLOTS_CONFIG.agreement, []);
 
@@ -97,7 +97,7 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
     try {
       const user = JSON.parse(localStorage.getItem("user") || "null");
       const proxyFullName = proxyMode
-        ? `${proxyRequestee.firstName}${proxyRequestee.middleInitial ? " " + proxyRequestee.middleInitial + "." : ""} ${proxyRequestee.lastName}`.trim()
+        ? `${proxyRequestee.firstName}${proxyRequestee.middleInitial?.trim() ? " " + proxyRequestee.middleInitial.trim().charAt(0).toUpperCase() + "." : ""} ${proxyRequestee.lastName}`.trim()
         : "";
       const requestSubjectName = proxyMode
         ? proxyFullName || user?.name || "Proxy Requestee"
@@ -168,7 +168,7 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
 
         <div className="request-form-body">
           <div className="request-section">
-            <div className="request-section-title">Data</div>
+            <div className="request-section-title">Representative Data</div>
             {cfg.fields.map((f) => (
               <div key={f.name} className="request-field">
                 <label className="request-label">{f.label}</label>
@@ -205,10 +205,9 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
                     />
                     <input
                       className="request-input"
-                      placeholder="M.I."
+                      placeholder="Middle Name"
                       value={proxyRequestee.middleInitial}
                       onChange={(e) => onChangeProxy("middleInitial", e.target.value)}
-                      maxLength={3}
                     />
                     <input
                       className="request-input"

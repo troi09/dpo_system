@@ -131,8 +131,10 @@ exports.register = async (req, res) => {
     const resolvedMiddleInitial = String(middleInitial || "").trim();
 
     // Build composite name: prefer structured fields, fall back to legacy name
+    // Middle name is stored in full but displayed as initial (e.g. "Santos" → "S.")
+    const mi = resolvedMiddleInitial ? resolvedMiddleInitial.charAt(0).toUpperCase() + "." : "";
     const compositeName = resolvedFirstName && resolvedLastName
-      ? `${resolvedFirstName}${resolvedMiddleInitial ? " " + resolvedMiddleInitial + "." : ""} ${resolvedLastName}`
+      ? `${resolvedFirstName}${mi ? " " + mi : ""} ${resolvedLastName}`
       : String(name || "").trim();
 
     if (!compositeName || compositeName.length < 2) {
@@ -509,7 +511,8 @@ exports.updateProfile = async (req, res) => {
       user.firstName = resolvedFirstName;
       user.middleInitial = resolvedMiddleInitial;
       user.lastName = resolvedLastName;
-      user.name = `${resolvedFirstName}${resolvedMiddleInitial ? " " + resolvedMiddleInitial + "." : ""} ${resolvedLastName}`;
+      const miUp = resolvedMiddleInitial ? resolvedMiddleInitial.charAt(0).toUpperCase() + "." : "";
+      user.name = `${resolvedFirstName}${miUp ? " " + miUp : ""} ${resolvedLastName}`;
       updated = true;
     } else if (name && String(name).trim().length >= 2) {
       user.name = String(name).trim();
