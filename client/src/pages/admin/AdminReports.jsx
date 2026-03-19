@@ -367,9 +367,6 @@ export default function AdminReports() {
                 <th colSpan={6}>
                   <div className="dashboard-table-title-wrap">
                     <span className="dashboard-table-title">Transactions</span>
-                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                      {filteredRequests.length}
-                    </span>
                   </div>
                 </th>
               </tr>

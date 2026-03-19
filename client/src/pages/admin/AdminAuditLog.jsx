@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
 import { getAuditLogs } from "../../services/auditService";
 import FilterSelect from "../../components/FilterSelect";
 
@@ -128,6 +128,7 @@ export default function AdminAuditLog() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [actionFilter, setActionFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
   const [isPillsOpen, setIsPillsOpen] = useState(false);
   const [dateMode, setDateMode] = useState("preset");
@@ -191,8 +192,19 @@ export default function AdminAuditLog() {
       if (endDate) { const end = new Date(endDate); end.setDate(end.getDate() + 1); result = result.filter((l) => new Date(l.createdAt) < end); }
     }
 
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((l) => {
+        const name = (l.userId?.name || "").toLowerCase();
+        const email = (l.userId?.email || "").toLowerCase();
+        const resource = (l.resourceType || "").toLowerCase();
+        const resourceId = (l.resourceId ? String(l.resourceId).slice(-7).toLowerCase() : "");
+        return name.includes(q) || email.includes(q) || resource.includes(q) || resourceId.includes(q);
+      });
+    }
+
     return result;
-  }, [logs, dateMode, preset, singleDate, startDate, endDate]);
+  }, [logs, dateMode, preset, singleDate, startDate, endDate, searchQuery]);
 
   const ACTION_TYPES = [
     { label: "All Actions", value: "" },
@@ -224,6 +236,27 @@ export default function AdminAuditLog() {
 
       {/* Toolbar */}
       <div className="req-toolbar" style={{ borderTop: "none" }}>
+        {/* Search row */}
+        <div className="req-toolbar__search-row">
+          <div className="req-toolbar__search-box">
+            <input
+              type="text"
+              className="req-toolbar__search-input"
+              placeholder="Search by name or resource..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery ? (
+              <button type="button" className="req-toolbar__search-clear" onClick={() => setSearchQuery("")} aria-label="Clear search">
+                ×
+              </button>
+            ) : null}
+            <span className="req-toolbar__search-inline-btn" style={{ pointerEvents: "none" }}>
+              <Search size={14} />
+            </span>
+          </div>
+        </div>
+
         {/* Filters row: Action + date filters + refresh */}
         <div className="req-toolbar__filters">
           <div className="req-toolbar__filter-group">

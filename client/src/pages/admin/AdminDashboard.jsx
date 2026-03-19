@@ -7,8 +7,8 @@ import {
   LineChart, Line,
 } from "recharts";
 import {
-  FileText, Clock, CheckCircle, Archive,
-  ArrowRight, RefreshCw,
+  FileText, Check, X, Archive,
+  ArrowRight, RefreshCw, MoreHorizontal,
 } from "lucide-react";
 import FilterSelect from "../../components/FilterSelect";
 import { getAllRequests } from "../../services/requestService";
@@ -17,6 +17,7 @@ import { AuthContext } from "../../context/AuthContext";
 import {
   APPROVED_STATUSES,
   PENDING_STATUSES,
+  REVISION_STATUSES,
   CHART_LABELS,
   CHART_COLORS,
   normalizeStatusForChart,
@@ -194,12 +195,14 @@ export default function AdminDashboard() {
   const totalActive = requests.filter((r) => !r.isArchived).length;
   const totalPending = requests.filter((r) => PENDING_STATUSES.includes(r.status)).length;
   const totalApproved = requests.filter((r) => APPROVED_STATUSES.includes(r.status)).length;
+  const totalRevisions = requests.filter((r) => REVISION_STATUSES.includes(r.status)).length;
   const totalArchived = requests.filter((r) => r.isArchived).length;
 
   const summaryCards = [
     { icon: FileText, label: "Total Requests", value: totalActive, color: "#3b82f6" },
-    { icon: Clock, label: "Pending", value: totalPending, color: "#f59e0b" },
-    { icon: CheckCircle, label: "Approved", value: totalApproved, color: "#10b981" },
+    { icon: MoreHorizontal, label: "Reviewal", value: totalPending, color: "#f59e0b" },
+    { icon: Check, label: "Approved", value: totalApproved, color: "#10b981" },
+    { icon: X, label: "Revisions", value: totalRevisions, color: "#ea580c" },
     { icon: Archive, label: "Archived", value: totalArchived, color: "#64748b" },
   ];
 
@@ -209,7 +212,7 @@ export default function AdminDashboard() {
       {/* ── Error Banner ── */}
       {error && <div className="admin-flash-banner admin-flash-banner--error">{error}</div>}
       {/* ── Summary Cards ── */}
-      <div className="responsive-grid-4 dashboard-section-gap">
+      <div className="responsive-grid-5 dashboard-section-gap">
         {summaryCards.map((card, i) => (
           <motion.div
             key={card.label}

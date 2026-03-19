@@ -8,7 +8,7 @@ import {
   History,
   Users,
   Archive,
-  Activity,
+  Search,
   UserCircle,
   LogOut,
 } from "lucide-react";
@@ -67,7 +67,7 @@ const Navbar = () => {
             </NavLink>
             {user?.role === "admin" && (
               <NavLink to="/admin/audit" className={linkClass}>
-                <Activity size={16} className="nav-icon" />
+                <Search size={16} className="nav-icon" />
                 Audit Logs
               </NavLink>
             )}

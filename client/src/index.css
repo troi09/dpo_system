@@ -1672,6 +1672,12 @@ input.req-toolbar__filter-select::-webkit-calendar-picker-indicator {
   gap: 16px;
 }
 
+.responsive-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .responsive-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2505,6 +2511,11 @@ input.req-toolbar__filter-select::-webkit-calendar-picker-indicator {
     gap: 12px;
   }
 
+  .responsive-grid-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
   .responsive-grid-2 {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -2530,6 +2541,7 @@ input.req-toolbar__filter-select::-webkit-calendar-picker-indicator {
   }
 
   .responsive-grid-4,
+  .responsive-grid-5,
   .responsive-grid-2 {
     grid-template-columns: 1fr;
     gap: 12px;

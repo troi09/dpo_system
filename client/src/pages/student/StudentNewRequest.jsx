@@ -16,7 +16,7 @@ export default function StudentNewRequest({
           className="type-chooser-card-btn"
           onClick={() => navigate(`${basePath}/nda`)}
         >
-          <ShieldCheck size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
+          <ShieldCheck size={64} strokeWidth={1.5} className="type-chooser-card-icon" />
           <span className="type-chooser-card-label">Non-Disclosure Agreement</span>
         </button>
 
@@ -25,7 +25,7 @@ export default function StudentNewRequest({
           className="type-chooser-card-btn"
           onClick={() => navigate(`${basePath}/agreement`)}
         >
-          <FileText size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
+          <FileText size={64} strokeWidth={1.5} className="type-chooser-card-icon" />
           <span className="type-chooser-card-label">Agreement</span>
         </button>
       </div>
