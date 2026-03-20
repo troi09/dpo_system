@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, Copy, Paperclip, RefreshCw } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { AuthContext } from "../../context/AuthContext";
@@ -23,6 +24,17 @@ import {
 } from "../../services/firebaseStorageService";
 import { buildVerificationUrl, generateQrDataUrl } from "../../services/qrService";
 import SignaturePad from "../../components/SignaturePad";
+import "../../components/RequestForm.css";
+
+const statusPillClass = (s) => {
+  if (["nda_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
+  if (["nda_pending", "agr_pending_1", "agr_pending_2"].includes(s)) return "status-pill status-pill--yellow";
+  if (s === "stud_revision_requested") return "status-pill status-pill--orange";
+  if (s === "agr_rep_revision_requested") return "status-pill status-pill--violet";
+  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agr_declined") return "status-pill status-pill--red";
+  return "status-pill";
+};
 
 const prettyStatus = (s) => {
   const map = {
@@ -66,6 +78,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   const isPending = reqData?.status === "nda_pending";
   const isRevision = reqData?.status === "stud_revision_requested";
   const isApproved = reqData?.status === "nda_approved";
+  const [confirmAction, setConfirmAction] = useState(null); // "approve" | "revision" | null
 
 
   const isProxy = reqData?.proxyRequestee?.isProxy;
@@ -83,6 +96,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         return;
       }
     }
+    setConfirmAction(null);
     setActiveAction(status === "nda_approved" ? "approve" : "revision");
     try {
       if (status === "nda_approved") {
@@ -121,7 +135,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
             approvedFileName
           );
           await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
-          notify("Approved! The document is ready for printing and physical signature.", { type: "success" });
+          notify("Approved! The document is ready for printing and physical signature.", { type: "success", title: "Approved" });
         } else {
           const adminSigDataUrl = adminSigRef.current.getDataUrl();
 
@@ -180,11 +194,11 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
 
           await saveApprovedDocument(reqData._id, { ...uploaded, verificationUrl });
 
-          notify("Approved and document generated!", { type: "success" });
+          notify("Approved and document generated!", { type: "success", title: "Approved" });
         }
       } else {
         await updateRequestStatus(reqData._id, { status, remarks });
-        notify(`Updated to ${status}`, { type: "success" });
+        notify("Student revision requested.", { type: "success", title: "Revision Requested" });
       }
       await onRequestUpdated?.({ withToast: true });
     } catch (err) {
@@ -306,14 +320,26 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       {canProgress && isPending && (
         <div className="review-actions">
           <button
-            onClick={() => handleUpdate("nda_approved")}
+            onClick={() => {
+              if (!isProxy && (!adminSigRef.current || adminSigRef.current.isEmpty())) {
+                notify("Please draw your e-signature before approving.", { type: "warning" });
+                return;
+              }
+              setConfirmAction("approve");
+            }}
             disabled={!!activeAction}
             className="review-btn-primary"
           >
             {activeAction === "approve" ? "Generating..." : "Approve"}
           </button>
           <button
-            onClick={() => handleUpdate("stud_revision_requested")}
+            onClick={() => {
+              if (!remarks.trim()) {
+                notify("Please enter remarks before requesting a revision.", { type: "warning" });
+                return;
+              }
+              setConfirmAction("revision");
+            }}
             disabled={!!activeAction}
             className="review-btn-secondary"
           >
@@ -321,6 +347,29 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           </button>
         </div>
       )}
+
+      <AnimatePresence>
+        {confirmAction && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
+              <h3 className="modal-title">
+                {confirmAction === "approve" ? "Approve NDA Request" : "Request Student Revision"}
+              </h3>
+              <p className="modal-text">
+                {confirmAction === "approve"
+                  ? "This will finalize and generate the approved NDA document."
+                  : "The student will be notified to revise and resubmit their request."}
+              </p>
+              <div className="modal-actions">
+                <button className="ui-btn ui-btn--secondary" onClick={() => setConfirmAction(null)} disabled={!!activeAction}>Cancel</button>
+                <button className="ui-btn ui-btn--primary" onClick={() => handleUpdate(confirmAction === "approve" ? "nda_approved" : "stud_revision_requested")} disabled={!!activeAction}>
+                  {confirmAction === "approve" ? "Approve" : "Confirm"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!canProgress && (
         <div className="info-banner info-banner--info">
@@ -351,12 +400,18 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   const [phase1Revising, setPhase1Revising] = useState(false);
   const [approving, setApproving] = useState(false);
   const [phase3Revising, setPhase3Revising] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // "phase1_approve" | "phase1_revision" | "phase3_approve" | "phase3_revision" | null
   const adminSigRef = useRef(null);
 
   const { status } = reqData;
   const cfg = FIELDS_FILE_SLOTS_CONFIG.agreement;
+  const _fd = reqData.formData || {};
+  const _mid = String(_fd.repMiddleInitial || "").trim();
+  const _midInitial = _mid ? `${_mid[0].toUpperCase()}.` : "";
+  const requestedRepName = [_fd.repFirstName, _midInitial, _fd.repLastName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim() || "—";
 
   const handlePhase1Approve = async () => {
+    setConfirmAction(null);
     setGenerating(true);
     try {
       const res = await generateSigningLink(reqData._id);
@@ -364,11 +419,25 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       setSigningLink(link);
       setSigningLinkExpiry(res.signingTokenExpiresAt || null);
       await onRequestUpdated?.();
-      notify("Signing link generated! Copy it and send to the representative manually.", { type: "success" });
+      notify("Signing link generated! Copy it and send to the representative manually.", { type: "success", title: "Approved" });
     } catch (err) {
       notify(err.response?.data?.message || err.message || "Failed to generate signing link", { type: "error" });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handlePhase1Revision = async () => {
+    setConfirmAction(null);
+    setPhase1Revising(true);
+    try {
+      await updateRequestStatus(reqData._id, { status: "stud_revision_requested", remarks });
+      notify("Student revision requested.", { type: "success", title: "Revision Requested" });
+      await onRequestUpdated?.({ withToast: true });
+    } catch (err) {
+      notify(err.response?.data?.message || "Failed", { type: "error" });
+    } finally {
+      setPhase1Revising(false);
     }
   };
 
@@ -397,10 +466,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   };
 
   const handlePhase3Approve = async () => {
-    if (!adminSigRef.current || adminSigRef.current.isEmpty()) {
-      notify("Please draw your e-signature before approving.", { type: "warning" });
-      return;
-    }
+    setConfirmAction(null);
     setApproving(true);
     try {
       const actionRes = await adminPhase3Action(reqData._id, { action: "approve" });
@@ -447,7 +513,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       await deleteStorageFile(reqData.authorizerSigPath);
       await deleteStorageFile(reqData.repSigPath);
 
-      notify("Agreement fully approved and document generated!", { type: "success" });
+      notify("Agreement fully approved and document generated!", { type: "success", title: "Approved" });
       await onRequestUpdated?.({ withToast: true });
       setApproving(false);
     } catch (err) {
@@ -458,17 +524,14 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
   };
 
   const handlePhase3RepRevision = async () => {
-    if (!remarks.trim()) {
-      notify("Please enter remarks explaining what the representative needs to revise.", { type: "warning" });
-      return;
-    }
+    setConfirmAction(null);
     setPhase3Revising(true);
     try {
       const res = await adminPhase3Action(reqData._id, { action: "rep_revision_requested", remarks });
       const newLink = `${window.location.origin}/sign/${res.request.signingToken}`;
       setSigningLink(newLink);
       await onRequestUpdated?.({ withToast: true });
-      notify("Representative revision requested. A new signing link has been generated. Copy it and send to the representative.", { type: "success" });
+      notify("Recipient revision requested. A new signing link has been generated.", { type: "success", title: "Revision Requested" });
     } catch (err) {
       notify(err.response?.data?.message || "Failed", { type: "error" });
     } finally {
@@ -478,24 +541,9 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
 
   return (
     <>
-      {/* Form data */}
+      {/* Requestee Attachments */}
       <div className="review-section">
-        <h4 className="review-section-title">Form Data</h4>
-        {cfg.fields.map((f) => (
-          <div key={f.name} className="review-field">
-            <span className="review-field-label">{f.label}</span>
-            <div className="review-info-box">
-              {String(reqData.formData?.[f.name] ?? "") || (
-                <span className="review-info-box--muted">—</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Student attachments */}
-      <div className="review-section">
-        <h4 className="review-section-title">Student Attachments</h4>
+        <h4 className="review-section-title">Requestee Attachments</h4>
         {reqData.predocs?.length ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {reqData.predocs.map((f, idx) => (
@@ -511,60 +559,97 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         )}
       </div>
 
-      {/* Authorizer signature */}
-      {reqData.authorizerSigUrl && (
-        <div className="review-section">
-          <h4 className="review-section-title">Authorizer E-Signature</h4>
-          <div className="review-sig-wrap">
-            <img src={reqData.authorizerSigUrl} alt="Authorizer signature" className="review-sig-img" width="560" height="180" loading="lazy" decoding="async" />
-            <span className="review-sig-name">{reqData.userId?.name}</span>
+      {/* Representative */}
+      <div className="review-section">
+        <h4 className="review-section-title">Representative</h4>
+        <div className="review-field">
+          <span className="review-field-label">Full Name</span>
+          <div className="review-info-box">
+            {reqData.repInfo?.name || (requestedRepName !== "—" ? requestedRepName : <span className="review-info-box--muted">—</span>)}
           </div>
         </div>
-      )}
+        {cfg.fields
+          .filter((f) => !["repFirstName", "repMiddleInitial", "repLastName"].includes(f.name))
+          .map((f) => (
+            <div key={f.name} className="review-field">
+              <span className="review-field-label">{f.label}</span>
+              <div className="review-info-box">
+                {String(reqData.formData?.[f.name] ?? "") || (
+                  <span className="review-info-box--muted">—</span>
+                )}
+              </div>
+            </div>
+          ))}
+      </div>
 
-      {/* Representative info (phase3+) */}
-      {reqData.repInfo?.name && (
-        <div className="review-section">
-          <h4 className="review-section-title">Representative Information</h4>
-          <div className="review-field">
-            <span className="review-field-label">Name</span>
-            <div className="review-info-box">{reqData.repInfo.name}</div>
-          </div>
-        </div>
-      )}
-
+      {/* Representative Attachments (after rep signs) */}
       {reqData.repInfo?.govIdDoc?.url && (
         <div className="review-section">
           <h4 className="review-section-title">Representative Attachments</h4>
-          <a
-            href={reqData.repInfo.govIdDoc.url}
-            target="_blank"
-            rel="noreferrer"
-            className="review-file-link"
-          >
+          <a href={reqData.repInfo.govIdDoc.url} target="_blank" rel="noreferrer" className="review-file-link">
             <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> Government-Issued ID
           </a>
         </div>
       )}
 
-      {/* Representative signature (phase3+) */}
-      {reqData.repSigUrl && (
-        <div className="review-section">
-          <h4 className="review-section-title">Representative E-Signature</h4>
-          <div className="review-sig-wrap">
-            <img src={reqData.repSigUrl} alt="Representative signature" className="review-sig-img" width="560" height="180" loading="lazy" decoding="async" />
-            <span className="review-sig-name">
-              {reqData.repInfo?.name || [reqData.formData?.repFirstName, reqData.formData?.repMiddleInitial, reqData.formData?.repLastName].filter(Boolean).join(" ") || reqData.formData?.repName}
-            </span>
+      {/* Authorization Letter */}
+      {status !== "agr_approved" && (
+      <div className="review-section">
+        <div style={{ padding: "20px 24px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)" }}>
+          {/* Requestee date — left */}
+          <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 18 }}>
+            {reqData.createdAt ? new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
           </div>
+          {/* Authorization paragraph — centered */}
+          <p style={{ textAlign: "center", fontSize: 13.5, color: "var(--text-primary)", lineHeight: 1.75, margin: "0 0 24px" }}>
+            I, <strong>{reqData.userId?.name || "—"}</strong>, hereby authorize{" "}
+            <strong>{requestedRepName}</strong> to act as my representative and sign on my behalf
+            in connection with this agreement, as governed by the Data Protection Office.
+          </p>
+          {/* Requestee signature block — centered */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            {reqData.authorizerSigUrl && (
+              <img src={reqData.authorizerSigUrl} alt="Authorizer signature" style={{ maxHeight: 72, display: "block" }} loading="lazy" decoding="async" />
+            )}
+            <div style={{ width: 220, borderTop: "1px solid var(--border-strong)", textAlign: "center", paddingTop: 6, fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
+              {reqData.userId?.name || "—"}
+            </div>
+          </div>
+
+          {/* Representative agreement section — hidden during rep revision, shown once rep re-submits */}
+          {reqData.repSigUrl && status !== "agr_rep_revision_requested" && (
+            <>
+              <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "24px 0" }} />
+              {/* Rep agreement date — left */}
+              <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 18 }}>
+                {reqData.updatedAt ? new Date(reqData.updatedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+              </div>
+              {/* Rep agreement paragraph — centered */}
+              <p style={{ textAlign: "center", fontSize: 13.5, color: "var(--text-primary)", lineHeight: 1.75, margin: "0 0 24px" }}>
+                I, <strong>{reqData.repInfo?.name || "—"}</strong>, hereby confirm my agreement to act as the authorized representative
+                of <strong>{reqData.userId?.name || "—"}</strong> and sign on their behalf,
+                as governed by the Data Protection Office.
+              </p>
+              {/* Representative signature block — centered */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <img src={reqData.repSigUrl} alt="Representative signature" style={{ maxHeight: 72, display: "block" }} loading="lazy" decoding="async" />
+                <div style={{ width: 220, borderTop: "1px solid var(--border-strong)", textAlign: "center", paddingTop: 6, fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
+                  {reqData.repInfo?.name || "—"}
+                </div>
+              </div>
+            </>
+          )}
         </div>
+      </div>
       )}
 
       {/* Remarks display */}
       {(status === "stud_revision_requested" || status === "agr_rep_revision_requested") &&
         reqData.remarks && (
           <div className="review-section">
-            <h4 className="review-section-title">Remarks</h4>
+            <h4 className="review-section-title">
+              {status === "agr_rep_revision_requested" ? "Remarks For Representative" : "Remarks"}
+            </h4>
             <div className="review-info-box">{reqData.remarks}</div>
           </div>
         )}
@@ -603,7 +688,6 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
               className="signing-link-copy-btn"
               onClick={() => {
                 navigator.clipboard.writeText(signingLink);
-                notify("Copied!", { type: "success" });
               }}
               title="Copy link"
             >
@@ -646,28 +730,19 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           </div>
           <div className="review-actions">
             <button
-              onClick={handlePhase1Approve}
+              onClick={() => setConfirmAction("phase1_approve")}
               disabled={generating || phase1Revising}
               className="review-btn-primary"
             >
               {generating ? "Generating link..." : "Approve & Generate Signing Link"}
             </button>
             <button
-              onClick={async () => {
+              onClick={() => {
                 if (!remarks.trim()) {
                   notify("Please enter remarks before requesting a revision.", { type: "warning" });
                   return;
                 }
-                setPhase1Revising(true);
-                try {
-                  await updateRequestStatus(reqData._id, { status: "stud_revision_requested", remarks });
-                  notify("Student revision requested.", { type: "success" });
-                  await onRequestUpdated?.({ withToast: true });
-                } catch (err) {
-                  notify(err.response?.data?.message || "Failed", { type: "error" });
-                } finally {
-                  setPhase1Revising(false);
-                }
+                setConfirmAction("phase1_revision");
               }}
               disabled={generating || phase1Revising}
               className="review-btn-secondary"
@@ -713,14 +788,26 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
 
           <div className="review-actions">
             <button
-              onClick={handlePhase3Approve}
+              onClick={() => {
+                if (!adminSigRef.current || adminSigRef.current.isEmpty()) {
+                  notify("Please draw your e-signature before approving.", { type: "warning" });
+                  return;
+                }
+                setConfirmAction("phase3_approve");
+              }}
               disabled={approving || phase3Revising}
               className="review-btn-primary"
             >
               {approving ? "Generating final document..." : "Final Approve & Sign"}
             </button>
             <button
-              onClick={handlePhase3RepRevision}
+              onClick={() => {
+                if (!remarks.trim()) {
+                  notify("Please enter remarks explaining what the representative needs to revise.", { type: "warning" });
+                  return;
+                }
+                setConfirmAction("phase3_revision");
+              }}
               disabled={approving || phase3Revising}
               className="review-btn-secondary"
             >
@@ -741,6 +828,48 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         </div>
       )}
 
+      <AnimatePresence>
+        {confirmAction && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
+              <h3 className="modal-title">
+                {confirmAction === "phase1_approve" && "Approve & Send for Signing"}
+                {confirmAction === "phase1_revision" && "Request Student Revision"}
+                {confirmAction === "phase3_approve" && "Final Approve Agreement"}
+                {confirmAction === "phase3_revision" && "Request Recipient Revision"}
+              </h3>
+              <p className="modal-text">
+                {confirmAction === "phase1_approve" && "This will approve the request and generate a signing link for the representative."}
+                {confirmAction === "phase1_revision" && "The student will be notified to revise and resubmit their request."}
+                {confirmAction === "phase3_approve" && "This will finalize the agreement and generate the approved document."}
+                {confirmAction === "phase3_revision" && "A new signing link will be generated for the representative to resubmit."}
+              </p>
+              <div className="modal-actions">
+                <button
+                  className="ui-btn ui-btn--secondary"
+                  onClick={() => setConfirmAction(null)}
+                  disabled={generating || phase1Revising || approving || phase3Revising}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="ui-btn ui-btn--primary"
+                  onClick={() => {
+                    if (confirmAction === "phase1_approve") handlePhase1Approve();
+                    else if (confirmAction === "phase1_revision") handlePhase1Revision();
+                    else if (confirmAction === "phase3_approve") handlePhase3Approve();
+                    else if (confirmAction === "phase3_revision") handlePhase3RepRevision();
+                  }}
+                  disabled={generating || phase1Revising || approving || phase3Revising}
+                >
+                  {(confirmAction === "phase1_approve" || confirmAction === "phase3_approve") ? "Approve" : "Confirm"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {!canProgress && (
         <div className="info-banner info-banner--info">
           <strong>Read-only access</strong>
@@ -760,18 +889,13 @@ export default function AdminRequestReview() {
   const { user } = useContext(AuthContext);
 
   const [reqData, setReqData] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadRequest = async ({ withToast = false } = {}) => {
-    if (withToast) setRefreshing(true);
+  const loadRequest = async () => {
     try {
       const r = await getRequestById(id);
       setReqData(r);
     } catch (err) {
       notify(err.response?.data?.message || "Failed to load request", { type: "error" });
       navigate("/admin/requests");
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -793,37 +917,25 @@ export default function AdminRequestReview() {
   return (
     <div className="review-page">
       <div className="review-card">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+        <div className="request-form-header">
           <button
-            className="review-back-btn"
+            className="request-form-back"
             onClick={() => {
               if (window.history.length > 1) navigate(-1);
               else navigate("/admin");
             }}
           >
-            ← Back
+            ‹ Back
           </button>
-
-          <button
-            className="dashboard-action"
-            type="button"
-            onClick={() => loadRequest({ withToast: true })}
-            disabled={refreshing}
-            style={{ padding: "8px 12px" }}
-          >
-            <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
-            Refresh
-          </button>
+          <h2 className="request-form-title">{requestTitle}</h2>
+          <div />
         </div>
 
-
         <div className="review-header">
-          <div className="review-meta">
-            <span className="review-meta-row">
-              <b>Status:</b> {prettyStatus(reqData.status)}
-            </span>
-            <span className="review-meta-row">
-              <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", width: "100%" }}>
+            <span className={statusPillClass(reqData.status)}>{prettyStatus(reqData.status)}</span>
+            <span className="review-meta-row" style={{ marginLeft: "auto" }}>
+              <b>Request Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
             </span>
           </div>
         </div>
@@ -833,7 +945,7 @@ export default function AdminRequestReview() {
         </div>
 
         <div className="review-section">
-          <h4 className="review-section-title">Student</h4>
+          <h4 className="review-section-title">Requestee</h4>
           <div className="review-info-box">
             <div style={{ fontWeight: 600 }}>
               {reqData.proxyRequestee?.isProxy ? (reqData.proxyRequestee?.fullName || "Proxy Requestee") : (reqData.userId?.name || "Unknown")}

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { FileText } from "lucide-react";
+import { FileSignature } from "lucide-react";
 import "../../components/TypeChooser.css";
 
 export default function StudentAgreementRequirements({
@@ -27,7 +27,7 @@ export default function StudentAgreementRequirements({
           className="type-chooser-card-btn type-chooser-card-btn--detailed"
           onClick={() => navigate(formPath)}
         >
-          <FileText size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
+          <FileSignature size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
           <span className="type-chooser-card-label">Agreement</span>
           <span className="type-chooser-card-subtext">
             For assigning a representative to act on your behalf in data-related agreements with the DPO.

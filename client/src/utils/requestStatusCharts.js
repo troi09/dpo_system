@@ -10,7 +10,6 @@ export const PENDING_STATUSES = [
 export const REVISION_STATUSES = [
   "stud_revision_requested",
   "agr_rep_revision_requested",
-  "agr_declined",
 ];
 
 export const CHART_LABELS = {

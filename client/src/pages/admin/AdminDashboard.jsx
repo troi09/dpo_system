@@ -36,11 +36,19 @@ const ACTION_LABEL = {
   request_created: "Request submitted",
   request_approved: "Request approved",
   request_revision_required: "Revision requested",
+  request_resubmitted: "Request resubmitted",
+  rep_signature_submitted: "Representative signed",
+  rep_signature_declined: "Representative declined",
+  signing_link_generated: "Signing link generated",
   password_changed: "Password changed",
   password_reset_requested: "Password reset requested",
   user_deactivated: "User deactivated",
   user_activated: "User activated",
 };
+
+const formatAction = (action) =>
+  ACTION_LABEL[action] ||
+  action.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -442,7 +450,7 @@ export default function AdminDashboard() {
                   className={`dashboard-audit-item ${idx < auditLogs.length - 1 ? "dashboard-audit-item--bordered" : ""}`}
                 >
                   <span className="dashboard-audit-action">
-                    {ACTION_LABEL[log.action] || log.action}
+                    {formatAction(log.action)}
                   </span>
                   <span className="dashboard-audit-meta">
                     {log.userId?.name || "System"}

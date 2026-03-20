@@ -1,0 +1,64 @@
+/* ── Floating Label ──────────────────────────────────────────────── */
+.fl-wrap {
+  position: relative;
+}
+
+.fl-label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13.5px;
+  color: var(--text-muted);
+  pointer-events: none;
+  background: var(--surface);
+  padding: 0 4px;
+  line-height: 1;
+  transition: top 0.15s ease, left 0.15s ease, font-size 0.15s ease, color 0.15s ease;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.fl-input:focus ~ .fl-label,
+.fl-input:not(:placeholder-shown) ~ .fl-label {
+  top: 0;
+  left: 10px;
+  font-size: 11px;
+  color: var(--primary);
+}
+
+/* Textarea variant — label starts at top, not vertically centered */
+.fl-label--area {
+  top: 14px;
+  transform: none;
+}
+
+.fl-input:focus ~ .fl-label--area,
+.fl-input:not(:placeholder-shown) ~ .fl-label--area {
+  top: 0;
+  transform: none;
+}
+
+/* No offset needed for password fields — label is on the left, away from the toggle */
+.fl-label--pw {
+  left: 12px;
+}
+
+/* Landing page — transparent bg, border shows through */
+.fl-label--glass {
+  background: transparent;
+  color: #000;
+  font-weight: 700;
+}
+
+.fl-input:focus ~ .fl-label--glass,
+.fl-input:not(:placeholder-shown) ~ .fl-label--glass {
+  color: #000;
+  font-weight: 700;
+}
+
+/* Ensure modal field + fl-wrap combo works */
+.user-edit-modal__field.fl-wrap {
+  position: relative;
+  display: block;
+}

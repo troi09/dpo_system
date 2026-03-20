@@ -1,11 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { createRequest } from "../../services/requestService";
 import { uploadRequirements, uploadSignatureImage, getDateRequestFolder } from "../../services/firebaseStorageService";
 import SignaturePad from "../../components/SignaturePad";
 import { notify } from "../../utils/inPageFeedback";
 import "../../components/RequestForm.css";
+import "../../components/FloatingLabel.css";
 
 export default function StudentNDARequest({ ndaType, proxyMode = false, fallbackPath = "/student" }) {
   const navigate = useNavigate();
@@ -17,11 +19,11 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
     middleInitial: "",
     lastName: "",
     email: "",
-    idNumber: "",
-    departmentOrOrganization: "",
   });
   const [files, setFiles] = useState(() => Array(cfg.fileSlots.length).fill(null));
+  const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const sigPadRef = useRef(null);
 
   const onChangeField = (name, value) =>
@@ -48,8 +50,6 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
       }
       const requiredNonNameFields = [
         ["email", "Requestee Email"],
-        ["idNumber", "Requestee ID Number"],
-        ["departmentOrOrganization", "Requestee Department/Organization"],
       ];
       for (const [key, label] of requiredNonNameFields) {
         if (!String(proxyRequestee[key] || "").trim()) {
@@ -72,17 +72,26 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
       return;
     }
 
-    if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
-      if (!proxyMode) {
+    if (!proxyMode) {
+      if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
         notify("Please draw your e-signature before submitting.", { type: "warning" });
+        return;
+      }
+      if (!accepted) {
+        notify("Please confirm the declaration before submitting.", { type: "warning" });
         return;
       }
     }
 
+    setShowConfirm(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    setShowConfirm(false);
     setSubmitting(true);
     try {
+      const selectedFiles = files.filter(Boolean);
       const user = JSON.parse(localStorage.getItem("user") || "null");
-      // Build full name from proxy structured fields
       const proxyFullName = proxyMode
         ? `${proxyRequestee.firstName}${proxyRequestee.middleInitial?.trim() ? " " + proxyRequestee.middleInitial.trim().charAt(0).toUpperCase() + "." : ""} ${proxyRequestee.lastName}`.trim()
         : "";
@@ -102,18 +111,11 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
         })
         .filter(Boolean);
 
-      // Upload student e-signature (skip for proxy/F2F – wet signature on print)
       let studentSigUrl = "";
       let studentSigPath = "";
       if (!proxyMode && !sigPadRef.current.isEmpty()) {
         const sigDataUrl = sigPadRef.current.getDataUrl();
-        const sigResult = await uploadSignatureImage(
-          sigDataUrl,
-          "nda",
-          requestSubjectName,
-          requestFolder,
-          "student_sig.png"
-        );
+        const sigResult = await uploadSignatureImage(sigDataUrl, "nda", requestSubjectName, requestFolder, "student_sig.png");
         studentSigUrl = sigResult.url;
         studentSigPath = sigResult.path;
       }
@@ -127,7 +129,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
         ...(proxyMode ? { proxyRequestee: { ...proxyRequestee, fullName: proxyFullName } } : {}),
       });
 
-      notify(proxyMode ? "Proxy NDA request submitted." : "Request submitted!", { type: "success" });
+      notify(proxyMode ? "Proxy NDA request submitted." : "NDA request submitted!", { type: "success", title: "Submitted" });
       navigate(fallbackPath);
     } catch (err) {
       notify(err.response?.data?.message || "Failed to submit request", { type: "error" });
@@ -143,143 +145,140 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
           <button
             type="button"
             className="request-form-back"
-            onClick={() => {
-              if (window.history.length > 1) navigate(-1);
-              else navigate("/student");
-            }}
+            onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/student"); }}
           >
             ‹ Back
           </button>
+          <h2 className="request-form-title">Request Form</h2>
           <div />
         </div>
 
-        <div className="request-form-body">
-          <div className="request-left-col">
-            <div className="request-section">
-              <div className="request-section-title">Data</div>
-              {cfg.fields.map((f) => (
-                <div key={f.name} className="request-field">
-                  <label className="request-label">{f.label}</label>
-                  {f.kind === "textarea" ? (
-                    <textarea
-                      value={formData[f.name] || ""}
-                      onChange={(e) => onChangeField(f.name, e.target.value)}
-                      rows={f.rows || 4}
-                      className="request-textarea"
-                    />
-                  ) : (
-                    <input
-                      value={formData[f.name] || ""}
-                      onChange={(e) => onChangeField(f.name, e.target.value)}
-                      required={f.required}
-                      className="request-input"
-                    />
-                  )}
-                </div>
-              ))}
-
-              {proxyMode && (
-                <>
-                  <div className="request-section-title" style={{ marginTop: 10 }}>Requestee Details (F2F Walk-in)</div>
-                  <div className="request-field">
-                    <label className="request-label">Requestee Name</label>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 0.55fr 1fr", gap: 8 }}>
-                      <input
-                        className="request-input"
-                        placeholder="First Name"
-                        value={proxyRequestee.firstName}
-                        onChange={(e) => onChangeProxy("firstName", e.target.value)}
-                        required
-                      />
-                      <input
-                        className="request-input"
-                        placeholder="Middle Name"
-                        value={proxyRequestee.middleInitial}
-                        onChange={(e) => onChangeProxy("middleInitial", e.target.value)}
-                      />
-                      <input
-                        className="request-input"
-                        placeholder="Last Name"
-                        value={proxyRequestee.lastName}
-                        onChange={(e) => onChangeProxy("lastName", e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="request-field">
-                    <label className="request-label">Requestee Email</label>
-                    <input className="request-input" type="email" value={proxyRequestee.email} onChange={(e) => onChangeProxy("email", e.target.value)} required />
-                  </div>
-                  <div className="request-field">
-                    <label className="request-label">Requestee ID Number</label>
-                    <input className="request-input" value={proxyRequestee.idNumber} onChange={(e) => onChangeProxy("idNumber", e.target.value)} required />
-                  </div>
-                  <div className="request-field">
-                    <label className="request-label">Requestee Department/Organization</label>
-                    <input className="request-input" value={proxyRequestee.departmentOrOrganization} onChange={(e) => onChangeProxy("departmentOrOrganization", e.target.value)} required />
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="request-section">
-              {proxyMode ? (
-                <div className="info-banner info-banner--info" style={{ marginBottom: 0 }}>
-                  <strong>F2F Walk-in (Proxy Request)</strong>
-                  <p>Digital signatures are bypassed for face-to-face walk-ins. The document will be printed for a physical wet signature.</p>
-                </div>
+        {/* Section 1: Requestee Data */}
+        <div className="request-section">
+          <div className="request-section-title">Requestee Information</div>
+          {cfg.fields.map((f) => (
+            <div key={f.name} className="fl-wrap">
+              {f.kind === "textarea" ? (
+                <textarea
+                  value={formData[f.name] || ""}
+                  onChange={(e) => onChangeField(f.name, e.target.value)}
+                  rows={f.rows || 4}
+                  placeholder=" "
+                  className="fl-input request-textarea"
+                />
               ) : (
-                <>
-                  <div className="request-section-title">Your E-Signature *</div>
-                  <p className="request-sig-hint">
-                    Draw your signature below. It will be embedded in the NDA document.
-                  </p>
-                  <SignaturePad ref={sigPadRef} height={320} />
-                </>
+                <input
+                  value={formData[f.name] || ""}
+                  onChange={(e) => onChangeField(f.name, e.target.value)}
+                  required={f.required}
+                  placeholder=" "
+                  className="fl-input request-input"
+                />
               )}
+              <label className={`fl-label${f.kind === "textarea" ? " fl-label--area" : ""}`}>{f.label}</label>
             </div>
-          </div>
+          ))}
 
-          <div className="request-section">
-            <div className="request-section-title">Requirements (NDA)</div>
-            {files.map((file, index) => (
-              <div key={index} className="request-file-row">
-                <div className="request-file-info">
-                  <div className="request-file-title">
-                    {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
-                    {cfg.fileSlots[index]?.required ? " *" : ""}
-                  </div>
-                  <div className="request-file-subtitle">
-                    {file ? file.name : "No file selected"}
-                  </div>
+          {proxyMode && (
+            <>
+              <div className="request-section-title" style={{ marginTop: 10 }}>Requestee Details (F2F Walk-in)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 0.55fr 1fr", gap: 8 }}>
+                <div className="fl-wrap">
+                  <input className="fl-input request-input" placeholder=" " value={proxyRequestee.firstName} onChange={(e) => onChangeProxy("firstName", e.target.value)} required />
+                  <label className="fl-label">First Name</label>
                 </div>
-
-                <label className="request-file-action">
-                  {file ? "Change File" : "Upload File"}
-                  <input
-                    type="file"
-                    accept="application/pdf,image/*"
-                    onChange={(e) => {
-                      const selected = e.target.files?.[0] || null;
-                      setFiles((prev) => {
-                        const copy = [...prev];
-                        copy[index] = selected;
-                        return copy;
-                      });
-                    }}
-                  />
-                </label>
+                <div className="fl-wrap">
+                  <input className="fl-input request-input" placeholder=" " value={proxyRequestee.middleInitial} onChange={(e) => onChangeProxy("middleInitial", e.target.value)} />
+                  <label className="fl-label">Middle Name</label>
+                </div>
+                <div className="fl-wrap">
+                  <input className="fl-input request-input" placeholder=" " value={proxyRequestee.lastName} onChange={(e) => onChangeProxy("lastName", e.target.value)} required />
+                  <label className="fl-label">Last Name</label>
+                </div>
               </div>
-            ))}
-          </div>
+              <div className="fl-wrap">
+                <input className="fl-input request-input" type="email" placeholder=" " value={proxyRequestee.email} onChange={(e) => onChangeProxy("email", e.target.value)} required />
+                <label className="fl-label">Requestee Email</label>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Section 2: Requirements */}
+        <div className="request-section">
+          <div className="request-section-title">Requirements (NDA)</div>
+          {files.map((file, index) => (
+            <div key={index} className="request-file-row">
+              <div className="request-file-info">
+                <div className="request-file-title">
+                  {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
+                  {cfg.fileSlots[index]?.required ? " *" : ""}
+                </div>
+                <div className="request-file-subtitle">{file ? file.name : "No file selected"}</div>
+              </div>
+              <label className="request-file-action">
+                {file ? "Change File" : "Upload File"}
+                <input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] || null;
+                    setFiles((prev) => { const copy = [...prev]; copy[index] = selected; return copy; });
+                  }}
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+
+        {/* Section 3: E-Signature */}
+        <div className="request-section">
+          {proxyMode ? (
+            <div className="info-banner info-banner--info" style={{ marginBottom: 0 }}>
+              <strong>F2F Walk-in (Proxy Request)</strong>
+              <p>Digital signatures are bypassed for face-to-face walk-ins. The document will be printed for a physical wet signature.</p>
+            </div>
+          ) : (
+            <>
+              <div className="request-section-title">Your E-Signature *</div>
+              <p className="request-sig-hint">Draw your signature below. It will be embedded in the NDA document.</p>
+              <SignaturePad ref={sigPadRef} height={160} />
+            </>
+          )}
+        </div>
+
+        {/* Confirmation clause */}
+        {!proxyMode && (
+          <label className="request-accept">
+            <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+            <span>
+              I confirm that all information and attachments I have provided are accurate and complete,
+              and I consent to the processing of my personal data by the Data Protection Office for the purpose of this request.
+            </span>
+          </label>
+        )}
 
         <div className="request-form-actions">
           <button type="submit" className="request-form-submit" disabled={submitting}>
-            {submitting ? "Submitting..." : "Submit Request"}
+            {submitting ? "Submitting..." : "Submit"}
           </button>
         </div>
       </form>
+
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
+              <h3 className="modal-title">Submit NDA Request</h3>
+              <p className="modal-text">Please confirm that all information and attachments are accurate before submitting.</p>
+              <div className="modal-actions">
+                <button className="ui-btn ui-btn--secondary" onClick={() => setShowConfirm(false)} disabled={submitting}>Cancel</button>
+                <button className="ui-btn ui-btn--primary" onClick={handleConfirmSubmit} disabled={submitting}>{submitting ? "Submitting…" : "Submit"}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

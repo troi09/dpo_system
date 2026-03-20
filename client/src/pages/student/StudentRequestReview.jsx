@@ -1,10 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, Copy, Paperclip, RefreshCw } from "lucide-react";
+import { AlertTriangle, Copy, Paperclip } from "lucide-react";
 import RequestStepper from "../../components/RequestStepper";
 import { FIELDS_FILE_SLOTS_CONFIG } from "../../config/fieldsFileSlotsConfig";
 import { getRequestById } from "../../services/requestService";
 import { notify } from "../../utils/inPageFeedback";
+import "../../components/RequestForm.css";
+
+const statusPillClass = (s) => {
+  if (["nda_approved", "agr_approved"].includes(s)) return "status-pill status-pill--green";
+  if (["nda_pending", "agr_pending_1", "agr_pending_2"].includes(s)) return "status-pill status-pill--yellow";
+  if (s === "stud_revision_requested") return "status-pill status-pill--orange";
+  if (s === "agr_rep_revision_requested") return "status-pill status-pill--violet";
+  if (s === "agr_awaiting_rep_signature") return "status-pill status-pill--blue";
+  if (s === "agr_declined") return "status-pill status-pill--red";
+  return "status-pill";
+};
 
 const prettyStatus = (s) => {
   const map = {
@@ -26,10 +37,8 @@ export default function StudentRequestReview() {
   const navigate = useNavigate();
 
   const [reqData, setReqData] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const load = async ({ withToast = false } = {}) => {
-    if (withToast) setRefreshing(true);
+  const load = async () => {
     try {
       const r = await getRequestById(id);
 
@@ -39,14 +48,12 @@ export default function StudentRequestReview() {
         return;
       }
 
-        setReqData(r);
-      } catch (err) {
-        notify(err.response?.data?.message || "Failed to load request", { type: "error" });
-        navigate("/student");
-      } finally {
-        if (withToast) setRefreshing(false);
-      }
-    };
+      setReqData(r);
+    } catch (err) {
+      notify(err.response?.data?.message || "Failed to load request", { type: "error" });
+      navigate("/student");
+    }
+  };
 
   useEffect(() => {
     load();
@@ -73,36 +80,27 @@ export default function StudentRequestReview() {
   return (
     <div className="review-page">
       <div className="review-card">
-        <button
-          type="button"
-          className="review-back-btn"
-          onClick={() => {
-            if (window.history.length > 1) navigate(-1);
-            else navigate("/student");
-          }}
-        >
-          ← Back
-        </button>
+        <div className="request-form-header">
+          <button
+            type="button"
+            className="request-form-back"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/student");
+            }}
+          >
+            ‹ Back
+          </button>
+          <h2 className="request-form-title">{title}</h2>
+          <div />
+        </div>
 
         <div className="review-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <div className="review-meta">
-              <span className="review-meta-row">
-                <b>Status:</b> {prettyStatus(reqData.status)}
-              </span>
-              <span className="review-meta-row">
-                <b>Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="ui-btn ui-btn--secondary ui-btn--icon"
-              onClick={() => load({ withToast: true })}
-              disabled={refreshing}
-              title="Refresh request data"
-            >
-              <RefreshCw size={14} className={refreshing ? "spin-anim" : ""} />
-            </button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", width: "100%" }}>
+            <span className={statusPillClass(reqData.status)}>{prettyStatus(reqData.status)}</span>
+            <span className="review-meta-row" style={{ marginLeft: "auto" }}>
+              <b>Request Date:</b> {new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+            </span>
           </div>
         </div>
 
@@ -110,30 +108,52 @@ export default function StudentRequestReview() {
           <RequestStepper status={reqData.status} type={reqData.type} />
         </div>
 
-        {/* Remarks */}
-        <div className="review-section">
-          <h4 className="review-section-title">Remarks</h4>
-          <div className="review-info-box">
-            {reqData.remarks || (
-              <span className="review-info-box--muted">No remarks provided.</span>
-            )}
-          </div>
-        </div>
 
-        {/* Form Data */}
+        {/* Form Data / Representative */}
         <div className="review-section">
-          <h4 className="review-section-title">Form Data</h4>
+          <h4 className="review-section-title">{isAgreement ? "Representative" : "Form Data"}</h4>
           {cfg?.fields?.length ? (
-            cfg.fields.map((f) => (
-              <div key={f.name} className="review-field">
-                <span className="review-field-label">{f.label}</span>
-                <div className="review-info-box">
-                  {String(reqData.formData?.[f.name] ?? "") || (
-                    <span className="review-info-box--muted">—</span>
-                  )}
+            isAgreement ? (
+              <>
+                {/* Full Name (bundled) */}
+                <div className="review-field">
+                  <span className="review-field-label">Full Name</span>
+                  <div className="review-info-box">
+                    {(() => {
+                      const fd = reqData.formData || {};
+                      const mid = String(fd.repMiddleInitial || "").trim();
+                      const midInitial = mid ? `${mid[0].toUpperCase()}.` : "";
+                      const full = [fd.repFirstName, midInitial, fd.repLastName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+                      return full || <span className="review-info-box--muted">—</span>;
+                    })()}
+                  </div>
                 </div>
-              </div>
-            ))
+                {/* Remaining fields */}
+                {cfg.fields
+                  .filter((f) => !["repFirstName", "repMiddleInitial", "repLastName"].includes(f.name))
+                  .map((f) => (
+                    <div key={f.name} className="review-field">
+                      <span className="review-field-label">{f.label}</span>
+                      <div className="review-info-box">
+                        {String(reqData.formData?.[f.name] ?? "") || (
+                          <span className="review-info-box--muted">—</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </>
+            ) : (
+              cfg.fields.map((f) => (
+                <div key={f.name} className="review-field">
+                  <span className="review-field-label">{f.label}</span>
+                  <div className="review-info-box">
+                    {String(reqData.formData?.[f.name] ?? "") || (
+                      <span className="review-info-box--muted">—</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )
           ) : (
             <div className="review-info-box">
               <span className="review-info-box--muted">No config fields found for this request.</span>
@@ -143,7 +163,7 @@ export default function StudentRequestReview() {
 
         {/* Attachments */}
         <div className="review-section">
-          <h4 className="review-section-title">Attachments</h4>
+          <h4 className="review-section-title">My Attachments</h4>
           {reqData.predocs?.length ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {reqData.predocs.map((f, idx) => (

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { FlaskConical, Users } from "lucide-react";
+import { Building2, FlaskConical } from "lucide-react";
 import "../../components/TypeChooser.css";
 
 export default function StudentNDATypeChooser({
@@ -28,7 +28,7 @@ export default function StudentNDATypeChooser({
           className="type-chooser-card-btn type-chooser-card-btn--detailed"
           onClick={() => navigate(`${basePath}/orgactivities`)}
         >
-          <Users size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
+          <Building2 size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
           <span className="type-chooser-card-label">School Organization Activities/Projects</span>
           <span className="type-chooser-card-subtext">
             For student organization events or partner engagements involving confidential documents.
@@ -51,7 +51,7 @@ export default function StudentNDATypeChooser({
           onClick={() => navigate(`${basePath}/research`)}
         >
           <FlaskConical size={48} strokeWidth={1.5} className="type-chooser-card-icon" />
-          <span className="type-chooser-card-label">Conduct of Research within RTU</span>
+          <span className="type-chooser-card-label">Conduct of Research within the University</span>
           <span className="type-chooser-card-subtext">
             For thesis, capstone, or research involving sensitive data or unpublished findings.
           </span>

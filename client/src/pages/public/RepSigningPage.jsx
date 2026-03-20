@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { getBySigningToken, repSubmit, repReject } from "../../services/requestService";
 import { uploadSignatureImage, uploadRepGovId, deleteStorageFile } from "../../services/firebaseStorageService";
 import SignaturePad from "../../components/SignaturePad";
-import { confirmInPage, notify } from "../../utils/inPageFeedback";
+import { notify } from "../../utils/inPageFeedback";
 import "../../components/RepSigningPage.css";
 
 export default function RepSigningPage() {
@@ -20,6 +21,7 @@ export default function RepSigningPage() {
   const [govIdFile, setGovIdFile] = useState(null);
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(null); // "submit" | "decline" | null
 
   const sigPadRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -127,15 +129,12 @@ export default function RepSigningPage() {
     .replace(/\s+/g, " ")
     .trim();
 
-  const handleReject = async () => {
-    const confirmed = await confirmInPage({
-      title: "Decline Signing Request",
-      message: "Are you sure you want to decline this signing request? This action is final.",
-      confirmText: "Yes, Decline",
-      cancelText: "Keep Request",
-      tone: "warning",
-    });
-    if (!confirmed) return;
+  const handleReject = () => {
+    setShowConfirm("decline");
+  };
+
+  const handleConfirmReject = async () => {
+    setShowConfirm(null);
     setSubmitting(true);
     try {
       await repReject(token);
@@ -147,7 +146,7 @@ export default function RepSigningPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     if (!sanitizeNamePart(repFirstName).trim()) { notify("Please enter your first name.", { type: "warning" }); return; }
@@ -156,6 +155,11 @@ export default function RepSigningPage() {
     if (!sigPadRef.current || sigPadRef.current.isEmpty()) { notify("Please draw your signature.", { type: "warning" }); return; }
     if (!accepted) { notify("You must check 'I accept' to proceed.", { type: "warning" }); return; }
 
+    setShowConfirm("submit");
+  };
+
+  const handleConfirmSubmit = async () => {
+    setShowConfirm(null);
     setSubmitting(true);
     try {
       const authSigPath = reqData.authorizerSigPath || "";
@@ -210,31 +214,36 @@ export default function RepSigningPage() {
           Please review the details below and complete the form to sign.
         </p>
 
-        {/* Agreement summary */}
-        <div className="rep-signing-summary">
-          <div className="rep-signing-summary-row">
-            <strong>Requestee / Authorizer:</strong> {student.name || "—"}
+        {/* Letter-format summary */}
+        <div className="rep-signing-summary" style={{ padding: "20px 24px", gap: 0 }}>
+          {/* Date — left */}
+          <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 18 }}>
+            {reqData.createdAt ? new Date(reqData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
           </div>
-          <div className="rep-signing-summary-row">
-            <strong>Representative Named:</strong> {requestedRepName}
-          </div>
-          {fd.repEmail && (
-            <div className="rep-signing-summary-row">
-              <strong>Email of Representative:</strong> {fd.repEmail}
-            </div>
-          )}
-        </div>
 
-        {/* Authorizer signature preview */}
-        {reqData.authorizerSigUrl && (
-          <div className="rep-signing-auth-sig">
-            <div className="rep-signing-auth-sig-label">Authorizer&apos;s Signature</div>
-            <div className="rep-signing-auth-sig-box">
-              <img src={reqData.authorizerSigUrl} alt="Authorizer signature" width="560" height="180" loading="lazy" decoding="async" />
+          {/* Authorization paragraph — centered */}
+          <p style={{ textAlign: "center", fontSize: 13.5, color: "var(--text-primary)", lineHeight: 1.75, margin: "0 0 24px" }}>
+            I, <strong>{student.name || "—"}</strong>, hereby authorize{" "}
+            <strong>{requestedRepName}</strong> to act as my representative and sign on my behalf
+            in connection with this agreement, as governed by the Data Protection Office.
+          </p>
+
+          {/* Signature block — centered */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            {reqData.authorizerSigUrl && (
+              <img
+                src={reqData.authorizerSigUrl}
+                alt="Authorizer signature"
+                style={{ maxHeight: 72, display: "block" }}
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+            <div style={{ width: 220, borderTop: "1px solid var(--border-strong)", textAlign: "center", paddingTop: 6, fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
+              {student.name || "—"}
             </div>
-            <div className="rep-signing-auth-sig-name">{student.name}</div>
           </div>
-        )}
+        </div>
 
         <hr className="rep-signing-divider" />
 
@@ -243,7 +252,8 @@ export default function RepSigningPage() {
           <h3 className="rep-signing-section-title">Your Information</h3>
 
           <div className="rep-signing-field">
-            <label className="rep-signing-label">Representative Name *</label>
+            <p className="rep-signing-name-note">Please ensure the name entered matches the name shown on your government-issued ID.</p>
+            <label className="rep-signing-label">Full Name *</label>
             <div className="rep-signing-name-grid">
               <div className="rep-signing-name-col">
                 <label className="rep-signing-name-sublabel">First Name</label>
@@ -272,7 +282,6 @@ export default function RepSigningPage() {
                 />
               </div>
             </div>
-            <p className="rep-signing-name-note">Please ensure the name entered matches the name shown on your government-issued ID.</p>
           </div>
 
           <div className="rep-signing-field">
@@ -329,6 +338,33 @@ export default function RepSigningPage() {
           </div>
         </form>
       </div>
+
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
+              <h3 className="modal-title">
+                {showConfirm === "submit" ? "Submit & Sign Agreement" : "Decline Signing Request"}
+              </h3>
+              <p className="modal-text">
+                {showConfirm === "submit"
+                  ? "Please confirm that all your information and signature are accurate before submitting."
+                  : "Are you sure you want to decline? This action is final and the requestor will be notified."}
+              </p>
+              <div className="modal-actions">
+                <button className="ui-btn ui-btn--secondary" onClick={() => setShowConfirm(null)} disabled={submitting}>Cancel</button>
+                <button
+                  className="ui-btn ui-btn--primary"
+                  onClick={showConfirm === "submit" ? handleConfirmSubmit : handleConfirmReject}
+                  disabled={submitting}
+                >
+                  {showConfirm === "submit" ? "Submit" : "Decline"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

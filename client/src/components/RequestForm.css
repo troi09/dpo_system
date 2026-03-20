@@ -211,6 +211,30 @@
   background: var(--surface-2);
 }
 
+/* ── Confirmation accept clause ── */
+.request-accept {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.request-accept input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
 /* ── Actions ── */
 .request-form-actions {
   display: flex;
