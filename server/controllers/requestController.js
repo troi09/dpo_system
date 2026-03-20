@@ -584,7 +584,7 @@ exports.getBySigningToken = async (req, res) => {
 
     const r = await Request.findOne({ signingToken: token })
       .populate("userId", "name email")
-      .select("_id formData status signingTokenUsed signingTokenExpiresAt authorizerSigUrl authorizerSigPath remarks repInfo updatedAt type")
+      .select("_id formData status signingTokenUsed signingTokenExpiresAt authorizerSigUrl authorizerSigPath remarks repInfo updatedAt createdAt type")
       .lean();
 
     if (!r) return res.status(404).json({ message: "Invalid signing link" });

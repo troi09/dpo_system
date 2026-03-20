@@ -1,127 +1,122 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { getPasswordChecks } from "../utils/passwordPolicy";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-export default function PasswordChecklist({
-  password,
-  compact = false,
-  popup = false,
-  side = "left",
-  anchorRef,
-}) {
-  const checks = getPasswordChecks(password);
-  const [portalStyle, setPortalStyle] = useState(null);
-  const failedChecks = checks.filter((item) => !item.pass);
+const REQUIREMENTS = [
+  "8 characters",
+  "1 uppercase",
+  "1 lowercase",
+  "1 number",
+  "1 special character",
+];
+
+const TOOLTIP_WIDTH = 210;
+const GAP = 10;
+
+const BORDER = "#b91c1c";
+const BG = "#fff1f2";
+const TITLE_COLOR = "#7f1d1d";
+const TEXT_COLOR = "#991b1b";
+
+function useAutoDismiss(active, persistent = false, duration = 2000) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (persistent) return;
+    if (!active) { setVisible(false); return; }
+    setVisible(true);
+    const t = setTimeout(() => setVisible(false), duration);
+    return () => clearTimeout(t);
+  }, [active, persistent, duration]);
+  return persistent ? active : visible;
+}
+
+function useTooltipPos(active, anchorRef, side) {
+  const [pos, setPos] = useState(null);
+  const [actualSide, setActualSide] = useState(side);
 
   useIsoLayoutEffect(() => {
-    if (!popup || !password || failedChecks.length === 0 || !anchorRef?.current) return undefined;
+    if (!active || !anchorRef?.current) { setPos(null); return undefined; }
 
     const recompute = () => {
       const rect = anchorRef.current.getBoundingClientRect();
-      const isMobile = window.innerWidth <= 900;
-      const popupWidth = Math.min(isMobile ? 280 : 220, Math.floor(window.innerWidth * (isMobile ? 0.9 : 0.72)));
-      const gap = 10;
+      const isMobile = window.innerWidth <= 640;
 
-      if (isMobile || side === "top") {
-        setPortalStyle({
-          position: "fixed",
-          top: Math.max(8, rect.top - gap - 10),
-          left: Math.max(8, Math.min(rect.left, window.innerWidth - popupWidth - 8)),
-          width: `${popupWidth}px`,
-          transform: "translateY(-100%)",
-          zIndex: 9999,
-        });
+      if (isMobile) {
+        setActualSide("bottom");
+        setPos({ position: "fixed", top: rect.bottom + GAP, left: Math.max(8, rect.left), width: Math.min(TOOLTIP_WIDTH, window.innerWidth - 16) });
         return;
       }
 
-      if (side === "right") {
-        setPortalStyle({
-          position: "fixed",
-          top: rect.top + rect.height / 2,
-          left: Math.min(rect.right + gap, window.innerWidth - popupWidth - 8),
-          width: `${popupWidth}px`,
-          transform: "translateY(-50%)",
-          zIndex: 9999,
-        });
+      if (side === "left" && rect.left - TOOLTIP_WIDTH - GAP >= 8) {
+        setActualSide("left");
+        setPos({ position: "fixed", top: rect.top + rect.height / 2, left: rect.left - TOOLTIP_WIDTH - GAP, width: TOOLTIP_WIDTH, transform: "translateY(-50%)" });
         return;
       }
 
-      setPortalStyle({
-        position: "fixed",
-        top: rect.top + rect.height / 2,
-        left: Math.max(8, rect.left - popupWidth - gap),
-        width: `${popupWidth}px`,
-        transform: "translateY(-50%)",
-        zIndex: 9999,
-      });
+      setActualSide("right");
+      setPos({ position: "fixed", top: rect.top + rect.height / 2, left: Math.min(rect.right + GAP, window.innerWidth - TOOLTIP_WIDTH - 8), width: TOOLTIP_WIDTH, transform: "translateY(-50%)" });
     };
 
     recompute();
     window.addEventListener("resize", recompute);
     window.addEventListener("scroll", recompute, true);
-
     return () => {
       window.removeEventListener("resize", recompute);
       window.removeEventListener("scroll", recompute, true);
     };
-  }, [anchorRef, failedChecks.length, password, popup, side]);
+  }, [active, anchorRef, side]);
 
-  if (compact) {
-    const isStrong = checks.every((item) => item.pass);
-    return (
-      <div
-        className={`password-checklist-item ${isStrong ? "is-pass" : "is-fail"}`}
-        role="status"
-        aria-live="polite"
-        style={{ marginTop: 6 }}
-      >
-        <span className="password-checklist-dot" aria-hidden="true" />
-        <span>
-          {isStrong
-            ? "Password strength requirement met"
-            : "Use 8+ chars with uppercase, lowercase, number, and symbol"}
-        </span>
-      </div>
-    );
-  }
+  return [pos, actualSide];
+}
 
-  if (popup) {
-    if (!password || failedChecks.length === 0) return null;
+function TooltipShell({ pos, actualSide, children }) {
+  const arrowBase = { position: "absolute", width: 8, height: 8, background: BG, transform: "rotate(45deg)" };
+  const arrowStyle =
+    actualSide === "left"  ? { ...arrowBase, right: -5, top: "50%", marginTop: -4, borderTop: `1px solid ${BORDER}`, borderRight: `1px solid ${BORDER}` }
+    : actualSide === "right" ? { ...arrowBase, left: -5, top: "50%", marginTop: -4, borderBottom: `1px solid ${BORDER}`, borderLeft: `1px solid ${BORDER}` }
+    : { ...arrowBase, top: -5, left: 16, borderTop: `1px solid ${BORDER}`, borderLeft: `1px solid ${BORDER}` };
 
-    const popupContent = (
-      <div
-        className={`password-checklist password-checklist--popup password-checklist--${side}`}
-        role="status"
-        aria-live="polite"
-        style={portalStyle || undefined}
-      >
-        <div className="password-checklist-popup-title">Password needs:</div>
-        {failedChecks.map((item) => (
-          <div key={item.key} className="password-checklist-item is-fail">
-            <span className="password-checklist-dot" aria-hidden="true" />
-            <span>{item.label}</span>
-          </div>
-        ))}
-      </div>
-    );
+  const content = (
+    <div style={{ ...pos, zIndex: 9999, background: BG, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 13px", boxShadow: "0 6px 20px rgba(0,0,0,0.10)", pointerEvents: "none", userSelect: "none" }}>
+      <span style={{ position: "absolute", ...arrowStyle }} />
+      {children}
+    </div>
+  );
 
-    if (typeof document !== "undefined") {
-      return createPortal(popupContent, document.body);
-    }
+  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
+}
 
-    return popupContent;
-  }
+/** Requirements tooltip — shown when the password field is focused */
+export default function PasswordChecklist({ focused = false, anchorRef, side = "right", persistent = false }) {
+  const visible = useAutoDismiss(focused, persistent);
+  const [pos, actualSide] = useTooltipPos(visible, anchorRef, side);
+  if (!visible || !pos) return null;
 
   return (
-    <div className="password-checklist" role="status" aria-live="polite">
-      {checks.map((item) => (
-        <div key={item.key} className={`password-checklist-item ${item.pass ? "is-pass" : "is-fail"}`}>
-          <span className="password-checklist-dot" aria-hidden="true" />
-          <span>{item.label}</span>
+    <TooltipShell pos={pos} actualSide={actualSide}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: TITLE_COLOR, marginBottom: 7, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        Minimum password requirements:
+      </div>
+      {REQUIREMENTS.map((req) => (
+        <div key={req} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: TEXT_COLOR, padding: "2px 0" }}>
+          <span style={{ width: 4, height: 4, borderRadius: "50%", background: BORDER, flexShrink: 0 }} />
+          {req}
         </div>
       ))}
-    </div>
+    </TooltipShell>
+  );
+}
+
+/** Error tooltip — shown when show=true with a custom message */
+export function ErrorTooltip({ show = false, message, anchorRef, side = "right", persistent = false }) {
+  const visible = useAutoDismiss(show, persistent);
+  const [pos, actualSide] = useTooltipPos(visible, anchorRef, side);
+  if (!visible || !pos) return null;
+
+  return (
+    <TooltipShell pos={pos} actualSide={actualSide}>
+      <div style={{ fontSize: 12.5, color: TEXT_COLOR, fontWeight: 600 }}>{message}</div>
+    </TooltipShell>
   );
 }

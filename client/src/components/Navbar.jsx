@@ -63,7 +63,7 @@ const Navbar = () => {
             )}
             <NavLink to="/admin/reports" className={linkClass}>
               <History size={16} className="nav-icon" />
-              Transaction Trails
+              Transaction Records
             </NavLink>
             {user?.role === "admin" && (
               <NavLink to="/admin/audit" className={linkClass}>

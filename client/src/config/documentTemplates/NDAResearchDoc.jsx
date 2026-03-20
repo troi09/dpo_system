@@ -96,7 +96,7 @@ export default function NDAResearchDoc({ request }) {
         <View style={styles.headerRow}>
           <View style={styles.headerBlock}>
             <Text style={styles.headerLeftTitle}>RIZAL TECHNOLOGICAL UNIVERSITY</Text>
-            <Text style={styles.headerLeftCode}>RTU-OP-UDPO-F002</Text>
+            <Text style={styles.headerLeftCode}>RTU-OEVP-UDPC-F005</Text>
           </View>
           <View style={[styles.headerBlock, styles.headerRight]}>
             <Text style={styles.headerRightLine}>Effectivity {formatDate(request.updatedAt)}</Text>
@@ -119,7 +119,7 @@ export default function NDAResearchDoc({ request }) {
           I, {studentNameUpper || "________________"}, as the representative of the group, declare that it is our
           responsibility to protect the integrity and confidentiality of the enclosed information. As the intended
           recipient, we ensure that we will not reproduce, share, or disclose any information to anyone without the
-          consent of the data subject. Furthermore, we affirm that the data will only be used to conduct the project
+          consent of the data subject. Furthermore, we affirm that the data will only be used to conduct the research
           titled:
         </Text>
         <Text style={styles.paragraphNoIndent}>

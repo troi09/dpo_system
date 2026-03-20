@@ -17,6 +17,7 @@ import PasswordChecklist from "../components/PasswordChecklist";
 import { isStrongPassword, PASSWORD_POLICY_MESSAGE } from "../utils/passwordPolicy";
 import { notify } from "../utils/inPageFeedback";
 import "../components/Landing.css";
+import "../components/FloatingLabel.css";
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/auth`;
 
@@ -29,11 +30,10 @@ function ForgotPasswordFlow({ onCancel }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [passwordAttempted, setPasswordAttempted] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const forgotPwRef = useRef(null);
 
   useEffect(() => {
     if (resendSeconds <= 0) return undefined;
@@ -45,15 +45,14 @@ function ForgotPasswordFlow({ onCancel }) {
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    setError("");
-    if (!email.trim()) return setError("Please enter your email address.");
+    if (!email.trim()) { notify("Please enter your email address.", { type: "error", title: "Failed" }); return; }
     setLoading(true);
     try {
       await forgotPassword(email.trim());
       setStep("otp");
       setResendSeconds(60);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send OTP. Try again.");
+      notify(err.response?.data?.message || "Failed to send OTP. Try again.", { type: "error", title: "Failed" });
     } finally {
       setLoading(false);
     }
@@ -61,13 +60,13 @@ function ForgotPasswordFlow({ onCancel }) {
 
   const handleResendOtp = async () => {
     if (resendSeconds > 0) return;
-    setError("");
     setLoading(true);
     try {
       await resendResetOtp(email.trim());
       setResendSeconds(60);
+      notify("OTP resent successfully.", { type: "success", title: "Sent" });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to resend OTP.");
+      notify(err.response?.data?.message || "Failed to resend OTP.", { type: "error", title: "Failed" });
     } finally {
       setLoading(false);
     }
@@ -75,15 +74,14 @@ function ForgotPasswordFlow({ onCancel }) {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    setError("");
-    if (!otp.trim()) return setError("Please enter the OTP.");
+    if (!otp.trim()) { notify("Please enter the OTP.", { type: "error", title: "Failed" }); return; }
     setLoading(true);
     try {
       const data = await verifyResetOtp(email.trim(), otp.trim());
       setResetToken(data.resetToken);
       setStep("newpass");
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid or expired OTP.");
+      notify(err.response?.data?.message || "Invalid or expired OTP.", { type: "error", title: "Failed" });
     } finally {
       setLoading(false);
     }
@@ -91,19 +89,15 @@ function ForgotPasswordFlow({ onCancel }) {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    setError("");
-    if (!isStrongPassword(newPassword)) {
-      setPasswordAttempted(true);
-      return setError(PASSWORD_POLICY_MESSAGE);
-    }
-    if (newPassword !== confirmPassword) return setError("Passwords do not match.");
+    if (!isStrongPassword(newPassword)) { notify(PASSWORD_POLICY_MESSAGE, { type: "error", title: "Failed" }); return; }
+    if (newPassword !== confirmPassword) { notify("Passwords do not match.", { type: "error", title: "Failed" }); return; }
     setLoading(true);
     try {
       await resetPassword(email.trim(), resetToken, newPassword);
       notify("Password reset successfully! Please log in with your new password.", { type: "success" });
       onCancel();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to reset password.");
+      notify(err.response?.data?.message || "Failed to reset password.", { type: "error", title: "Failed" });
     } finally {
       setLoading(false);
     }
@@ -121,10 +115,9 @@ function ForgotPasswordFlow({ onCancel }) {
           <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
             Enter your registered email and we&apos;ll send you an OTP.
           </p>
-          {error && <div className="landing-error">{error}</div>}
-          <div className="landing-field-group">
-            <label className="landing-label">Email address</label>
-            <input type="email" className="landing-field" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <div className="landing-field-group fl-wrap">
+            <input type="email" className="fl-input landing-field" placeholder=" " value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <label className="fl-label fl-label--glass">Email address</label>
           </div>
           <button type="submit" className="landing-submit" disabled={loading}>
             {loading ? "Sending…" : "Send OTP"}
@@ -137,10 +130,9 @@ function ForgotPasswordFlow({ onCancel }) {
                 <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
                   A 6-digit OTP was sent to <strong>{email}</strong>. It expires in 10 minutes.
                 </p>
-          {error && <div className="landing-error">{error}</div>}
-          <div className="landing-field-group">
-            <label className="landing-label">OTP Code</label>
-            <input type="text" className="landing-field" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} required />
+          <div className="landing-field-group fl-wrap">
+            <input type="text" className="fl-input landing-field" placeholder=" " value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} required />
+            <label className="fl-label fl-label--glass">OTP Code</label>
           </div>
           <button type="submit" className="landing-submit" disabled={loading}>
             {loading ? "Verifying…" : "Verify OTP"}
@@ -152,21 +144,20 @@ function ForgotPasswordFlow({ onCancel }) {
       )}
       {step === "newpass" && (
         <form onSubmit={handleResetPassword} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {error && <div className="landing-error">{error}</div>}
-          <div className="landing-field-group">
-            <label className="landing-label">New Password</label>
-            <div className="landing-password-wrap">
-              <input type={showNewPass ? "text" : "password"} className="landing-field" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} required />
+          <div ref={forgotPwRef} className="landing-field-group">
+            <div className="landing-password-wrap fl-wrap">
+              <input type={showNewPass ? "text" : "password"} className="fl-input landing-field" placeholder=" " value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} required />
+              <label className="fl-label fl-label--glass fl-label--pw">New Password</label>
               <button type="button" className="landing-password-toggle" onClick={() => setShowNewPass((v) => !v)} tabIndex={-1} aria-label={showNewPass ? "Hide password" : "Show password"}>
                 {showNewPass ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
             </div>
-            {passwordAttempted ? <PasswordChecklist password={newPassword} /> : null}
+            <PasswordChecklist focused={newPassword.length > 0 && !isStrongPassword(newPassword)} anchorRef={forgotPwRef} side="left" />
           </div>
           <div className="landing-field-group">
-            <label className="landing-label">Confirm Password</label>
-            <div className="landing-password-wrap">
-              <input type={showConfirmPass ? "text" : "password"} className="landing-field" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+            <div className="landing-password-wrap fl-wrap">
+              <input type={showConfirmPass ? "text" : "password"} className="fl-input landing-field" placeholder=" " value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+              <label className="fl-label fl-label--glass fl-label--pw">Confirm Password</label>
               <button type="button" className="landing-password-toggle" onClick={() => setShowConfirmPass((v) => !v)} tabIndex={-1} aria-label={showConfirmPass ? "Hide password" : "Show password"}>
                 {showConfirmPass ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
@@ -184,10 +175,9 @@ function ForgotPasswordFlow({ onCancel }) {
 const Landing = () => {
   const [mode, setMode] = useState("login"); // "login" | "register" | "forgot"
   const [form, setForm] = useState({ firstName: "", middleInitial: "", lastName: "", email: "", password: "" });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
   const { login } = useContext(AuthContext);
@@ -222,8 +212,6 @@ const Landing = () => {
   const onChange = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
   const resetForm = () => {
     setForm({ firstName: "", middleInitial: "", lastName: "", email: "", password: "" });
-    setError("");
-    setSuccess("");
     setOtpStep(false);
     setLoginOtp("");
     setPendingEmail("");
@@ -232,8 +220,6 @@ const Landing = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setLoading(true);
     try {
       if (mode === "login") {
@@ -254,7 +240,6 @@ const Landing = () => {
         return;
       }
       if (!isLogin && !isStrongPassword(form.password)) {
-        setError(PASSWORD_POLICY_MESSAGE);
         setLoading(false);
         return;
       }
@@ -269,7 +254,7 @@ const Landing = () => {
         navigate(`/verify-email?email=${encodeURIComponent(res.data.email)}`);
         return;
       }
-      setSuccess(res.data.message || "Registered! Check your email to verify your account.");
+      notify(res.data.message || "Registered! Check your email to verify your account.", { type: "success", title: "Success" });
       resetForm();
       setMode("login");
     } catch (err) {
@@ -277,9 +262,10 @@ const Landing = () => {
         navigate(`/verify-email?email=${encodeURIComponent(err.response?.data?.email || form.email)}`);
         return;
       }
-      setError(
+      notify(
         err.response?.data?.message ||
-          (mode === "login" ? "Invalid credentials" : "Registration failed")
+          (mode === "login" ? "Invalid credentials" : "Registration failed"),
+        { type: "error", title: "Failed" }
       );
     } finally {
       setLoading(false);
@@ -288,14 +274,13 @@ const Landing = () => {
 
   const handleVerifyLoginOtp = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
     try {
       const data = await verifyLoginOtp(pendingEmail, loginOtp.trim());
       login(data.user);
       navigate(data.user.role === "student" ? "/student" : "/admin");
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid or expired OTP.");
+      notify(err.response?.data?.message || "Invalid or expired OTP.", { type: "error", title: "Failed" });
     } finally {
       setLoading(false);
     }
@@ -303,14 +288,13 @@ const Landing = () => {
 
   const handleResendLoginOtp = async () => {
     if (!pendingEmail || loginResendSeconds > 0) return;
-    setError("");
     setLoading(true);
     try {
       const data = await resendLoginOtp(pendingEmail);
-      setSuccess(data.message || "A new OTP has been sent.");
+      notify(data.message || "A new OTP has been sent to your email.", { type: "success", title: "Sent" });
       setLoginResendSeconds(60);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to resend OTP.");
+      notify(err.response?.data?.message || "Failed to resend OTP.", { type: "error", title: "Failed" });
     } finally {
       setLoading(false);
     }
@@ -397,18 +381,18 @@ const Landing = () => {
                 <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
                   A 6-digit OTP was sent to <strong>{pendingEmail}</strong>. Enter it below to continue.
                 </p>
-                {error && <div className="landing-error">{error}</div>}
-                <div className="landing-field-group">
-                  <label className="landing-label">OTP Code</label>
+                <div className="landing-field-group fl-wrap">
                   <input
                     type="text"
-                    className="landing-field"
+                    className="fl-input landing-field"
+                    placeholder=" "
                     value={loginOtp}
                     onChange={(e) => setLoginOtp(e.target.value)}
                     maxLength={6}
                     autoFocus
                     required
                   />
+                  <label className="fl-label fl-label--glass">OTP Code</label>
                 </div>
                 <button type="submit" className="landing-submit" disabled={loading}>
                   {loading ? "Verifying…" : "Verify & Login"}
@@ -467,68 +451,42 @@ const Landing = () => {
               <form onSubmit={handleSubmit} className={`landing-card ${!isLogin ? "landing-card--register" : ""}`}>
                 <h2 className="landing-title">{isLogin ? "Welcome back" : "Create an account"}</h2>
 
-                {success && <div className="landing-success">{success}</div>}
-
                 {!isLogin && (
                   <div className="landing-name-grid">
-                    <div className="landing-field-group">
-                      <label className="landing-label" htmlFor="landing-firstname">First Name</label>
-                      <input
-                        id="landing-firstname"
-                        type="text"
-                        value={form.firstName}
-                        onChange={onChange("firstName")}
-                        required
-                        className="landing-field"
-                      />
+                    <div className="landing-field-group fl-wrap">
+                      <input id="landing-firstname" type="text" placeholder=" " value={form.firstName} onChange={onChange("firstName")} required className="fl-input landing-field" />
+                      <label className="fl-label fl-label--glass">First Name</label>
                     </div>
-                    <div className="landing-field-group">
-                      <label className="landing-label" htmlFor="landing-mi">Middle Name</label>
-                      <input
-                        id="landing-mi"
-                        type="text"
-                        value={form.middleInitial}
-                        onChange={onChange("middleInitial")}
-                        className="landing-field"
-                      />
+                    <div className="landing-field-group fl-wrap">
+                      <input id="landing-mi" type="text" placeholder=" " value={form.middleInitial} onChange={onChange("middleInitial")} className="fl-input landing-field" />
+                      <label className="fl-label fl-label--glass">Middle Name</label>
                     </div>
-                    <div className="landing-field-group">
-                      <label className="landing-label" htmlFor="landing-lastname">Last Name</label>
-                      <input
-                        id="landing-lastname"
-                        type="text"
-                        value={form.lastName}
-                        onChange={onChange("lastName")}
-                        required
-                        className="landing-field"
-                      />
+                    <div className="landing-field-group fl-wrap">
+                      <input id="landing-lastname" type="text" placeholder=" " value={form.lastName} onChange={onChange("lastName")} required className="fl-input landing-field" />
+                      <label className="fl-label fl-label--glass">Last Name</label>
                     </div>
                   </div>
                 )}
 
-                <div className="landing-field-group">
-                  <label className="landing-label" htmlFor="landing-email">Email address</label>
-                  <input
-                    id="landing-email"
-                    type="email"
-                    value={form.email}
-                    onChange={onChange("email")}
-                    required
-                    className="landing-field"
-                  />
+                <div className="landing-field-group fl-wrap">
+                  <input id="landing-email" type="email" placeholder=" " value={form.email} onChange={onChange("email")} required className="fl-input landing-field" />
+                  <label className="fl-label fl-label--glass">Email address</label>
                 </div>
 
                 <div ref={passwordHintAnchorRef} className="landing-field-group password-hint-anchor">
-                  <label className="landing-label" htmlFor="landing-password">Password</label>
-                  <div className="landing-password-wrap">
+                  <div className="landing-password-wrap fl-wrap">
                     <input
                       id="landing-password"
                       type={showPassword ? "text" : "password"}
+                      placeholder=" "
                       value={form.password}
                       onChange={onChange("password")}
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => setPasswordFocused(false)}
                       required
-                      className="landing-field"
+                      className="fl-input landing-field"
                     />
+                    <label className="fl-label fl-label--glass fl-label--pw">Password</label>
                     <button
                       type="button"
                       className="landing-password-toggle"
@@ -539,12 +497,8 @@ const Landing = () => {
                       {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
                   </div>
-                  {!isLogin && form.password && !isStrongPassword(form.password) ? (
-                    <PasswordChecklist password={form.password} popup side="left" anchorRef={passwordHintAnchorRef} />
-                  ) : null}
+                  <PasswordChecklist focused={!isLogin && !isStrongPassword(form.password) && (passwordFocused || form.password.length > 0)} anchorRef={passwordHintAnchorRef} side="left" persistent />
                 </div>
-
-                {error && <div className="landing-error">{error}</div>}
 
                 {isLogin && (
                   <button

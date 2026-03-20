@@ -117,14 +117,6 @@ export default function InPageFeedbackHost() {
                 <div className="inpage-toast-title">{toast.title || meta.title}</div>
                 <div className="inpage-toast-message">{toast.message}</div>
               </div>
-              <button
-                type="button"
-                className="inpage-toast-close"
-                onClick={() => setToasts((prev) => prev.filter((item) => item.id !== toast.id))}
-                aria-label="Dismiss notification"
-              >
-                ×
-              </button>
             </div>
           );
         })}

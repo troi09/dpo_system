@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserPlus, RefreshCw, Search, X, Eye, EyeOff } from "lucide-react";
 import FilterSelect from "../../components/FilterSelect";
@@ -9,7 +9,9 @@ import {
   adminDeleteUser,
 } from "../../services/authService";
 import PasswordChecklist from "../../components/PasswordChecklist";
-import { isStrongPassword, PASSWORD_POLICY_MESSAGE } from "../../utils/passwordPolicy";
+import "../../components/FloatingLabel.css";
+import { isStrongPassword } from "../../utils/passwordPolicy";
+import { notify } from "../../utils/inPageFeedback";
 
 const ROLE_LABELS = { student: "Student", admin: "Admin", staff: "Staff" };
 
@@ -29,13 +31,16 @@ export default function AdminUsers() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [actionId, setActionId] = useState(null);
-  const [flash, setFlash] = useState(null); // { type: "success"|"error", msg }
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [editForm, setEditForm] = useState({ role: "student", isActive: true });
 
   const [form, setForm] = useState({ firstName: "", middleName: "", lastName: "", email: "", role: "student", password: "" });
   const [showCreatePw, setShowCreatePw] = useState(false);
+  const [createPwFocused, setCreatePwFocused] = useState(false);
+  const createPwAnchorRef = useRef(null);
+  const [confirmCreate, setConfirmCreate] = useState(false);
+  const [confirmEdit, setConfirmEdit] = useState(false);
 
   const load = useCallback(async ({ withSpinner = false } = {}) => {
     setLoading(true);
@@ -43,8 +48,8 @@ export default function AdminUsers() {
     try {
       const data = await getAllUsers();
       setUsers(data);
-    } catch (err) {
-      setFlash({ type: "error", msg: err.response?.data?.message || "Failed to load users" });
+    } catch {
+      // silently fail on load
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -53,33 +58,28 @@ export default function AdminUsers() {
 
   useEffect(() => { load(); }, [load]);
 
-  const showFlash = (type, msg) => {
-    setFlash({ type, msg });
-    setTimeout(() => setFlash(null), 4000);
+  const handleCreate = (e) => {
+    e.preventDefault();
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) return;
+    if (!isStrongPassword(form.password)) return;
+    setConfirmCreate(true);
   };
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
-      showFlash("error", "First name, last name, and email are required.");
-      return;
-    }
-    if (!isStrongPassword(form.password)) {
-      showFlash("error", PASSWORD_POLICY_MESSAGE);
-      return;
-    }
+  const handleConfirmCreate = async () => {
     setCreating(true);
     try {
       const mi = form.middleName.trim() ? form.middleName.trim().charAt(0).toUpperCase() + "." : "";
       const composedName = `${form.firstName.trim()}${mi ? " " + mi : ""} ${form.lastName.trim()}`;
       await adminCreateUser({ name: composedName, email: form.email, role: form.role, password: form.password });
-      showFlash("success", `User created. Temporary password and verification OTP were sent to ${form.email}.`);
+      notify("User created successfully.", { type: "success", title: "Success" });
       setForm({ firstName: "", middleName: "", lastName: "", email: "", role: "student", password: "" });
       setShowCreatePw(false);
       setShowCreate(false);
+      setConfirmCreate(false);
       await load();
     } catch (err) {
-      showFlash("error", err.response?.data?.message || "Failed to create user");
+      notify(err.response?.data?.message || "Failed to create user.", { type: "error", title: "Failed" });
+      setConfirmCreate(false);
     } finally {
       setCreating(false);
     }
@@ -95,11 +95,11 @@ export default function AdminUsers() {
     setActionId(editingUser._id);
     try {
       await adminUpdateUser(editingUser._id, { role: editForm.role, isActive: editForm.isActive });
-      showFlash("success", "User updated successfully.");
+      notify("User updated successfully.", { type: "success", title: "Success" });
       setEditingUser(null);
       await load();
     } catch (err) {
-      showFlash("error", err.response?.data?.message || "Failed to update user");
+      notify(err.response?.data?.message || "Failed to update user.", { type: "error", title: "Failed" });
     } finally {
       setActionId(null);
     }
@@ -110,11 +110,11 @@ export default function AdminUsers() {
     setActionId(deletingUser._id);
     try {
       await adminDeleteUser(deletingUser._id);
-      showFlash("success", "User deleted successfully.");
+      notify("User deleted successfully.", { type: "success", title: "Success" });
       setDeletingUser(null);
       await load();
     } catch (err) {
-      showFlash("error", err.response?.data?.message || "Failed to delete user");
+      notify(err.response?.data?.message || "Failed to delete user.", { type: "error", title: "Failed" });
     } finally {
       setActionId(null);
     }
@@ -152,19 +152,6 @@ export default function AdminUsers() {
           Create User
         </button>
       </div>
-
-      {/* Flash message */}
-      <AnimatePresence>
-        {flash && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className={`admin-flash-banner ${flash.type === "success" ? "admin-flash-banner--success" : "admin-flash-banner--error"}`}
-            style={{ marginBottom: 12 }}
-          >
-            {flash.msg}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Toolbar ── */}
       <div className="req-toolbar">
@@ -257,76 +244,49 @@ export default function AdminUsers() {
               <form onSubmit={handleCreate}>
                 <div className="user-edit-modal__fields" style={{ gridTemplateColumns: "1fr" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                    <div className="user-edit-modal__field">
-                      <label className="user-edit-modal__label">First Name</label>
-                      <input
-                        className="ui-input"
-                        value={form.firstName}
-                        onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))}
-                        required
-                        placeholder="Juan"
-                      />
+                    <div className="user-edit-modal__field fl-wrap">
+                      <input className="fl-input ui-input" placeholder=" " value={form.firstName} onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))} required />
+                      <label className="fl-label">First Name</label>
                     </div>
-                    <div className="user-edit-modal__field">
-                      <label className="user-edit-modal__label">Middle Name</label>
-                      <input
-                        className="ui-input"
-                        value={form.middleName}
-                        onChange={(e) => setForm((p) => ({ ...p, middleName: e.target.value }))}
-                        placeholder="Santos"
-                      />
+                    <div className="user-edit-modal__field fl-wrap">
+                      <input className="fl-input ui-input" placeholder=" " value={form.middleName} onChange={(e) => setForm((p) => ({ ...p, middleName: e.target.value }))} />
+                      <label className="fl-label">Middle Name</label>
                     </div>
-                    <div className="user-edit-modal__field">
-                      <label className="user-edit-modal__label">Last Name</label>
-                      <input
-                        className="ui-input"
-                        value={form.lastName}
-                        onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))}
-                        required
-                        placeholder="Dela Cruz"
-                      />
+                    <div className="user-edit-modal__field fl-wrap">
+                      <input className="fl-input ui-input" placeholder=" " value={form.lastName} onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))} required />
+                      <label className="fl-label">Last Name</label>
                     </div>
                   </div>
-                  <div className="user-edit-modal__field">
-                    <label className="user-edit-modal__label">Email</label>
-                    <input
-                      className="ui-input"
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                      required
-                      placeholder="user@rtu.edu.ph"
-                    />
+                  <div className="user-edit-modal__field fl-wrap">
+                    <input className="fl-input ui-input" type="email" placeholder=" " value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} required />
+                    <label className="fl-label">Email</label>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                     <div className="user-edit-modal__field">
-                      <label className="user-edit-modal__label">Role</label>
                       <select className="ui-input" value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}>
                         <option value="student">Student</option>
                         <option value="staff">Staff</option>
                         <option value="admin">Admin</option>
                       </select>
                     </div>
-                    <div className="user-edit-modal__field password-hint-anchor">
-                      <label className="user-edit-modal__label">Temporary Password</label>
-                      <div style={{ position: "relative" }}>
-                        <input
-                          className="ui-input"
-                          type={showCreatePw ? "text" : "password"}
-                          value={form.password}
-                          onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                          required
-                          minLength={8}
-                          placeholder="Min. 8 characters"
-                          style={{ paddingRight: 42 }}
-                        />
-                        <button type="button" onClick={() => setShowCreatePw((v) => !v)} tabIndex={-1} aria-label={showCreatePw ? "Hide password" : "Show password"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
-                          {showCreatePw ? <Eye size={18} /> : <EyeOff size={18} />}
-                        </button>
-                      </div>
-                      {form.password && !isStrongPassword(form.password) ? (
-                        <PasswordChecklist password={form.password} popup side="left" />
-                      ) : null}
+                    <div ref={createPwAnchorRef} className="user-edit-modal__field fl-wrap">
+                      <input
+                        className="fl-input ui-input"
+                        type={showCreatePw ? "text" : "password"}
+                        placeholder=" "
+                        value={form.password}
+                        onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                        onFocus={() => setCreatePwFocused(true)}
+                        onBlur={() => setCreatePwFocused(false)}
+                        required
+                        minLength={8}
+                        style={{ paddingRight: 42 }}
+                      />
+                      <label className="fl-label fl-label--pw">Temporary Password</label>
+                      <button type="button" onClick={() => setShowCreatePw((v) => !v)} tabIndex={-1} aria-label={showCreatePw ? "Hide password" : "Show password"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
+                        {showCreatePw ? <Eye size={18} /> : <EyeOff size={18} />}
+                      </button>
+                      <PasswordChecklist focused={!isStrongPassword(form.password) && (createPwFocused || form.password.length > 0)} anchorRef={createPwAnchorRef} side="right" persistent />
                     </div>
                   </div>
                 </div>
@@ -486,7 +446,7 @@ export default function AdminUsers() {
                   >
                     Delete User
                   </button>
-                  <button className="ui-btn ui-btn--primary" onClick={handleSaveEdit} disabled={actionId === editingUser._id}>
+                  <button className="ui-btn ui-btn--primary" onClick={() => setConfirmEdit(true)} disabled={actionId === editingUser._id}>
                     {actionId === editingUser._id ? "Saving…" : "Save Changes"}
                   </button>
                 </div>
@@ -498,11 +458,46 @@ export default function AdminUsers() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {confirmCreate && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
+              <h3 className="modal-title">Confirm Create User</h3>
+              <p className="modal-text">Are you sure you want to create this user?</p>
+              <p className="modal-text"><strong>{form.firstName.trim()} {form.middleName.trim() ? form.middleName.trim() + " " : ""}{form.lastName.trim()}</strong> &mdash; <strong>{ROLE_LABELS[form.role] || form.role}</strong></p>
+              <p className="modal-text"><strong>{form.email}</strong></p>
+              <div className="modal-actions">
+                <button className="ui-btn ui-btn--secondary" onClick={() => setConfirmCreate(false)} disabled={creating}>Cancel</button>
+                <button className="ui-btn ui-btn--primary" onClick={handleConfirmCreate} disabled={creating}>{creating ? "Creating…" : "Confirm"}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {confirmEdit && editingUser && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
+              <h3 className="modal-title">Confirm Save Changes</h3>
+              <p className="modal-text">Are you sure you want to save changes for this user?</p>
+              <p className="modal-text"><strong>{editingUser.name}</strong> &mdash; <strong>{ROLE_LABELS[editForm.role] || editForm.role}</strong></p>
+              <p className="modal-text"><strong>{editingUser.email}</strong></p>
+              <div className="modal-actions">
+                <button className="ui-btn ui-btn--secondary" onClick={() => setConfirmEdit(false)} disabled={actionId === editingUser._id}>Cancel</button>
+                <button className="ui-btn ui-btn--primary" onClick={() => { setConfirmEdit(false); handleSaveEdit(); }} disabled={actionId === editingUser._id}>Confirm</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {deletingUser && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
-              <h3 className="modal-title">Delete User</h3>
+              <h3 className="modal-title">Confirm Delete User</h3>
               <p className="modal-text">Are you sure you want to permanently delete this user?</p>
+              <p className="modal-text"><strong>{deletingUser.name}</strong> &mdash; <strong>{ROLE_LABELS[deletingUser.role] || deletingUser.role}</strong></p>
               <p className="modal-text"><strong>{deletingUser.email}</strong></p>
               <div className="modal-actions">
                 <button className="ui-btn ui-btn--secondary" onClick={() => setDeletingUser(null)}>Cancel</button>

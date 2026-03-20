@@ -1,9 +1,11 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, XCircle } from "lucide-react";
 import { verifyEmail, verifyEmailByToken, resendVerificationOtp } from "../services/authService";
 import { AuthContext } from "../context/AuthContext";
+import { notify } from "../utils/inPageFeedback";
 import "../components/Landing.css";
+import "../components/FloatingLabel.css";
 
 export default function VerifyEmailPage() {
   const [params] = useSearchParams();
@@ -15,7 +17,6 @@ export default function VerifyEmailPage() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [status, setStatus] = useState(token ? "loading" : "form"); // "loading" | "form" | "success" | "error"
-  const [message, setMessage] = useState("");
   const [resendSeconds, setResendSeconds] = useState(token ? 0 : 60);
 
   useEffect(() => {
@@ -68,7 +69,6 @@ export default function VerifyEmailPage() {
     e.preventDefault();
     if (!otp.trim()) return;
     setLoading(true);
-    setMessage("");
     try {
       const data = await verifyEmail(emailParam, otp.trim());
       if (data?.token && data?.user) {
@@ -76,9 +76,8 @@ export default function VerifyEmailPage() {
         return;
       }
       setStatus("success");
-      setMessage(data.message || "Email verified successfully!");
     } catch (err) {
-      setMessage(err.response?.data?.message || "Invalid or expired OTP.");
+      notify(err.response?.data?.message || "Invalid or expired OTP.", { type: "error", title: "Failed" });
     } finally {
       setLoading(false);
     }
@@ -87,22 +86,16 @@ export default function VerifyEmailPage() {
   const handleResend = async () => {
     if (resendSeconds > 0) return;
     setResending(true);
-    setMessage("");
     try {
       const data = await resendVerificationOtp(emailParam);
-      setMessage(data.message || "A new OTP has been sent.");
+      notify(data.message || "A new OTP has been sent to your email.", { type: "success", title: "Sent" });
       setResendSeconds(60);
     } catch (err) {
-      setMessage(err.response?.data?.message || "Failed to resend OTP.");
+      notify(err.response?.data?.message || "Failed to resend OTP.", { type: "error", title: "Failed" });
     } finally {
       setResending(false);
     }
   };
-
-  const statusTone = useMemo(() => {
-    if (!message) return null;
-    return message.toLowerCase().includes("sent") ? "landing-success" : "landing-error";
-  }, [message]);
 
   if (status === "loading") {
     return (
@@ -205,21 +198,19 @@ export default function VerifyEmailPage() {
               A 6-digit OTP was sent to <strong>{emailParam}</strong>. Enter it below to activate your account.
             </p>
 
-            {message ? <div className={statusTone}>{message}</div> : null}
-
-            <div className="landing-field-group">
-              <label className="landing-label">OTP Code</label>
+            <div className="landing-field-group fl-wrap">
               <input
                 type="text"
-                className="landing-field"
+                className="fl-input landing-field"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                placeholder="123456"
+                placeholder=" "
                 required
                 maxLength={6}
                 autoFocus
                 inputMode="numeric"
               />
+              <label className="fl-label fl-label--glass">OTP Code</label>
             </div>
 
             <button type="submit" className="landing-submit" disabled={loading}>

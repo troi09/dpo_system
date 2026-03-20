@@ -284,10 +284,11 @@
   color: var(--text-muted);
 }
 
-.landing-field:focus {
+.landing-field:focus,
+.landing-field:focus-within {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(15, 45, 107, 0.1);
+  border-color: var(--border-strong) !important;
+  box-shadow: none !important;
 }
 
 .landing-field::-ms-reveal,
