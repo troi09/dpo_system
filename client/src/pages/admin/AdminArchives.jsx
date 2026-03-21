@@ -146,7 +146,7 @@ export default function AdminArchives() {
             <input
               type="text"
               className="req-toolbar__search-input"
-              placeholder="Search by requestee, email, or request ID…"
+              placeholder="Search by requestor, email, or request ID…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") applySearch(); }}
@@ -283,7 +283,7 @@ export default function AdminArchives() {
               <tr>
                 <th>Request Date</th>
                 <th>Archived Date</th>
-                <th>Requestee</th>
+                <th>Requestor</th>
                 <th>Request ID</th>
                 <th>Type</th>
                 <th>Status</th>

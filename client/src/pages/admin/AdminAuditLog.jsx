@@ -33,9 +33,21 @@ const ACTION_LABELS = {
   password_reset_triggered_by_admin: "Password Reset (Admin)",
   user_activated: "User Activated",
   user_deactivated: "User Deactivated",
+  user_updated: "User Updated",
+  user_deleted: "User Deleted",
   signing_link_generated: "Signing Link Generated",
   rep_signature_submitted: "Representative Signature Submitted",
   rep_signature_declined: "Representative Signature Declined",
+};
+
+const FIELD_LABELS = {
+  role: "role",
+  isActive: "active status",
+  email: "email address",
+  name: "name",
+  firstName: "first name",
+  lastName: "last name",
+  middleInitial: "middle name",
 };
 
 const prettyAction = (action) =>
@@ -62,59 +74,84 @@ const formatActor = (user) => {
   return `${role} ${user.name || user.email || "User"}`;
 };
 
+const LOGIN_FAIL_REASON = {
+  user_not_found: "account does not exist",
+  wrong_password: "incorrect password",
+  account_inactive: "account is deactivated",
+};
+
+const PASSWORD_METHOD_LABEL = {
+  profile: "via profile settings",
+  reset: "via password reset",
+};
+
+const prettyType = (type) =>
+  type === "nda" ? "NDA" : type === "agreement" ? "Agreement" : String(type || "document").toUpperCase();
+
 const formatAuditDetails = (log) => {
   const actor = formatActor(log.userId);
   const details = log.details && typeof log.details === "object" ? log.details : {};
-  const resourceLabel = log.resourceType || "record";
-  const resourceId = log.resourceId ? ` (${String(log.resourceId).slice(-8)})` : "";
 
   switch (log.action) {
     case "login":
-      return `${actor} signed in successfully.`;
+      return details.method === "otp"
+        ? `${actor} signed in successfully via OTP verification.`
+        : `${actor} signed in successfully.`;
     case "login_failed":
-      return `${actor} failed to sign in (${details.reason || "invalid credentials"}).`;
+      return `${actor} failed to sign in — ${LOGIN_FAIL_REASON[details.reason] || "invalid credentials"}.`;
     case "login_otp_sent":
-      return `A login OTP was sent to ${actor}.`;
+      return details.reason === "resend"
+        ? `${actor} requested a new login OTP.`
+        : `A login OTP was sent to ${actor}.`;
     case "verification_otp_sent":
       return `A verification OTP was sent to ${actor} before account access.`;
     case "account_created":
       if (details.createdBy === "admin") {
         return `${actor} created an account for ${details.targetEmail || "a user"} with role ${details.role || "student"}.`;
       }
-      return `${actor} created a new account.`;
+      return `${actor} registered a new account.`;
     case "account_activated":
       return `${actor} activated their account.`;
     case "email_verified":
       return `${actor} verified their email address.`;
     case "request_created":
-      return `${actor} submitted a ${String(details.type || "document").toUpperCase()} request.`;
+      return details.isProxy
+        ? `${actor} submitted a ${prettyType(details.type)} request on behalf of a walk-in requestor.`
+        : `${actor} submitted a ${prettyType(details.type)} request.`;
     case "request_resubmitted":
-      return `${actor} resubmitted a ${String(details.type || "document").toUpperCase()} request.`;
+      return `${actor} resubmitted a ${prettyType(details.type)} request.`;
     case "request_approved":
-      return `${actor} approved a ${resourceLabel}${resourceId}.`;
+      return `${actor} approved a ${prettyType(details.type)} request.`;
     case "request_revision_required":
-      return `${actor} requested revisions for a ${resourceLabel}${resourceId}.`;
+      return `${actor} requested revisions on a ${prettyType(details.type)} request.`;
     case "signing_link_generated":
-      return `${actor} generated a representative signing link.`;
+      return `${actor} generated a representative signing link for an ${prettyType(details.type)} request.`;
     case "rep_signature_submitted":
-      return `Representative ${details.repName || "user"} submitted a signature.`;
+      return `Representative ${details.repName || "user"} submitted their e-signature.`;
     case "rep_signature_declined":
       return `The representative declined the signing request.`;
     case "password_changed":
-      return `${actor} changed their password (${details.method || "profile"}).`;
+      return `${actor} changed their password ${PASSWORD_METHOD_LABEL[details.method] || ""}.`.trim();
     case "password_reset_requested":
-      return `${actor} requested a password reset OTP.`;
+      return details.reason === "resend"
+        ? `${actor} requested a new password reset OTP.`
+        : `${actor} requested a password reset OTP.`;
     case "password_reset_triggered_by_admin":
-      return `${actor} triggered a password reset OTP for ${details.targetEmail || "a user"}.`;
+      return `${actor} reset the password for ${details.targetEmail || "a user"}.`;
     case "user_activated":
-      return `${actor} reactivated ${details.targetEmail || "a user account"}.`;
+      return `${actor} reactivated the account of ${details.targetEmail || "a user"}.`;
     case "user_deactivated":
-      return `${actor} deactivated ${details.targetEmail || "a user account"}.`;
+      return `${actor} deactivated the account of ${details.targetEmail || "a user"}.`;
+    case "user_updated": {
+      const fields = Array.isArray(details.fields)
+        ? details.fields.map((f) => FIELD_LABELS[f] || f.replace(/_/g, " ")).join(", ")
+        : "account details";
+      return `${actor} updated ${details.targetEmail ? `${details.targetEmail}'s` : "a user's"} ${fields}.`;
+    }
+    case "user_deleted":
+      return `${actor} permanently deleted the account of ${details.targetEmail || "a user"}.`;
     default:
       if (typeof log.details === "string" && log.details.trim()) return log.details;
-      if (log.details && typeof log.details === "object" && Object.keys(log.details).length > 0) {
-        return Object.entries(log.details).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join(", ");
-      }
       return "No additional details were recorded.";
   }
 };
@@ -219,6 +256,8 @@ export default function AdminAuditLog() {
     { label: "Password Reset", value: "password_reset_requested" },
     { label: "User Activated", value: "user_activated" },
     { label: "User Deactivated", value: "user_deactivated" },
+    { label: "User Updated", value: "user_updated" },
+    { label: "User Deleted", value: "user_deleted" },
     { label: "Email Verified", value: "email_verified" },
     { label: "Signing Link Generated", value: "signing_link_generated" },
     { label: "Representative Signature Submitted", value: "rep_signature_submitted" },

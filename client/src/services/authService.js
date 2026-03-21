@@ -101,6 +101,12 @@ export const refreshToken = async () => {
   return res.data;
 };
 
+// ── Password change OTP ───────────────────────────────────────────────────────
+export const requestPasswordChangeOtp = async () => {
+  const res = await axios.post(`${API_URL}/request-password-change-otp`, {}, { headers: authHeader() });
+  return res.data;
+};
+
 // ── Profile update ────────────────────────────────────────────────────────────
 export const updateProfile = async (payload) => {
   const res = await axios.patch(`${API_URL}/profile`, payload, { headers: authHeader() });

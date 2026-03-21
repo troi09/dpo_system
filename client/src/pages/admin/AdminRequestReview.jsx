@@ -110,7 +110,7 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           if (!updated?.serialNo) throw new Error("Serial number missing");
           const verificationUrl = buildVerificationUrl(updated.serialNo);
           const qrDataUrl = await generateQrDataUrl(verificationUrl);
-          const studentName = reqData.proxyRequestee?.fullName || "Proxy Requestee";
+          const studentName = reqData.proxyRequestee?.fullName || "Proxy Requestor";
           const requestFolder = getRequestFolder(reqData.predocs);
           if (!requestFolder) throw new Error("Could not determine request folder");
           await uploadApprovedQrImage(qrDataUrl, reqData.type, studentName, requestFolder);
@@ -419,7 +419,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       setSigningLink(link);
       setSigningLinkExpiry(res.signingTokenExpiresAt || null);
       await onRequestUpdated?.();
-      notify("Signing link generated! Copy it and send to the representative manually.", { type: "success", title: "Approved" });
+      notify("Approved. Signing link sent to the representative's email.", { type: "success", title: "Approved" });
     } catch (err) {
       notify(err.response?.data?.message || err.message || "Failed to generate signing link", { type: "error" });
     } finally {
@@ -441,11 +441,11 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
     }
   };
 
-  const handleRegenerateLink = async () => {
+  const handleResendLink = async () => {
     const confirmed = await confirmInPage({
-      title: "Regenerate Signing Link",
-      message: "Regenerate the signing link? The old link will be invalidated.",
-      confirmText: "Regenerate",
+      title: "Resend Signing Link",
+      message: "This will generate a new signing link and send it to the representative's email. The old link will be invalidated.",
+      confirmText: "Resend",
       cancelText: "Cancel",
       tone: "warning",
     });
@@ -457,9 +457,9 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       setSigningLink(link);
       setSigningLinkExpiry(res.signingTokenExpiresAt || null);
       await onRequestUpdated?.();
-      notify("New signing link generated! Copy it and send to the representative.", { type: "success" });
+      notify("New signing link sent to the representative's email.", { type: "success" });
     } catch (err) {
-      notify(err.response?.data?.message || err.message || "Failed to regenerate signing link", { type: "error" });
+      notify(err.response?.data?.message || err.message || "Failed to resend signing link", { type: "error" });
     } finally {
       setRegenerating(false);
     }
@@ -528,10 +528,11 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
     setPhase3Revising(true);
     try {
       const res = await adminPhase3Action(reqData._id, { action: "rep_revision_requested", remarks });
-      const newLink = `${window.location.origin}/sign/${res.request.signingToken}`;
+      const newLink = `${window.location.origin}/sign/${res.signingToken || res.request.signingToken}`;
       setSigningLink(newLink);
+      setSigningLinkExpiry(res.signingTokenExpiresAt || null);
       await onRequestUpdated?.({ withToast: true });
-      notify("Recipient revision requested. A new signing link has been generated.", { type: "success", title: "Revision Requested" });
+      notify("Recipient revision requested. A new signing link has been sent to the representative's email.", { type: "success", title: "Revision Requested" });
     } catch (err) {
       notify(err.response?.data?.message || "Failed", { type: "error" });
     } finally {
@@ -541,9 +542,9 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
 
   return (
     <>
-      {/* Requestee Attachments */}
+      {/* Requestor Attachments */}
       <div className="review-section">
-        <h4 className="review-section-title">Requestee Attachments</h4>
+        <h4 className="review-section-title">Requestor Attachments</h4>
         {reqData.predocs?.length ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {reqData.predocs.map((f, idx) => (
@@ -703,13 +704,13 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           )}
           {canProgress && (
             <button
-              onClick={handleRegenerateLink}
+              onClick={handleResendLink}
               disabled={regenerating || !signingLinkExpiry || new Date(signingLinkExpiry) >= new Date()}
               className="review-btn-secondary"
               style={{ marginTop: 10, opacity: (!signingLinkExpiry || new Date(signingLinkExpiry) >= new Date()) ? 0.5 : 1 }}
-              title={(!signingLinkExpiry || new Date(signingLinkExpiry) >= new Date()) ? "Link is still active" : "Regenerate expired link"}
+              title={(!signingLinkExpiry || new Date(signingLinkExpiry) >= new Date()) ? "Link is still active — not yet expired" : "Resend a new signing link to representative"}
             >
-              {regenerating ? "Regenerating…" : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><RefreshCw size={14} strokeWidth={1.8} />Regenerate Link</span>}
+              {regenerating ? "Sending…" : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><RefreshCw size={14} strokeWidth={1.8} />Resend Link</span>}
             </button>
           )}
         </div>
@@ -822,8 +823,7 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
         <div className="info-banner info-banner--warning">
           <strong>Recipient Revision Pending</strong>
           <p>
-            A new signing link has been generated. Send it to the representative so they can
-            resubmit.
+            A new signing link has been sent to the representative's email so they can resubmit.
           </p>
         </div>
       )}
@@ -945,10 +945,10 @@ export default function AdminRequestReview() {
         </div>
 
         <div className="review-section">
-          <h4 className="review-section-title">Requestee</h4>
+          <h4 className="review-section-title">Requestor</h4>
           <div className="review-info-box">
             <div style={{ fontWeight: 600 }}>
-              {reqData.proxyRequestee?.isProxy ? (reqData.proxyRequestee?.fullName || "Proxy Requestee") : (reqData.userId?.name || "Unknown")}
+              {reqData.proxyRequestee?.isProxy ? (reqData.proxyRequestee?.fullName || "Proxy Requestor") : (reqData.userId?.name || "Unknown")}
             </div>
             <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
               {reqData.proxyRequestee?.isProxy ? (reqData.proxyRequestee?.email || "") : (reqData.userId?.email || "")}

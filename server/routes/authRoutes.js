@@ -25,6 +25,7 @@ const {
   resetPassword,
   refreshToken,
   updateProfile,
+  requestPasswordChangeOtp,
   getAllUsers,
   adminCreateUser,
   toggleUserActive,
@@ -49,6 +50,7 @@ router.post("/reset-password", authLimiter, resetPassword);
 
 // Authenticated
 router.post("/refresh-token", protect, refreshToken);
+router.post("/request-password-change-otp", protect, requestPasswordChangeOtp);
 router.patch("/profile", protect, updateProfile);
 
 // Admin-only

@@ -32,8 +32,8 @@ export default function StudentAgreementRequirements({
           <span className="type-chooser-card-subtext">
             For assigning a representative to act on your behalf in data-related agreements with the DPO.
           </span>
-          <span className="type-chooser-req-title">Requestee Requirements:</span>
-          <ul className="type-chooser-req-list" aria-label="Requestee requirements">
+          <span className="type-chooser-req-title">Requestor Requirements:</span>
+          <ul className="type-chooser-req-list" aria-label="Requestor requirements">
             <li>Notarized Authorization Letter</li>
             <li>Government Issued Valid ID</li>
           </ul>

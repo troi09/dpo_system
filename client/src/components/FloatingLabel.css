@@ -53,6 +53,9 @@
 
 .fl-input:focus ~ .fl-label--glass,
 .fl-input:not(:placeholder-shown) ~ .fl-label--glass {
+  top: 7px;
+  transform: none;
+  font-size: 10px;
   color: #000;
   font-weight: 700;
 }

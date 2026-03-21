@@ -45,11 +45,11 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
     if (proxyMode) {
       const hasName = String(proxyRequestee.firstName || "").trim() && String(proxyRequestee.lastName || "").trim();
       if (!hasName) {
-        notify("Requestee First Name and Last Name are required", { type: "warning" });
+        notify("Requestor First Name and Last Name are required", { type: "warning" });
         return;
       }
       const requiredNonNameFields = [
-        ["email", "Requestee Email"],
+        ["email", "Requestor Email"],
       ];
       for (const [key, label] of requiredNonNameFields) {
         if (!String(proxyRequestee[key] || "").trim()) {
@@ -96,7 +96,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
         ? `${proxyRequestee.firstName}${proxyRequestee.middleInitial?.trim() ? " " + proxyRequestee.middleInitial.trim().charAt(0).toUpperCase() + "." : ""} ${proxyRequestee.lastName}`.trim()
         : "";
       const requestSubjectName = proxyMode
-        ? proxyFullName || user?.name || "Proxy Requestee"
+        ? proxyFullName || user?.name || "Proxy Requestor"
         : user?.name || "Unknown Student";
       const requestFolder = getDateRequestFolder();
 
@@ -155,7 +155,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
 
         {/* Section 1: Requestee Data */}
         <div className="request-section">
-          <div className="request-section-title">Requestee Information</div>
+          <div className="request-section-title">Requestor Information</div>
           {cfg.fields.map((f) => (
             <div key={f.name} className="fl-wrap">
               {f.kind === "textarea" ? (
@@ -181,7 +181,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
 
           {proxyMode && (
             <>
-              <div className="request-section-title" style={{ marginTop: 10 }}>Requestee Details (F2F Walk-in)</div>
+              <div className="request-section-title" style={{ marginTop: 10 }}>Requestor Details (F2F Walk-in)</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 0.55fr 1fr", gap: 8 }}>
                 <div className="fl-wrap">
                   <input className="fl-input request-input" placeholder=" " value={proxyRequestee.firstName} onChange={(e) => onChangeProxy("firstName", e.target.value)} required />
@@ -198,7 +198,7 @@ export default function StudentNDARequest({ ndaType, proxyMode = false, fallback
               </div>
               <div className="fl-wrap">
                 <input className="fl-input request-input" type="email" placeholder=" " value={proxyRequestee.email} onChange={(e) => onChangeProxy("email", e.target.value)} required />
-                <label className="fl-label">Requestee Email</label>
+                <label className="fl-label">Requestor Email</label>
               </div>
             </>
           )}

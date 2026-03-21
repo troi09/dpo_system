@@ -17,7 +17,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     minHeight: 348,
   },
-  copySpacer: { height: 10 },
+  cutLine: {
+    textAlign: "center",
+    fontSize: 7,
+    color: "#666",
+    letterSpacing: 1.5,
+    marginVertical: 5,
+  },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   headerBlock: { width: "48%" },
   headerLeftTitle: { fontSize: 7.8, fontFamily: "Times-Bold" },
@@ -36,16 +42,16 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     textAlign: "justify",
     textIndent: 12,
-    lineHeight: 1.18,
-    marginTop: 4,
+    lineHeight: 1.12,
+    marginTop: 10,
   },
   paragraphFinal: {
     width: "92%",
     alignSelf: "center",
     textAlign: "justify",
     textIndent: 12,
-    lineHeight: 1.18,
-    marginTop: 4,
+    lineHeight: 1.12,
+    marginTop: 10,
   },
   afterParagraph: {
     marginTop: 8,
@@ -177,7 +183,7 @@ export default function AgreementDoc({ request }) {
     <Document>
       <Page size="A4" style={styles.page}>
         <AgreementCopy />
-        <View style={styles.copySpacer} />
+        <Text style={styles.cutLine}>{"- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"}</Text>
         <AgreementCopy />
       </Page>
     </Document>

@@ -180,7 +180,7 @@ export default function AdminRequests() {
             <input
               type="text"
               className="req-toolbar__search-input"
-              placeholder="Search by requestee, email, or request ID…"
+              placeholder="Search by requestor, email, or request ID…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -331,7 +331,7 @@ export default function AdminRequests() {
             </tr>
             <tr>
               <th>Request Date</th>
-              <th>Requestee</th>
+              <th>Requestor</th>
               <th>Request ID</th>
               <th>Type</th>
               <th>Status</th>
@@ -367,7 +367,7 @@ export default function AdminRequests() {
 
                   <td>
                     <span style={{ fontWeight: 600 }}>
-                      {r.proxyRequestee?.isProxy ? (r.proxyRequestee?.fullName || "Proxy Requestee") : (r.userId?.name || "Unknown")}
+                      {r.proxyRequestee?.isProxy ? (r.proxyRequestee?.fullName || "Proxy Requestor") : (r.userId?.name || "Unknown")}
                     </span>
                     <span className="dashboard-subtext">
                       {r.proxyRequestee?.isProxy ? (r.proxyRequestee?.email || "") : (r.userId?.email || "")}

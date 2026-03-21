@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     textAlign: "justify",
     textIndent: 24,
     lineHeight: 1.25,
-    marginTop: 6,
+    marginTop: 14,
   },
   paragraphNoIndent: {
     width: "85%",
@@ -39,13 +39,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
   },
+  titleText: {
+    fontFamily: "Times-BoldItalic",
+  },
   paragraphFinal: {
     width: "85%",
     alignSelf: "center",
     textAlign: "justify",
     textIndent: 24,
     lineHeight: 1.25,
-    marginTop: 6,
+    marginTop: 14,
   },
   afterParagraph: {
     marginTop: 18,
@@ -123,7 +126,7 @@ export default function NDAResearchDoc({ request }) {
           titled:
         </Text>
         <Text style={styles.paragraphNoIndent}>
-          "{fd.researchTitle || "________________"}"
+          <Text style={styles.titleText}>"{fd.researchTitle || "________________"}"</Text>
         </Text>
         <Text style={styles.paragraph}>
           We guarantee our commitment to strictly adhere to the Data Privacy Act of 2012, as well as any current and

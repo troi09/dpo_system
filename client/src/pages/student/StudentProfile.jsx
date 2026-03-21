@@ -2,7 +2,7 @@ import { useContext, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../../context/AuthContext";
-import { updateProfile } from "../../services/authService";
+import { updateProfile, requestPasswordChangeOtp } from "../../services/authService";
 import PasswordChecklist, { ErrorTooltip } from "../../components/PasswordChecklist";
 import { isStrongPassword } from "../../utils/passwordPolicy";
 import { notify } from "../../utils/inPageFeedback";
@@ -23,6 +23,8 @@ const StudentProfile = () => {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [confirmName, setConfirmName] = useState(false);
   const [confirmPw, setConfirmPw] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpCooldown, setOtpCooldown] = useState(0);
 
   const [newPwFocused, setNewPwFocused] = useState(false);
   const [confirmPwFocused, setConfirmPwFocused] = useState(false);
@@ -30,10 +32,22 @@ const StudentProfile = () => {
   // Refs for tooltip anchoring
   const newPwAnchorRef = useRef(null);
   const confirmPwAnchorRef = useRef(null);
+  const cooldownRef = useRef(null);
 
   const initials = user?.name
     ? user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
     : "?";
+
+  const startCooldown = (seconds) => {
+    setOtpCooldown(seconds);
+    clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setOtpCooldown((s) => {
+        if (s <= 1) { clearInterval(cooldownRef.current); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+  };
 
   const handleNameSubmit = (e) => {
     e.preventDefault();
@@ -67,25 +81,61 @@ const StudentProfile = () => {
     }
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (!currentPassword || !isStrongPassword(newPassword) || newPassword !== confirmPassword) return;
-    setConfirmPw(true);
+    setLoading(true);
+    try {
+      await requestPasswordChangeOtp();
+      setOtp("");
+      startCooldown(60);
+      setConfirmPw(true);
+    } catch (err) {
+      const data = err?.response?.data;
+      if (err?.response?.status === 429 && data?.retryAfterSeconds) {
+        startCooldown(data.retryAfterSeconds);
+        setConfirmPw(true);
+      } else {
+        notify(data?.message || "Failed to send OTP.", { type: "error", title: "Error" });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpCooldown > 0) return;
+    setLoading(true);
+    try {
+      await requestPasswordChangeOtp();
+      setOtp("");
+      startCooldown(60);
+      notify("A new OTP has been sent to your email.", { type: "info", title: "OTP Sent" });
+    } catch (err) {
+      const data = err?.response?.data;
+      if (err?.response?.status === 429 && data?.retryAfterSeconds) {
+        startCooldown(data.retryAfterSeconds);
+      }
+      notify(data?.message || "Failed to resend OTP.", { type: "error", title: "Error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmPasswordUpdate = async () => {
+    if (!otp.trim()) { notify("Please enter the OTP sent to your email.", { type: "warning" }); return; }
     setLoading(true);
     try {
-      await updateProfile({ currentPassword, newPassword });
+      await updateProfile({ currentPassword, newPassword, otp: otp.trim() });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setOtp("");
       setConfirmPwFocused(false);
+      setConfirmPw(false);
       notify("Password changed successfully.", { type: "success", title: "Success" });
-      setConfirmPw(false);
-    } catch {
-      notify("Current password is incorrect.", { type: "error", title: "Failed" });
-      setConfirmPw(false);
+    } catch (err) {
+      notify(err?.response?.data?.message || "Failed to change password.", { type: "error", title: "Failed" });
     } finally {
       setLoading(false);
     }
@@ -199,7 +249,9 @@ const StudentProfile = () => {
             />
           </div>
 
-          <button type="submit" className="ui-btn ui-btn--primary" disabled={loading} style={{ alignSelf: "flex-end" }}>Save Changes</button>
+          <button type="submit" className="ui-btn ui-btn--primary" disabled={loading} style={{ alignSelf: "flex-end" }}>
+            {loading ? "Sending OTP…" : "Save Changes"}
+          </button>
         </form>
       </div>
     </div>
@@ -226,11 +278,30 @@ const StudentProfile = () => {
       {confirmPw && (
         <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
-            <h3 className="modal-title">Confirm Change Password</h3>
-            <p className="modal-text">Are you sure you want to change your password?</p>
+            <h3 className="modal-title">Verify Your Identity</h3>
+            <p className="modal-text">An OTP has been sent to <strong>{user?.email}</strong>. Enter it below to confirm your password change.</p>
+            <div className="fl-wrap" style={{ marginBottom: 4 }}>
+              <input
+                placeholder=" "
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="fl-input request-input"
+                maxLength={6}
+                autoFocus
+              />
+              <label className="fl-label">One-Time Password</label>
+            </div>
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={otpCooldown > 0 || loading}
+              style={{ fontSize: 12, color: otpCooldown > 0 ? "var(--text-muted)" : "var(--primary)", background: "none", border: "none", padding: 0, cursor: otpCooldown > 0 ? "default" : "pointer", marginBottom: 12 }}
+            >
+              {otpCooldown > 0 ? `Resend OTP in ${otpCooldown}s` : "Resend OTP"}
+            </button>
             <div className="modal-actions">
-              <button className="ui-btn ui-btn--secondary" onClick={() => setConfirmPw(false)} disabled={loading}>Cancel</button>
-              <button className="ui-btn ui-btn--primary" onClick={handleConfirmPasswordUpdate} disabled={loading}>{loading ? "Saving…" : "Confirm"}</button>
+              <button className="ui-btn ui-btn--secondary" onClick={() => { setConfirmPw(false); setOtp(""); }} disabled={loading}>Cancel</button>
+              <button className="ui-btn ui-btn--primary" onClick={handleConfirmPasswordUpdate} disabled={loading}>{loading ? "Verifying…" : "Confirm"}</button>
             </div>
           </motion.div>
         </motion.div>

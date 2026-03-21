@@ -83,16 +83,18 @@ const SignaturePad = forwardRef(function SignaturePad(
   };
 
   return (
-    <div style={{ position: "relative", display: "inline-block", width: "100%" }}>
+    <div style={{ position: "relative", display: "inline-block", width: "100%", cursor: disabled ? "default" : "crosshair", userSelect: "none" }}>
       <canvas
         ref={canvasRef}
         width={600}
         height={height}
+        draggable={false}
+        className={disabled ? "sig-pad-canvas--disabled" : "sig-pad-canvas"}
         style={{
           border: "1px solid #ccc",
           borderRadius: 4,
-          cursor: disabled ? "default" : "crosshair",
           touchAction: "none",
+          userSelect: "none",
           width: "100%",
           display: "block",
           background: "#fafafa",

@@ -223,7 +223,7 @@ export default function AdminReports() {
             <input
               type="text"
               className="req-toolbar__search-input"
-              placeholder="Search by requestee, email, or request ID…"
+              placeholder="Search by requestor, email, or request ID…"
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
             />
@@ -372,7 +372,7 @@ export default function AdminReports() {
               </tr>
               <tr>
                 <th>Last Updated</th>
-                <th>Requestee</th>
+                <th>Requestor</th>
                 <th>Request ID</th>
                 <th>Type</th>
                 <th>Status</th>

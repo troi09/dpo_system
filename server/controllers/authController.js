@@ -493,10 +493,34 @@ exports.refreshToken = async (req, res) => {
   }
 };
 
+// REQUEST OTP FOR PASSWORD CHANGE
+exports.requestPasswordChangeOtp = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const { isCoolingDown, retryAfterSeconds } = getOtpCooldownState(user);
+    if (isCoolingDown) {
+      return res.status(429).json({ message: `Please wait ${retryAfterSeconds}s before requesting another OTP.`, retryAfterSeconds });
+    }
+
+    const otp = generateOtp();
+    user.otp = await bcrypt.hash(otp, 10);
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    user.otpLastSentAt = new Date();
+    await user.save();
+    await sendOtpEmail(user.email, otp, "change");
+
+    res.json({ message: "An OTP has been sent to your email." });
+  } catch (error) {
+    res.status(500).json({ message: buildErrorMessage(error) });
+  }
+};
+
 // UPDATE PROFILE (name & password)
 exports.updateProfile = async (req, res) => {
   try {
-    const { firstName, middleInitial, lastName, name, currentPassword, newPassword } = req.body;
+    const { firstName, middleInitial, lastName, name, currentPassword, newPassword, otp } = req.body;
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -524,6 +548,9 @@ exports.updateProfile = async (req, res) => {
       if (!currentPassword) {
         return res.status(400).json({ message: "Current password is required to set a new password" });
       }
+      if (!otp) {
+        return res.status(400).json({ message: "OTP verification is required to change password" });
+      }
       if (!isStrongPassword(newPassword)) {
         return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
       }
@@ -531,6 +558,18 @@ exports.updateProfile = async (req, res) => {
       if (!isMatch) {
         return res.status(400).json({ message: "Current password is incorrect" });
       }
+      if (!user.otp || !user.otpExpiry) {
+        return res.status(400).json({ message: "No OTP found. Please request a new one." });
+      }
+      if (user.otpExpiry < new Date()) {
+        return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+      }
+      const otpMatch = await bcrypt.compare(String(otp), user.otp);
+      if (!otpMatch) {
+        return res.status(400).json({ message: "Invalid OTP. Please try again." });
+      }
+      user.otp = null;
+      user.otpExpiry = null;
       user.password = await bcrypt.hash(newPassword, 12);
       updated = true;
       logAudit({ userId: user._id, action: "password_changed", details: { method: "profile" } });

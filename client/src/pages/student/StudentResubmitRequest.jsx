@@ -181,7 +181,7 @@ export default function StudentResubmitRequest() {
     );
   }
 
-  const dataTitle = reqData.type === "agreement" ? "Revised Representative Data" : "Revised Requestee Data";
+  const dataTitle = reqData.type === "agreement" ? "Revised Representative Data" : "Revised Requestor Data";
 
   return (
     <div className="request-form-page">

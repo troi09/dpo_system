@@ -27,7 +27,10 @@ const Headbar = () => {
           loading="eager"
           decoding="async"
         />
-        <span className="headbar-brand-name">Data PrivaDesk</span>
+        <div className="headbar-brand-text">
+          <span className="headbar-brand-name">Data Protection Office</span>
+          <span className="headbar-brand-sub">Rizal Technological University</span>
+        </div>
       </div>
     </div>
   );

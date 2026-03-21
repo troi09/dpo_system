@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const Request = require("../models/Request");
 const User = require("../models/User");
 const AuditLog = require("../models/AuditLog");
-const { sendStatusUpdateEmail } = require("../utils/emailService");
+const { sendStatusUpdateEmail, sendSigningLinkEmail, sendAgreementApprovedEmail } = require("../utils/emailService");
 
 const logAudit = (data) => {
   AuditLog.create(data).catch(() => {});
@@ -516,6 +516,20 @@ exports.saveApprovedDocument = async (req, res) => {
     r.repSigPath = "";
 
     await r.save();
+
+    // Email representative with approved document link (agreement requests only)
+    if (r.type === "agreement") {
+      const repEmail = r.formData?.repEmail;
+      if (repEmail) {
+        const repName = [r.formData?.repFirstName, r.formData?.repLastName].filter(Boolean).join(" ") || "Representative";
+        const requestOwner = await User.findById(r.userId).select("name").lean();
+        const requestorName = r.proxyRequestee?.isProxy ? r.proxyRequestee.fullName : requestOwner?.name || "Requestor";
+        sendAgreementApprovedEmail(repEmail, repName, requestorName, url, verificationUrl || "").catch((err) => {
+          console.error("Failed to send approved document email to representative:", err.message);
+        });
+      }
+    }
+
     return res.json({ message: "Approved document saved", request: r });
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -564,8 +578,22 @@ exports.generateSigningLink = async (req, res) => {
       details: { type: r.type },
     });
 
+    // Send signing link email to representative
+    const repEmail = r.formData?.repEmail;
+    const repName = [r.formData?.repFirstName, r.formData?.repLastName].filter(Boolean).join(" ") || "Representative";
+    const requestOwner = await User.findById(r.userId).select("name").lean();
+    const requestorName = r.proxyRequestee?.isProxy ? r.proxyRequestee.fullName : requestOwner?.name;
+    const origin = req.headers.origin || req.headers.referer?.replace(/\/$/, "") || process.env.CLIENT_ORIGIN || "http://localhost:5173";
+    const signingLink = `${origin}/sign/${r.signingToken}`;
+
+    if (repEmail) {
+      sendSigningLinkEmail(repEmail, repName, requestorName, signingLink, r.signingTokenExpiresAt).catch((err) => {
+        console.error("Failed to send signing link email:", err.message);
+      });
+    }
+
     return res.json({
-      message: "Signing link generated",
+      message: "Signing link generated and sent to representative's email.",
       signingToken: r.signingToken,
       signingTokenExpiresAt: r.signingTokenExpiresAt,
       request: r,
@@ -728,6 +756,7 @@ exports.adminPhase3Action = async (req, res) => {
       // rep_revision_requested: generate new signing token
       r.signingToken = generateSigningTokenValue();
       r.signingTokenUsed = false;
+      r.signingTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       r.status = "agr_rep_revision_requested";
       r.remarks = remarks || "";
     }
@@ -739,7 +768,7 @@ exports.adminPhase3Action = async (req, res) => {
       action: action === "approve" ? "request_approved" : "request_revision_required",
       resourceType: "request",
       resourceId: String(id),
-      details: { newStatus: r.status },
+      details: { newStatus: r.status, type: r.type },
     });
 
     // Notify student
@@ -751,8 +780,25 @@ exports.adminPhase3Action = async (req, res) => {
       }
     }).catch(() => {});
 
+    // Send new signing link to representative on revision
+    if (action === "rep_revision_requested") {
+      const repEmail = r.formData?.repEmail;
+      const repName = [r.formData?.repFirstName, r.formData?.repLastName].filter(Boolean).join(" ") || "Representative";
+      const requestOwner = await User.findById(r.userId).select("name").lean();
+      const requestorName = r.proxyRequestee?.isProxy ? r.proxyRequestee.fullName : requestOwner?.name;
+      const origin = req.headers.origin || process.env.CLIENT_ORIGIN || "http://localhost:5173";
+      const signingLink = `${origin}/sign/${r.signingToken}`;
+      if (repEmail) {
+        sendSigningLinkEmail(repEmail, repName, requestorName, signingLink, r.signingTokenExpiresAt, true).catch((err) => {
+          console.error("Failed to send revision signing link email:", err.message);
+        });
+      }
+    }
+
     return res.json({
       message: action === "approve" ? "Agreement approved" : "Rep revision requested",
+      signingToken: action === "rep_revision_requested" ? r.signingToken : undefined,
+      signingTokenExpiresAt: action === "rep_revision_requested" ? r.signingTokenExpiresAt : undefined,
       request: r,
     });
   } catch (err) {

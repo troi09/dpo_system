@@ -28,12 +28,23 @@
   border-radius: 6px;
 }
 
+.headbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
 .headbar-brand-name {
-  font-size: 22px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--primary);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.headbar-brand-sub {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-top: 1px;
 }
 
 @media (max-width: 900px) {

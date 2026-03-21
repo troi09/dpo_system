@@ -269,8 +269,8 @@
 .landing-field {
   box-sizing: border-box;
   width: 100%;
-  height: 38px;
-  padding: 8px 12px;
+  height: 50px;
+  padding: 20px 12px 6px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);

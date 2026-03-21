@@ -82,7 +82,7 @@ const sendBrevoEmail = async ({ to, subject, htmlContent }) => {
  * Send a 6-digit OTP for login verification or password reset.
  */
 exports.sendOtpEmail = (email, otp, purpose = "login") => {
-  const label = purpose === "reset" ? "Password Reset" : "Login Verification";
+  const label = purpose === "reset" ? "Password Reset" : purpose === "change" ? "Password Change" : "Login Verification";
   return sendBrevoEmail({
     to: email,
     subject: `RTU DPO Portal – Your ${label} OTP`,
@@ -285,6 +285,62 @@ exports.sendPasswordChangedAlertEmail = (email, name, reason = "account security
       </div>
     `,
   });
+exports.sendSigningLinkEmail = (repEmail, repName, requestorName, signingLink, expiresAt, isRevision = false) => {
+  const expiryStr = expiresAt
+    ? new Date(expiresAt).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })
+    : "7 days";
+  const subject = isRevision
+    ? "RTU DPO Portal – Agreement Revision Required"
+    : "RTU DPO Portal – Agreement Signing Request";
+  const headerBg = isRevision ? "#92400e" : "#0f2d6b";
+  const bodyText = isRevision
+    ? `Your previously submitted agreement for the request by <strong>${requestorName || "an RTU student"}</strong> has been reviewed by the RTU Data Protection Office and requires revision. Please revisit and resubmit your response by clicking the link below:`
+    : `You have been designated as the authorized representative for an agreement request submitted by <strong>${requestorName || "an RTU student"}</strong> to the Rizal Technological University Data Protection Office. Please review the agreement by clicking the link below:`;
+  return sendBrevoEmail({
+    to: repEmail,
+    subject,
+    htmlContent: `
+      <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="background:${headerBg};padding:24px 32px">
+          <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
+        </div>
+        <div style="padding:32px">
+          <p style="color:#0f172a;font-size:15px;margin-top:0">Dear <strong>${repName || "Representative"}</strong>,</p>
+          <p style="color:#475569;font-size:14px">${bodyText}</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="${signingLink}" style="background:${headerBg};color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;display:inline-block">Continue</a>
+          </div>
+          <p style="color:#64748b;font-size:13px">This link is valid until <strong>${expiryStr}</strong> and can only be used once. Do not share it with anyone.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+          <p style="color:#94a3b8;font-size:12px;margin:0">If you were not expecting this email, please disregard it or contact the RTU Data Protection Office.</p>
+        </div>
+      </div>`,
+  });
+};
+
+exports.sendAgreementApprovedEmail = (repEmail, repName, requestorName, documentUrl, verificationUrl) =>
+  sendBrevoEmail({
+    to: repEmail,
+    subject: "RTU DPO Portal – Agreement Approved",
+    htmlContent: `
+      <div style="font-family:Inter,sans-serif;max-width:480px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="background:#065f46;padding:24px 32px">
+          <h1 style="color:#fff;margin:0;font-size:18px">RTU Data Protection Office</h1>
+        </div>
+        <div style="padding:32px">
+          <p style="color:#0f172a;font-size:15px;margin-top:0">Dear <strong>${repName || "Representative"}</strong>,</p>
+          <p style="color:#475569;font-size:14px">We are pleased to inform you that the agreement request submitted by <strong>${requestorName || "an RTU student"}</strong>, for which you served as the authorized representative, has been reviewed and <strong>officially approved</strong> by the RTU Data Protection Office.</p>
+          <p style="color:#475569;font-size:14px">You may access and download the approved agreement document using the button below:</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="${documentUrl}" style="background:#065f46;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;display:inline-block">View Approved Document</a>
+          </div>
+          ${verificationUrl ? `<p style="color:#64748b;font-size:13px;text-align:center">You may also verify document authenticity at: <a href="${verificationUrl}" style="color:#0f2d6b">${verificationUrl}</a></p>` : ""}
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+          <p style="color:#94a3b8;font-size:12px;margin:0">This is an automated notification from the RTU Data Protection Office. Please do not reply to this email.</p>
+        </div>
+      </div>`,
+  });
+
 exports.sendBrevoEmail = sendBrevoEmail;
 exports.EmailDeliveryError = EmailDeliveryError;
 
