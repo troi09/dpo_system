@@ -422,7 +422,7 @@ export default function AdminUsers() {
                 </div>
 
                 {/* Footer */}
-                <div className="user-edit-modal__footer">
+                <div className="user-edit-modal__footer" style={{ justifyContent: "flex-end" }}>
                   <button className="ui-btn ui-btn--primary" onClick={() => setConfirmEdit(true)} disabled={actionId === editingUser._id}>
                     {actionId === editingUser._id ? "Saving…" : "Save Changes"}
                   </button>

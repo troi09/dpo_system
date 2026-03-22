@@ -31,10 +31,7 @@ const ACTION_LABELS = {
   password_changed: "Password Changed",
   password_reset_requested: "Password Reset Requested",
   password_reset_triggered_by_admin: "Password Reset (Admin)",
-  user_activated: "User Activated",
-  user_deactivated: "User Deactivated",
   user_updated: "User Updated",
-  user_deleted: "User Deleted",
   signing_link_generated: "Signing Link Generated",
   rep_signature_submitted: "Representative Signature Submitted",
   rep_signature_declined: "Representative Signature Declined",
@@ -138,18 +135,12 @@ const formatAuditDetails = (log) => {
         : `${actor} requested a password reset OTP.`;
     case "password_reset_triggered_by_admin":
       return `${actor} reset the password for ${details.targetEmail || "a user"}.`;
-    case "user_activated":
-      return `${actor} reactivated the account of ${details.targetEmail || "a user"}.`;
-    case "user_deactivated":
-      return `${actor} deactivated the account of ${details.targetEmail || "a user"}.`;
     case "user_updated": {
       const fields = Array.isArray(details.fields)
         ? details.fields.map((f) => FIELD_LABELS[f] || f.replace(/_/g, " ")).join(", ")
         : "account details";
       return `${actor} updated ${details.targetEmail ? `${details.targetEmail}'s` : "a user's"} ${fields}.`;
     }
-    case "user_deleted":
-      return `${actor} permanently deleted the account of ${details.targetEmail || "a user"}.`;
     default:
       if (typeof log.details === "string" && log.details.trim()) return log.details;
       return "No additional details were recorded.";
@@ -201,8 +192,10 @@ export default function AdminAuditLog() {
     setPage(1);
   };
 
+  const HIDDEN_ACTIONS = new Set(["user_activated", "user_deactivated", "user_deleted"]);
+
   const filtered = useMemo(() => {
-    let result = logs;
+    let result = logs.filter((l) => !HIDDEN_ACTIONS.has(l.action));
 
     if (dateMode === "preset" && preset !== "all") {
       const now = new Date();
@@ -254,10 +247,7 @@ export default function AdminAuditLog() {
     { label: "Request Resubmitted", value: "request_resubmitted" },
     { label: "Password Changed", value: "password_changed" },
     { label: "Password Reset", value: "password_reset_requested" },
-    { label: "User Activated", value: "user_activated" },
-    { label: "User Deactivated", value: "user_deactivated" },
     { label: "User Updated", value: "user_updated" },
-    { label: "User Deleted", value: "user_deleted" },
     { label: "Email Verified", value: "email_verified" },
     { label: "Signing Link Generated", value: "signing_link_generated" },
     { label: "Representative Signature Submitted", value: "rep_signature_submitted" },
