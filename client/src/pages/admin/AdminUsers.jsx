@@ -6,7 +6,6 @@ import {
   getAllUsers,
   adminCreateUser,
   adminUpdateUser,
-  adminDeleteUser,
 } from "../../services/authService";
 import PasswordChecklist from "../../components/PasswordChecklist";
 import "../../components/FloatingLabel.css";
@@ -32,7 +31,6 @@ export default function AdminUsers() {
   const [creating, setCreating] = useState(false);
   const [actionId, setActionId] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
-  const [deletingUser, setDeletingUser] = useState(null);
   const [editForm, setEditForm] = useState({ role: "student", isActive: true });
 
   const [form, setForm] = useState({ firstName: "", middleName: "", lastName: "", email: "", role: "student", password: "" });
@@ -100,21 +98,6 @@ export default function AdminUsers() {
       await load();
     } catch (err) {
       notify(err.response?.data?.message || "Failed to update user.", { type: "error", title: "Failed" });
-    } finally {
-      setActionId(null);
-    }
-  };
-
-  const handleDeleteUser = async () => {
-    if (!deletingUser) return;
-    setActionId(deletingUser._id);
-    try {
-      await adminDeleteUser(deletingUser._id);
-      notify("User deleted successfully.", { type: "success", title: "Success" });
-      setDeletingUser(null);
-      await load();
-    } catch (err) {
-      notify(err.response?.data?.message || "Failed to delete user.", { type: "error", title: "Failed" });
     } finally {
       setActionId(null);
     }
@@ -440,12 +423,6 @@ export default function AdminUsers() {
 
                 {/* Footer */}
                 <div className="user-edit-modal__footer">
-                  <button
-                    className="ui-btn ui-btn--danger"
-                    onClick={() => { setEditingUser(null); setDeletingUser(editingUser); }}
-                  >
-                    Delete User
-                  </button>
                   <button className="ui-btn ui-btn--primary" onClick={() => setConfirmEdit(true)} disabled={actionId === editingUser._id}>
                     {actionId === editingUser._id ? "Saving…" : "Save Changes"}
                   </button>
@@ -491,22 +468,6 @@ export default function AdminUsers() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {deletingUser && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
-              <h3 className="modal-title">Confirm Delete User</h3>
-              <p className="modal-text">Are you sure you want to permanently delete this user?</p>
-              <p className="modal-text"><strong>{deletingUser.name}</strong> &mdash; <strong>{ROLE_LABELS[deletingUser.role] || deletingUser.role}</strong></p>
-              <p className="modal-text"><strong>{deletingUser.email}</strong></p>
-              <div className="modal-actions">
-                <button className="ui-btn ui-btn--secondary" onClick={() => setDeletingUser(null)}>Cancel</button>
-                <button className="ui-btn ui-btn--danger" onClick={handleDeleteUser}>Delete Permanently</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
