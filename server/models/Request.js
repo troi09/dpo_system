@@ -7,8 +7,10 @@ const predocSchema = new mongoose.Schema(
     path:             { type: String },
     contentType:      { type: String },
     uploadedAt:       { type: String },
-    requirementLabel: { type: String, default: "" },
-    requestFolder:    { type: String, default: "" },
+    requirementLabel:   { type: String, default: "" },
+    requestFolder:      { type: String, default: "" },
+    isResubmission:     { type: Boolean, default: false },
+    resubmissionRound:  { type: Number, default: 0 },
   },
   { _id: false }
 );
@@ -75,6 +77,11 @@ const requestSchema = new mongoose.Schema(
       path:             { type: String, default: "" },
       issuedAt:         { type: String, default: "" },
       verificationUrl:  { type: String, default: "" },
+    },
+
+    resubmissionCount: {
+      type: Number,
+      default: 0,
     },
 
     remarks: {

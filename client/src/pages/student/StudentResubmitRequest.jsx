@@ -68,23 +68,9 @@ export default function StudentResubmitRequest() {
       return;
     }
 
-    for (const f of cfg.fields) {
-      if (f.required && !String(formData[f.name] || "").trim()) {
-        notify(`${f.label} is required`, { type: "warning" });
-        return;
-      }
-    }
-
-    for (let i = 0; i < cfg.fileSlots.length; i++) {
-      if (cfg.fileSlots[i].required && !files[i]) {
-        notify(`${cfg.fileSlots[i].label} is required`, { type: "warning" });
-        return;
-      }
-    }
-
     const selectedFiles = files.filter(Boolean);
     if (selectedFiles.length === 0) {
-      notify("Please upload at least 1 file.", { type: "warning" });
+      notify("Please upload at least 1 revised file.", { type: "warning" });
       return;
     }
 
@@ -229,7 +215,6 @@ export default function StudentResubmitRequest() {
                         <input
                           value={formData[f.name] || ""}
                           onChange={(e) => onChangeField(f.name, e.target.value)}
-                          required={f.required}
                           placeholder=" "
                           className="fl-input request-input"
                         />
@@ -252,7 +237,6 @@ export default function StudentResubmitRequest() {
                       <input
                         value={formData[f.name] || ""}
                         onChange={(e) => onChangeField(f.name, e.target.value)}
-                        required={f.required}
                         placeholder=" "
                         className="fl-input request-input"
                       />
@@ -296,7 +280,6 @@ export default function StudentResubmitRequest() {
               <div className="request-file-info">
                 <div className="request-file-title">
                   {cfg.fileSlots[index]?.label || `Attach file ${index + 1}`}
-                  {cfg.fileSlots[index]?.required ? " *" : ""}
                 </div>
                 <div className="request-file-subtitle">{file ? file.name : "No file selected"}</div>
               </div>

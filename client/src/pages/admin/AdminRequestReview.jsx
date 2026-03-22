@@ -238,20 +238,46 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
 
       <div className="review-section">
         <h4 className="review-section-title">Attachments</h4>
-        {reqData.predocs?.length ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {reqData.predocs.map((f, idx) => (
-              <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
-                <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
-              </a>
-            ))}
-          </div>
-        ) : (
-          <div className="review-info-box">
-            <span className="review-info-box--muted">No files.</span>
-          </div>
-        )}
+        {(() => {
+          const initialDocs = reqData.predocs?.filter((f) => !f.isResubmission) ?? [];
+          return initialDocs.length ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {initialDocs.map((f, idx) => (
+                <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
+                  <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="review-info-box">
+              <span className="review-info-box--muted">No files.</span>
+            </div>
+          );
+        })()}
       </div>
+
+      {(() => {
+        const rounds = {};
+        (reqData.predocs || []).filter((f) => f.isResubmission).forEach((f) => {
+          const r = f.resubmissionRound || 1;
+          if (!rounds[r]) rounds[r] = [];
+          rounds[r].push(f);
+        });
+        return Object.keys(rounds).sort((a, b) => a - b).map((round) => (
+          <div key={round} className="review-section">
+            <h4 className="review-section-title">
+              Resubmitted Attachments{Object.keys(rounds).length > 1 ? ` (Round ${round})` : ""}
+            </h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {rounds[round].map((f, idx) => (
+                <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
+                  <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                </a>
+              ))}
+            </div>
+          </div>
+        ));
+      })()}
 
       {isRevision && (
         <div className="review-section">
@@ -545,20 +571,46 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
       {/* Requestor Attachments */}
       <div className="review-section">
         <h4 className="review-section-title">Requestor Attachments</h4>
-        {reqData.predocs?.length ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {reqData.predocs.map((f, idx) => (
-              <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
-                <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
-              </a>
-            ))}
-          </div>
-        ) : (
-          <div className="review-info-box">
-            <span className="review-info-box--muted">No files.</span>
-          </div>
-        )}
+        {(() => {
+          const initialDocs = reqData.predocs?.filter((f) => !f.isResubmission) ?? [];
+          return initialDocs.length ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {initialDocs.map((f, idx) => (
+                <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
+                  <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="review-info-box">
+              <span className="review-info-box--muted">No files.</span>
+            </div>
+          );
+        })()}
       </div>
+
+      {(() => {
+        const rounds = {};
+        (reqData.predocs || []).filter((f) => f.isResubmission).forEach((f) => {
+          const r = f.resubmissionRound || 1;
+          if (!rounds[r]) rounds[r] = [];
+          rounds[r].push(f);
+        });
+        return Object.keys(rounds).sort((a, b) => a - b).map((round) => (
+          <div key={round} className="review-section">
+            <h4 className="review-section-title">
+              Resubmitted Attachments{Object.keys(rounds).length > 1 ? ` (Round ${round})` : ""}
+            </h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {rounds[round].map((f, idx) => (
+                <a key={idx} href={f.url} target="_blank" rel="noreferrer" className="review-file-link">
+                  <Paperclip size={14} strokeWidth={1.8} aria-hidden="true" /> {f.requirementLabel || f.origName || `File ${idx + 1}`}
+                </a>
+              ))}
+            </div>
+          </div>
+        ));
+      })()}
 
       {/* Representative */}
       <div className="review-section">

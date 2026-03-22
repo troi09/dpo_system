@@ -220,7 +220,11 @@ exports.resubmitRequest = async (req, res) => {
     }
 
     r.formData = formData && typeof formData === "object" ? formData : r.formData;
-    r.predocs = Array.isArray(predocs) ? predocs : [];
+    r.resubmissionCount = (r.resubmissionCount || 0) + 1;
+    const markedNew = Array.isArray(predocs)
+      ? predocs.map((p) => ({ ...p, isResubmission: true, resubmissionRound: r.resubmissionCount }))
+      : [];
+    r.predocs = [...(r.predocs || []), ...markedNew];
     r.status = r.type === "agreement" ? "agr_pending_1" : "nda_pending";
     r.remarks = "";
     r.postdocs = { url: "", path: "", issuedAt: "", verificationUrl: "" };
