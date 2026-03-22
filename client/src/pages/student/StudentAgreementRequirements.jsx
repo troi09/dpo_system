@@ -1,6 +1,25 @@
 import { useNavigate } from "react-router-dom";
-import { FileSignature } from "lucide-react";
+import { FileSignature, Info } from "lucide-react";
 import "../../components/TypeChooser.css";
+
+function LoiTooltip({ content }) {
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 6, verticalAlign: "middle" }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className="loi-tooltip-trigger">
+        <Info size={13} style={{ color: "var(--text-muted)", cursor: "pointer" }} />
+        <span className="loi-tooltip-box">
+          <strong style={{ display: "block", marginBottom: 4, fontSize: 11 }}>Authorization Letter should include:</strong>
+          {content.map((item, i) => (
+            <span key={i} style={{ display: "block", fontSize: 11, lineHeight: 1.5 }}>• {item}</span>
+          ))}
+        </span>
+      </span>
+    </span>
+  );
+}
 
 export default function StudentAgreementRequirements({
   formPath = "/student/new-request/agreement/form",
@@ -34,7 +53,7 @@ export default function StudentAgreementRequirements({
           </span>
           <span className="type-chooser-req-title">Requestor Requirements:</span>
           <ul className="type-chooser-req-list" aria-label="Requestor requirements">
-            <li>Notarized Authorization Letter</li>
+            <li>Notarized Authorization Letter<LoiTooltip content={["Scope of authority granted to the representative", "If located outside the Philippines — must be consular-notarized"]} /></li>
             <li>Government Issued Valid ID</li>
           </ul>
           <span className="type-chooser-req-title">Representative Requirements:</span>

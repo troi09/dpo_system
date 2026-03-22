@@ -25,17 +25,12 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
     email: "",
   });
   const [files, setFiles] = useState(() => Array(cfg.fileSlots.length).fill(null));
-  const [outsidePH, setOutsidePH] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const sigPadRef = useRef(null);
 
-  const fileSlots = useMemo(() => {
-    const slots = [...cfg.fileSlots];
-    if (outsidePH) slots[0] = { ...slots[0], label: "Consular Notarized Authorization" };
-    return slots;
-  }, [cfg.fileSlots, outsidePH]);
+  const fileSlots = cfg.fileSlots;
 
   const onChangeField = (name, value) =>
     setFormData((p) => ({ ...p, [name]: value }));
@@ -138,7 +133,7 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
 
       await createRequest({
         type: "agreement",
-        formData: { ...formData, outsidePH },
+        formData,
         predocs,
         authorizerSigUrl,
         authorizerSigPath,
@@ -251,24 +246,6 @@ export default function StudentAgreementRequest({ proxyMode = false, fallbackPat
         {/* Section 2: Requirements */}
         <div className="request-section">
           <div className="request-section-title">Requirements (Agreement)</div>
-          {/* Outside Philippines checkbox — affects first requirement label */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <input
-              type="checkbox"
-              id="outsidePH"
-              checked={outsidePH}
-              onChange={(e) => setOutsidePH(e.target.checked)}
-              style={{ width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: "var(--primary)" }}
-            />
-            <label htmlFor="outsidePH" style={{ cursor: "pointer", fontSize: 13, color: "var(--text-primary)", margin: 0 }}>
-              The requestor is located outside of the Philippines
-            </label>
-          </div>
-          {outsidePH && (
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: -6, paddingLeft: 26 }}>
-              The authorization letter must be consular-notarized (apostilled or authenticated by the Philippine Embassy/Consulate).
-            </div>
-          )}
           {files.map((file, index) => (
             <div key={index} className="request-file-row">
               <div className="request-file-info">

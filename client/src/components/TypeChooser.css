@@ -196,6 +196,35 @@
   color: var(--primary);
 }
 
+/* ── LOI tooltip ── */
+.loi-tooltip-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.loi-tooltip-box {
+  display: none;
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 10px 12px;
+  width: 220px;
+  color: var(--text-primary);
+  text-align: left;
+  pointer-events: none;
+}
+
+.loi-tooltip-trigger:hover .loi-tooltip-box {
+  display: block;
+}
+
 @media (max-width: 500px) {
   .type-chooser-grid {
     flex-direction: column;
