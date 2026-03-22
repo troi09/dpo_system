@@ -236,7 +236,7 @@ const Landing = () => {
           return;
         }
         login(data.user);
-        navigate(data.user.role === "student" ? "/student" : "/admin");
+        navigate(data.user.role === "student" ? "/student" : "/admin/requests");
         return;
       }
       if (!isLogin && !isStrongPassword(form.password)) {
@@ -278,7 +278,7 @@ const Landing = () => {
     try {
       const data = await verifyLoginOtp(pendingEmail, loginOtp.trim());
       login(data.user);
-      navigate(data.user.role === "student" ? "/student" : "/admin");
+      navigate(data.user.role === "student" ? "/student" : "/admin/requests");
     } catch (err) {
       notify(err.response?.data?.message || "Invalid or expired OTP.", { type: "error", title: "Failed" });
     } finally {

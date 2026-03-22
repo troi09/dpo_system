@@ -140,7 +140,7 @@ function App() {
               path="/"
               element={
                 user
-                  ? <Navigate to={user.role === "student" ? "/student" : "/admin"} replace />
+                  ? <Navigate to={user.role === "student" ? "/student" : "/admin/requests"} replace />
                   : <Landing />
               }
             />
