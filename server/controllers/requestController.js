@@ -168,11 +168,13 @@ exports.createRequest = async (req, res) => {
     if (type === "agreement") {
       createPayload.authorizerSigUrl = authorizerSigUrl || "";
       createPayload.authorizerSigPath = authorizerSigPath || "";
+      createPayload.studentSignedAt = new Date();
     }
 
     if (type === "nda") {
       createPayload.studentSigUrl = studentSigUrl || "";
       createPayload.studentSigPath = studentSigPath || "";
+      createPayload.studentSignedAt = new Date();
     }
 
     const created = await Request.create(createPayload);
@@ -232,11 +234,13 @@ exports.resubmitRequest = async (req, res) => {
     if (r.type === "agreement" && authorizerSigUrl) {
       r.authorizerSigUrl = authorizerSigUrl;
       r.authorizerSigPath = authorizerSigPath || "";
+      r.studentSignedAt = new Date();
     }
 
     if (r.type === "nda" && studentSigUrl) {
       r.studentSigUrl = studentSigUrl;
       r.studentSigPath = studentSigPath || "";
+      r.studentSignedAt = new Date();
     }
 
     await r.save();
@@ -458,6 +462,7 @@ exports.updateRequestStatus = async (req, res) => {
     if (status === "nda_approved" && existing.type === "nda" && adminSigUrl) {
       updatePayload.adminSigUrl = adminSigUrl;
       updatePayload.adminSigPath = adminSigPath || "";
+      updatePayload.adminSignedAt = new Date();
     }
 
     const updated = await Request.findByIdAndUpdate(id, updatePayload, { new: true }).select("-__v");
@@ -673,6 +678,7 @@ exports.repSubmit = async (req, res) => {
     };
     r.repSigUrl = repSigUrl;
     r.repSigPath = repSigPath || "";
+    r.repSignedAt = new Date();
     r.signingTokenUsed = true;
     r.status = "agr_pending_2";
     r.remarks = "";
@@ -919,6 +925,71 @@ exports.getArchivedRequests = async (req, res) => {
       .select("-__v")
       .lean();
     res.json(list);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── Admin: retention policy stats ───────────────────────────────────────────
+
+const RETENTION_YEARS = 5;
+
+exports.getRetentionStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - RETENTION_YEARS);
+
+    const approachingCutoff = new Date();
+    approachingCutoff.setFullYear(approachingCutoff.getFullYear() - (RETENTION_YEARS - 1));
+
+    const [totalArchived, totalActive, approachingRetention, lastArchived] = await Promise.all([
+      Request.countDocuments({ isArchived: true }),
+      Request.countDocuments({ $or: [{ isArchived: false }, { isArchived: { $exists: false } }] }),
+      Request.countDocuments({
+        $or: [{ isArchived: false }, { isArchived: { $exists: false } }],
+        createdAt: { $lte: approachingCutoff },
+      }),
+      Request.findOne({ isArchived: true }).sort({ archivedAt: -1 }).select("archivedAt").lean(),
+    ]);
+
+    const eligibleForArchive = await Request.countDocuments({
+      $or: [{ isArchived: false }, { isArchived: { $exists: false } }],
+      createdAt: { $lte: cutoff },
+    });
+
+    res.json({
+      retentionYears: RETENTION_YEARS,
+      totalArchived,
+      totalActive,
+      approachingRetention,
+      eligibleForArchive,
+      lastArchivedAt: lastArchived?.archivedAt || null,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.runArchiveNow = async (req, res) => {
+  try {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - RETENTION_YEARS);
+
+    const result = await Request.updateMany(
+      {
+        $and: [
+          { $or: [{ isArchived: false }, { isArchived: { $exists: false } }] },
+          { createdAt: { $lte: cutoff } },
+        ],
+      },
+      { $set: { isArchived: true, archivedAt: new Date() } }
+    );
+
+    res.json({
+      message: `Archived ${result.modifiedCount} request(s).`,
+      archivedCount: result.modifiedCount,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

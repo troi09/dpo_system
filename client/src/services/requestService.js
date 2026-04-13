@@ -98,3 +98,13 @@ export const getArchivedRequests = async () => {
   const res = await axios.get(`${API_URL}/archived`, { headers: authHeader() });
   return res.data;
 };
+
+export const getRetentionStats = async () => {
+  const res = await axios.get(`${API_URL}/retention-stats`, { headers: authHeader() });
+  return res.data;
+};
+
+export const runArchiveNow = async () => {
+  const res = await axios.post(`${API_URL}/run-archive`, {}, { headers: authHeader() });
+  return res.data;
+};

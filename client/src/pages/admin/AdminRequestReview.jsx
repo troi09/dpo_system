@@ -300,6 +300,11 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
               <span className="review-info-box--muted">No approved document uploaded.</span>
             </div>
           )}
+          {reqData.adminSignedAt && (
+            <span style={{ display: "block", marginTop: 6, fontSize: 11, color: "var(--text-muted)" }}>
+              Admin signed on {new Date(reqData.adminSignedAt).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
         </div>
       )}
 
@@ -310,6 +315,11 @@ function NdaReviewPanel({ reqData, canProgress, onRequestUpdated }) {
           <div className="review-sig-wrap">
             <img src={reqData.studentSigUrl} alt="Student signature" className="review-sig-img" width="560" height="180" loading="lazy" decoding="async" />
             <span className="review-sig-name">{reqData.userId?.name}</span>
+            {reqData.studentSignedAt && (
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                Signed on {new Date(reqData.studentSignedAt).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -667,6 +677,11 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
             <div style={{ width: 220, borderTop: "1px solid var(--border-strong)", textAlign: "center", paddingTop: 6, fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
               {reqData.userId?.name || "—"}
             </div>
+            {reqData.studentSignedAt && (
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                Signed on {new Date(reqData.studentSignedAt).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
           </div>
 
           {/* Representative agreement section — hidden during rep revision, shown once rep re-submits */}
@@ -689,6 +704,11 @@ function AgreementReviewPanel({ reqData, canProgress, onRequestUpdated }) {
                 <div style={{ width: 220, borderTop: "1px solid var(--border-strong)", textAlign: "center", paddingTop: 6, fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
                   {reqData.repInfo?.name || "—"}
                 </div>
+                {reqData.repSignedAt && (
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                    Signed on {new Date(reqData.repSignedAt).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
               </div>
             </>
           )}

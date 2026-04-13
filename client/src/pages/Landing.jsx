@@ -174,10 +174,33 @@ function ForgotPasswordFlow({ onCancel }) {
 
 const Landing = () => {
   const [mode, setMode] = useState("login"); // "login" | "register" | "forgot"
-  const [form, setForm] = useState({ firstName: "", middleInitial: "", lastName: "", email: "", password: "" });
+  const [form, setForm] = useState({ firstName: "", middleInitial: "", lastName: "", email: "", password: "", program: "" });
+
+  const PROGRAMS = [
+    "BS Accountancy",
+    "BS Architecture",
+    "BS Business Administration",
+    "BS Civil Engineering",
+    "BS Computer Science",
+    "BS Information Technology",
+    "BS Nursing",
+    "BS Psychology",
+    "BS Tourism Management",
+    "Bachelor of Secondary Education",
+  ];
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [programOpen, setProgramOpen] = useState(false);
+  const programRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (programRef.current && !programRef.current.contains(e.target)) setProgramOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   const [hasMounted, setHasMounted] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
   const { login } = useContext(AuthContext);
@@ -211,7 +234,7 @@ const Landing = () => {
 
   const onChange = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
   const resetForm = () => {
-    setForm({ firstName: "", middleInitial: "", lastName: "", email: "", password: "" });
+    setForm({ firstName: "", middleInitial: "", lastName: "", email: "", password: "", program: "" });
     setOtpStep(false);
     setLoginOtp("");
     setPendingEmail("");
@@ -243,12 +266,18 @@ const Landing = () => {
         setLoading(false);
         return;
       }
+      if (!form.program) {
+        notify("Please select your program/course.", { type: "warning" });
+        setLoading(false);
+        return;
+      }
       const res = await axios.post(`${API_URL}/register`, {
         firstName: form.firstName,
         middleInitial: form.middleInitial,
         lastName: form.lastName,
         email: form.email,
         password: form.password,
+        program: form.program,
       });
       if (res.data.requireVerification) {
         navigate(`/verify-email?email=${encodeURIComponent(res.data.email)}`);
@@ -465,6 +494,36 @@ const Landing = () => {
                       <input id="landing-lastname" type="text" placeholder=" " value={form.lastName} onChange={onChange("lastName")} required className="fl-input landing-field" />
                       <label className="fl-label fl-label--glass">Last Name</label>
                     </div>
+                  </div>
+                )}
+
+                {!isLogin && (
+                  <div className="landing-field-group fl-wrap" ref={programRef}>
+                    <button
+                      type="button"
+                      className="landing-field landing-program-trigger"
+                      data-open={programOpen}
+                      onClick={() => setProgramOpen((p) => !p)}
+                    >
+                      <span className="landing-program-value">{form.program || ""}</span>
+                    </button>
+                    <label className="fl-label fl-label--glass landing-program-label" data-active={!!(form.program || programOpen)}>
+                      Program / Course
+                    </label>
+                    {programOpen && (
+                      <div className="landing-program-menu">
+                        {PROGRAMS.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`filter-select__option${form.program === p ? " filter-select__option--active" : ""}`}
+                            onClick={() => { onChange("program")({ target: { value: p } }); setProgramOpen(false); }}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

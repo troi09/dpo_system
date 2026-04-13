@@ -54,6 +54,8 @@ const userSchema = new mongoose.Schema({
   // Password reset
   resetToken: { type: String, default: null },
   resetTokenExpiry: { type: Date, default: null },
+  // Program/course
+  program: { type: String, trim: true, default: "" },
   // Trusted devices for context-aware OTP
   trustedDevices: { type: [trustedDeviceSchema], default: [] },
 }, { timestamps: true });

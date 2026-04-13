@@ -1,7 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Search, Filter, RefreshCw } from "lucide-react";
-import { getArchivedRequests } from "../../services/requestService";
+import { useContext, useEffect, useState, useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Search, Filter, RefreshCw, ShieldCheck, Clock, Archive, AlertTriangle, Play } from "lucide-react";
+import { getArchivedRequests, getRetentionStats, runArchiveNow } from "../../services/requestService";
+import { AuthContext } from "../../context/AuthContext";
+import { notify } from "../../utils/inPageFeedback";
 import FilterSelect from "../../components/FilterSelect";
 
 const STATUS_LABEL = {
@@ -13,9 +15,14 @@ const prettyStatus = (s) =>
   STATUS_LABEL[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "—");
 
 export default function AdminArchives() {
+  const { user } = useContext(AuthContext);
+  const isAdmin = user?.role === "admin";
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [retentionStats, setRetentionStats] = useState(null);
+  const [archiving, setArchiving] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,8 +42,12 @@ export default function AdminArchives() {
     setLoading(true);
     if (withToast) setRefreshing(true);
     try {
-      const data = await getArchivedRequests();
+      const [data, stats] = await Promise.all([
+        getArchivedRequests(),
+        isAdmin ? getRetentionStats() : Promise.resolve(null),
+      ]);
       setRequests(data);
+      if (stats) setRetentionStats(stats);
     } catch (err) {
       console.error(err);
     } finally {
@@ -46,6 +57,20 @@ export default function AdminArchives() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleRunArchive = async () => {
+    setShowArchiveConfirm(false);
+    setArchiving(true);
+    try {
+      const result = await runArchiveNow();
+      notify(result.message, { type: "success", title: "Archive Complete" });
+      load();
+    } catch (err) {
+      notify(err.response?.data?.message || "Failed to run archive.", { type: "error" });
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   useEffect(() => {
     const onResize = () => { if (window.innerWidth >= 768) setIsFilterOpen(true); };
@@ -138,6 +163,64 @@ export default function AdminArchives() {
 
   return (
     <div className="page-shell">
+
+      {/* ── Retention Policy Panel (admin only) ── */}
+      {isAdmin && retentionStats && (
+        <div className="dashboard-card" style={{ marginBottom: 16, padding: "18px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <ShieldCheck size={18} strokeWidth={1.8} style={{ color: "var(--primary)" }} />
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Retention Policy</h3>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 14 }}>
+            <div style={{ padding: "12px 14px", background: "var(--bg)", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginBottom: 4 }}>Retention Period</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{retentionStats.retentionYears} Years</div>
+            </div>
+            <div style={{ padding: "12px 14px", background: "var(--bg)", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginBottom: 4 }}>Active Requests</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{retentionStats.totalActive}</div>
+            </div>
+            <div style={{ padding: "12px 14px", background: "var(--bg)", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginBottom: 4 }}>Total Archived</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{retentionStats.totalArchived}</div>
+            </div>
+            <div style={{ padding: "12px 14px", background: "var(--bg)", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginBottom: 4 }}>Last Archived</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>
+                {retentionStats.lastArchivedAt
+                  ? new Date(retentionStats.lastArchivedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+                  : "Never"}
+              </div>
+            </div>
+          </div>
+
+          {retentionStats.approachingRetention > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--s-warning-bg)", border: "1px solid var(--s-warning-dot)", borderRadius: "var(--radius-md)", fontSize: 13, color: "var(--s-warning-text)", marginBottom: 14 }}>
+              <AlertTriangle size={14} />
+              <span><strong>{retentionStats.approachingRetention}</strong> request(s) approaching the {retentionStats.retentionYears}-year retention limit.</span>
+            </div>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", maxWidth: 480 }}>
+              Per institutional policy under RA 10173, requests older than {retentionStats.retentionYears} years are automatically archived.
+              {retentionStats.eligibleForArchive > 0
+                ? ` ${retentionStats.eligibleForArchive} request(s) currently eligible.`
+                : " No requests currently eligible for archiving."}
+            </p>
+            <button
+              type="button"
+              className="ui-btn ui-btn--primary"
+              style={{ fontSize: 13, gap: 6, display: "inline-flex", alignItems: "center" }}
+              onClick={() => setShowArchiveConfirm(true)}
+              disabled={archiving || retentionStats.eligibleForArchive === 0}
+            >
+              <Play size={13} />
+              {archiving ? "Archiving…" : "Run Archive Now"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Toolbar ── */}
       <div className="req-toolbar">
@@ -352,6 +435,25 @@ export default function AdminArchives() {
           </table>
         </div>
       </div>
+
+      {/* ── Archive Confirmation Modal ── */}
+      <AnimatePresence>
+        {showArchiveConfirm && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-card" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>
+              <h3 className="modal-title">Run Archive</h3>
+              <p className="modal-text">
+                This will archive <strong>{retentionStats?.eligibleForArchive || 0}</strong> request(s) that have exceeded
+                the {retentionStats?.retentionYears || 5}-year retention period. This action cannot be undone from the UI.
+              </p>
+              <div className="modal-actions">
+                <button className="ui-btn ui-btn--secondary" onClick={() => setShowArchiveConfirm(false)} disabled={archiving}>Cancel</button>
+                <button className="ui-btn ui-btn--primary" onClick={handleRunArchive} disabled={archiving}>{archiving ? "Archiving…" : "Confirm"}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

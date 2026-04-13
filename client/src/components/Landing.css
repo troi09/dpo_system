@@ -301,6 +301,77 @@
   pointer-events: none;
 }
 
+/* ── Program / Course Custom Dropdown ── */
+.landing-program-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  padding-right: 32px;
+}
+
+.landing-program-trigger::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #666;
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+
+.landing-program-trigger[data-open="true"]::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.landing-program-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-top: 10px;
+}
+
+.landing-program-label {
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: top 0.15s ease, font-size 0.15s ease, transform 0.15s ease;
+}
+
+.landing-program-label[data-active="true"] {
+  top: 7px;
+  transform: none;
+  font-size: 10px;
+  color: #000;
+  font-weight: 700;
+}
+
+.landing-program-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
 /* ── Password Toggle ── */
 .landing-password-wrap {
   position: relative;

@@ -123,7 +123,7 @@ const sendResetOtpToUser = async (user, { enforceCooldown = false } = {}) => {
 // REGISTER
 exports.register = async (req, res) => {
   try {
-    const { firstName, middleInitial, lastName, name, email, password } = req.body;
+    const { firstName, middleInitial, lastName, name, email, password, program } = req.body;
 
     // Support both structured names and legacy single-name field
     const resolvedFirstName = String(firstName || "").trim();
@@ -165,6 +165,7 @@ exports.register = async (req, res) => {
       lastName: resolvedLastName,
       email: email.toLowerCase(),
       password: hashedPassword,
+      program: String(program || "").trim(),
       isVerified: false,
       otp: hashedOtp,
       otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 min

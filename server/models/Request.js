@@ -136,6 +136,11 @@ const requestSchema = new mongoose.Schema(
     adminSigUrl:    { type: String, default: "" },
     adminSigPath:   { type: String, default: "" },
 
+    // Signature timestamps
+    studentSignedAt: { type: Date, default: null },
+    adminSignedAt:   { type: Date, default: null },
+    repSignedAt:     { type: Date, default: null },
+
     // 5-year retention / archiving
     isArchived: { type: Boolean, default: false },
     archivedAt: { type: Date, default: null },

@@ -19,6 +19,8 @@ const {
   getSignatureImages,
   getRequestStats,
   getArchivedRequests,
+  getRetentionStats,
+  runArchiveNow,
 } = require("../controllers/requestController");
 
 // ── Public ─────────────────────────────────────────────────────────────────
@@ -38,6 +40,8 @@ router.patch("/:id/resubmit", protect, resubmitRequest);
 router.get("/all", protect, authorizeRoles("admin", "staff"), getAllRequests);
 router.get("/stats", protect, authorizeRoles("admin", "staff"), getRequestStats);
 router.get("/archived", protect, authorizeRoles("admin", "staff"), getArchivedRequests);
+router.get("/retention-stats", protect, authorizeRoles("admin"), getRetentionStats);
+router.post("/run-archive", protect, authorizeRoles("admin"), runArchiveNow);
 router.patch("/:id/approved-document", protect, authorizeRoles("admin", "staff"), saveApprovedDocument);
 
 // Agreement-specific admin actions
